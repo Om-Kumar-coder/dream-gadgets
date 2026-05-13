@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, Globe, GlobeOff } from 'lucide-react';
+import { Plus, Globe, EyeOff } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -153,7 +153,7 @@ export default function InventoryPage() {
           item.isOnline ? 'text-green-600 hover:text-red-500' : 'text-gray-400 hover:text-green-600'
         }`}
       >
-        {item.isOnline ? <Globe className="w-4 h-4" /> : <GlobeOff className="w-4 h-4" />}
+        {item.isOnline ? <Globe className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
     );
   };

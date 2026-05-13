@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Mail, WhatsApp, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Mail, MessageCircle, Trash2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -37,6 +37,7 @@ type Sale = {
   saleType: string;
   saleDate: string;
   isVoided: boolean;
+  voidedAt?: string;
   items: {
     id: string;
     itemId: string;
@@ -290,7 +291,7 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
                 disabled={sale.isVoided || whatsappInvoice.isPending}
                 className="flex items-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <WhatsApp className="w-4 h-4" /> WhatsApp Invoice
+                <MessageCircle className="w-4 h-4" /> WhatsApp Invoice
               </button>
               {!sale.isVoided && (
                 <button
