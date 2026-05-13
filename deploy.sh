@@ -81,6 +81,15 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
   }
 
+  # Admin panel static assets (must come BEFORE generic static rule)
+  location /admin/_next/ {
+    proxy_pass http://localhost:$ADMIN_PORT;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
   # Admin panel (port 3002) — Next.js has basePath: '/admin' so pass full path
   location /admin {
     proxy_pass http://localhost:$ADMIN_PORT;
@@ -110,8 +119,8 @@ server {
     proxy_read_timeout 60s;
   }
 
-  # Static asset caching
-  location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)\$ {
+  # Web static asset caching (web app only — admin assets handled above)
+  location ~* ^(?!/admin/).*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
     expires 1y;
     add_header Cache-Control "public, immutable";
     proxy_pass http://localhost:$WEB_PORT;
