@@ -17,7 +17,10 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await apiClient.post('/auth/login', form);
+      const { data } = await apiClient.post('/auth/login', {
+        identifier: form.identifier,
+        password: form.password,
+      });
       const { accessToken, refreshToken } = data.data;
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
       setTokens(accessToken, refreshToken, payload);

@@ -31,13 +31,14 @@ export default function LoginPage() {
     setError('');
     try {
       const { data } = await apiClient.post('/auth/login', {
-        email: values.identifier.includes('@') ? values.identifier : undefined,
-        phone: !values.identifier.includes('@') ? values.identifier : undefined,
+        identifier: values.identifier,
         password: values.password,
       });
       const { accessToken, refreshToken, user } = data.data;
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', refreshToken);
+      // Also set cookie so middleware can read it
+      document.cookie = `admin_access_token=${accessToken}; path=/; max-age=900; SameSite=Lax`;
       setTokens(accessToken, refreshToken, user);
       router.push('/dashboard');
     } catch (err: any) {

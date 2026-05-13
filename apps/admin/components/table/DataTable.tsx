@@ -34,8 +34,8 @@ interface DataTableProps<TData, TFilter> {
     onClick: (row: TData) => void;
     visible?: (row: TData) => boolean;
   }[];
-  renderEmptyState?: (table: ReactTable<TData>) => React.ReactNode;
-  renderNoResults?: (table: ReactTable<TData>) => React.ReactNode;
+  renderEmptyState?: (table?: ReactTable<TData>) => React.ReactNode;
+  renderNoResults?: (table?: ReactTable<TData>) => React.ReactNode;
   pageSize?: number;
   className?: string;
 }
@@ -98,8 +98,16 @@ export function DataTable<TData, TFilter>({
     },
   });
 
-  const tableData = useMemo(() => data?.data?.items ?? [], [data]);
-  const total = data?.data?.total ?? 0;
+  const tableData = useMemo(() => {
+    // After TransformInterceptor: { status, data: [...], meta: { total } }
+    // axios wraps in response.data, so we get: data = { status, data: [...], meta }
+    const payload = data;
+    if (!payload) return [];
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload)) return payload;
+    return [];
+  }, [data]);
+  const total = data?.meta?.total ?? (Array.isArray(data?.data) ? data.data.length : 0);
 
   const table = useReactTable({
     data: tableData,

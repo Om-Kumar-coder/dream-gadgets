@@ -11,18 +11,30 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for token in cookies (set by login) or rely on client-side redirect
-  const token = request.cookies.get('admin_access_token')?.value;
+  // Check cookie (set by login page) OR allow through (client-side auth handles redirect)
+  const token =
+    request.cookies.get('admin_access_token')?.value ||
+    request.cookies.get('admin-auth-storage')?.value;
 
+  // If no cookie at all, redirect to login
+  // But allow _next assets and API routes through always
   if (!token) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
+    // Check if this looks like a direct page navigation (not an asset)
+    const isPageRequest =
+      !pathname.startsWith('/_next') &&
+      !pathname.startsWith('/api') &&
+      !pathname.includes('.');
+
+    if (isPageRequest) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
+import { useAdminAuthStore } from '@/store/auth.store';
 
 interface BillItem {
   id: string;
@@ -40,6 +41,8 @@ const CONDITION_LABELS: Record<string, string> = {
 
 export default function POSPage() {
   const router = useRouter();
+  const { user } = useAdminAuthStore();
+  const branchId = user?.branchId ?? '';
   const [searchQuery, setSearchQuery] = useState('');
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [payments, setPayments] = useState<PaymentSplit[]>([{ method: 'cash', amount: 0 }]);
@@ -98,8 +101,8 @@ export default function POSPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       const { data } = await apiClient.post('/sales', {
-        branchId: 'default-branch-id', // TODO: Get from user context
-        clientId: undefined, // Walk-in sale
+        branchId: branchId || undefined,
+        clientId: undefined,
         items: billItems.map((i) => ({
           itemId: i.id,
           unitPrice: i.price,
