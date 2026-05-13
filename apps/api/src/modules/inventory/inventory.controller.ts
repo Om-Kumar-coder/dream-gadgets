@@ -52,6 +52,20 @@ export class InventoryController {
     return this.inventoryService.getCityStock(modelId);
   }
 
+  @Get('brands')
+  @RequirePermission('inventory.view')
+  @ApiOperation({ summary: 'List all brands' })
+  async getBrands() {
+    return this.inventoryService.getBrands();
+  }
+
+  @Get('models')
+  @RequirePermission('inventory.view')
+  @ApiOperation({ summary: 'List models, optionally filtered by brandId' })
+  async getModels(@Query('brandId') brandId?: string) {
+    return this.inventoryService.getModels(brandId);
+  }
+
   @Post('bulk-import')
   @RequirePermission('inventory.create')
   @ApiOperation({ summary: 'Bulk import inventory items from CSV' })

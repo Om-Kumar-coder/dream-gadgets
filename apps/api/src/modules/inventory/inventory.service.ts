@@ -347,9 +347,19 @@ export class InventoryService {
     return { created, errors };
   }
 
-  // ─── 5.10 Price suggestion ──────────────────────────────────────────────────
+  // ─── Brands & Models lookup ─────────────────────────────────────────────────
 
-  async getPriceSuggestion(modelId: string, condition: string): Promise<{ median: number | null; count: number }> {
+  async getBrands(): Promise<Brand[]> {
+    return this.brandRepo.find({ where: { isActive: true }, order: { name: 'ASC' } });
+  }
+
+  async getModels(brandId?: string): Promise<Model[]> {
+    const where: any = { isActive: true };
+    if (brandId) where.brandId = brandId;
+    return this.modelRepo.find({ where, order: { name: 'ASC' } });
+  }
+
+  // ─── 5.10 Price suggestion ──────────────────────────────────────────────────  async getPriceSuggestion(modelId: string, condition: string): Promise<{ median: number | null; count: number }> {
     const result = await this.dataSource.query(
       `SELECT
          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY si.unit_price) AS median,
