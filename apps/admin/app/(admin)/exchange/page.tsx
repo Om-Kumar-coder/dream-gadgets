@@ -129,7 +129,7 @@ export default function ExchangePage() {
       <DataTable<Exchange, any>
         columns={columns}
         queryKey={['exchanges', search]}
-        apiEndpoint="/exchange"
+        apiEndpoint="/exchanges"
         enableSorting={true}
         enableFilters={true}
         enablePagination={true}
