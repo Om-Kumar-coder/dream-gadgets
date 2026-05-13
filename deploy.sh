@@ -311,7 +311,7 @@ EOF
   # Run migrations
   info "Running database migrations..."
   cd "$APP_DIR/apps/api"
-  npm run migration:run
+  npx ts-node -r tsconfig-paths/register run-migrations.ts
   cd "$APP_DIR"
 
   # Build all apps
@@ -423,7 +423,7 @@ cmd_update() {
 
   info "Running migrations..."
   cd "$APP_DIR/apps/api"
-  npm run migration:run
+  npx ts-node -r tsconfig-paths/register run-migrations.ts
   cd "$APP_DIR"
 
   info "Building all apps..."
