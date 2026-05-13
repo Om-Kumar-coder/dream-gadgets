@@ -1,0 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy workspace manifests
+COPY package.json turbo.json ./
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN npm install
+
+# Copy source
+COPY apps/admin ./apps/admin
+COPY packages ./packages
+
+WORKDIR /app/apps/admin
+
+EXPOSE 3002
+
+CMD ["npm", "run", "dev"]

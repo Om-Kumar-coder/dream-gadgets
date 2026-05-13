@@ -1,0 +1,460 @@
+
+> dev
+> turbo run dev
+
+• turbo 2.9.4
+
+   • Packages in scope: @dream-gadgets/admin, @dream-gadgets/api, @dream-gadgets/shared-types, @dream-gadgets/ui, @dream-gadgets/web
+   • Running dev in 5 packages
+   • Remote caching disabled
+
+@dream-gadgets/admin:dev: cache bypass, force executing 97585ac9078a098b
+@dream-gadgets/web:dev: cache bypass, force executing c10be7009ddbc367
+@dream-gadgets/api:dev: cache bypass, force executing cb5ad2d9ea8fd860
+@dream-gadgets/web:dev: 
+@dream-gadgets/web:dev: > @dream-gadgets/web@0.0.1 dev
+@dream-gadgets/web:dev: > next dev -p 3001
+@dream-gadgets/web:dev: 
+@dream-gadgets/admin:dev: 
+@dream-gadgets/admin:dev: > @dream-gadgets/admin@0.0.1 dev
+@dream-gadgets/admin:dev: > next dev -p 3002
+@dream-gadgets/admin:dev: 
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: > @dream-gadgets/api@0.0.1 dev
+@dream-gadgets/api:dev: > nest start --watch
+@dream-gadgets/api:dev: 
+@dream-gadgets/web:dev:  ⨯ Failed to start server
+@dream-gadgets/web:dev: Error: listen EADDRINUSE: address already in use :::3001
+@dream-gadgets/web:dev:     at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+@dream-gadgets/web:dev:     at listenInCluster (node:net:1997:12)
+@dream-gadgets/web:dev:     at Server.listen (node:net:2102:7)
+@dream-gadgets/web:dev:     at C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:280:16
+@dream-gadgets/web:dev:     at new Promise (<anonymous>)
+@dream-gadgets/web:dev:     at startServer (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:191:11)
+@dream-gadgets/web:dev:     at C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:310:52
+@dream-gadgets/web:dev:     at Span.traceAsyncFn (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\trace\trace.js:154:26)
+@dream-gadgets/web:dev:     at process.<anonymous> (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:310:35)
+@dream-gadgets/web:dev:     at process.emit (node:events:508:28) {
+@dream-gadgets/web:dev:   code: 'EADDRINUSE',
+@dream-gadgets/web:dev:   errno: -4091,
+@dream-gadgets/web:dev:   syscall: 'listen',
+@dream-gadgets/web:dev:   address: '::',
+@dream-gadgets/web:dev:   port: 3001
+@dream-gadgets/web:dev: }
+@dream-gadgets/admin:dev:  ⨯ Failed to start server
+@dream-gadgets/admin:dev: Error: listen EADDRINUSE: address already in use :::3002
+@dream-gadgets/admin:dev:     at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+@dream-gadgets/web:dev: [?25h
+@dream-gadgets/admin:dev:     at listenInCluster (node:net:1997:12)
+@dream-gadgets/admin:dev:     at Server.listen (node:net:2102:7)
+@dream-gadgets/admin:dev:     at C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:280:16
+@dream-gadgets/admin:dev:     at new Promise (<anonymous>)
+@dream-gadgets/admin:dev:     at startServer (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:191:11)
+@dream-gadgets/admin:dev:     at C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:310:52
+@dream-gadgets/admin:dev:     at Span.traceAsyncFn (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\trace\trace.js:154:26)
+@dream-gadgets/admin:dev:     at process.<anonymous> (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\next\dist\server\lib\start-server.js:310:35)
+@dream-gadgets/admin:dev:     at process.emit (node:events:508:28) {
+@dream-gadgets/admin:dev:   code: 'EADDRINUSE',
+@dream-gadgets/admin:dev:   errno: -4091,
+@dream-gadgets/admin:dev:   syscall: 'listen',
+@dream-gadgets/admin:dev:   address: '::',
+@dream-gadgets/admin:dev:   port: 3002
+@dream-gadgets/admin:dev: }
+@dream-gadgets/admin:dev: [?25h
+@dream-gadgets/api:dev: [2J[3J[H[[90m4:28:35 pm[0m] Starting compilation in watch mode...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/config/app.config.ts[0m:[93m15[0m:[93m2[0m - [91merror[0m[90m TS1005: [0m';' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m ));
+@dream-gadgets/api:dev: [7m  [0m [91m ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m4:28:49 pm[0m] Found 1 error. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m4:49:42 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/config/app.config.ts[0m:[93m15[0m:[93m2[0m - [91merror[0m[90m TS1005: [0m';' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m ));
+@dream-gadgets/api:dev: [7m  [0m [91m ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m4:49:44 pm[0m] Found 1 error. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:05:33 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/app.module.ts[0m:[93m7[0m:[93m8[0m - [91merror[0m[90m TS1192: [0mModule '"C:/Users/Administrator/Desktop/Dream Gadgets/apps/api/src/config/app.config"' has no default export.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m7[0m import appConfig from './config/app.config';
+@dream-gadgets/api:dev: [7m [0m [91m       ~~~~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:05:41 pm[0m] Found 1 error. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:09:45 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:09:49 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:12:24 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:12:29 pm[0m] Found 0 errors. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: (node:1224) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+@dream-gadgets/api:dev: (Use `node --trace-deprecation ...` to show where the warning was created)
+@dream-gadgets/api:dev: (node:9948) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+@dream-gadgets/api:dev: (Use `node --trace-deprecation ...` to show where the warning was created)
+@dream-gadgets/api:dev: [32m[Nest] 9948  - [39m12/05/2026, 5:12:47 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+@dream-gadgets/api:dev: [32m[Nest] 9948  - [39m12/05/2026, 5:12:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +126ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 9948  - [39m12/05/2026, 5:12:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 9948  - [39m12/05/2026, 5:12:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [31m[Nest] 9948  - [39m12/05/2026, 5:12:47 pm [31m  ERROR[39m [38;5;3m[ExceptionHandler] [39m[31mNest can't resolve dependencies of the ReturnService (ReturnRepository, SaleRepository, SaleItemRepository, ?, PurchaseRepository, InventoryItemRepository, ConfigService, DataSource). Please make sure that the argument "PaymentRepository" at index [3] is available in the ReturnModule context.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: Potential solutions:
+@dream-gadgets/api:dev: - Is ReturnModule a valid NestJS module?
+@dream-gadgets/api:dev: - If "PaymentRepository" is a provider, is it part of the current ReturnModule?
+@dream-gadgets/api:dev: - If "PaymentRepository" is exported from a separate @Module, is that module imported within ReturnModule?
+@dream-gadgets/api:dev:   @Module({
+@dream-gadgets/api:dev:     imports: [ /* the Module containing "PaymentRepository" */ ]
+@dream-gadgets/api:dev:   })
+@dream-gadgets/api:dev: [39m
+@dream-gadgets/api:dev: Error: Nest can't resolve dependencies of the ReturnService (ReturnRepository, SaleRepository, SaleItemRepository, ?, PurchaseRepository, InventoryItemRepository, ConfigService, DataSource). Please make sure that the argument "PaymentRepository" at index [3] is available in the ReturnModule context.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: Potential solutions:
+@dream-gadgets/api:dev: - Is ReturnModule a valid NestJS module?
+@dream-gadgets/api:dev: - If "PaymentRepository" is a provider, is it part of the current ReturnModule?
+@dream-gadgets/api:dev: - If "PaymentRepository" is exported from a separate @Module, is that module imported within ReturnModule?
+@dream-gadgets/api:dev:   @Module({
+@dream-gadgets/api:dev:     imports: [ /* the Module containing "PaymentRepository" */ ]
+@dream-gadgets/api:dev:   })
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev:     at Injector.lookupComponentInParentModules (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:262:19)
+@dream-gadgets/api:dev:     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+@dream-gadgets/api:dev:     at async Injector.resolveComponentInstance (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:215:33)
+@dream-gadgets/api:dev:     at async resolveParam (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:129:38)
+@dream-gadgets/api:dev:     at async Promise.all (index 3)
+@dream-gadgets/api:dev:     at async Injector.resolveConstructorParams (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:144:27)
+@dream-gadgets/api:dev:     at async Injector.loadInstance (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:70:13)
+@dream-gadgets/api:dev:     at async Injector.loadProvider (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\injector.js:98:9)
+@dream-gadgets/api:dev:     at async C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\injector\instance-loader.js:56:13
+@dream-gadgets/api:dev:     at async Promise.all (index 3)
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:16:11 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m15[0m:[93m80[0m - [91merror[0m[90m TS1137: [0mExpression or comma expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                               ~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m15[0m:[93m87[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                      ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m15[0m:[93m99[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                  ~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m15[0m:[93m104[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m15[0m:[93m138[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m15[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                                                         ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m19[0m:[93m18[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m19[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, Payment]),
+@dream-gadgets/api:dev: [7m  [0m [91m                 ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m20[0m:[93m3[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m20[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m  ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m20[0m:[93m4[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m20[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m   ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:16:13 pm[0m] Found 8 errors. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:16:33 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m16[0m:[93m80[0m - [91merror[0m[90m TS1137: [0mExpression or comma expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m16[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                               ~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m16[0m:[93m87[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m16[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                      ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m16[0m:[93m99[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m16[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                  ~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m16[0m:[93m104[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m16[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m16[0m:[93m138[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m16[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                                                         ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m20[0m:[93m18[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m20[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, Payment]),
+@dream-gadgets/api:dev: [7m  [0m [91m                 ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m21[0m:[93m3[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m21[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m  ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m21[0m:[93m4[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m21[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m   ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:16:35 pm[0m] Found 8 errors. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:16:56 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m17[0m:[93m80[0m - [91merror[0m[90m TS1137: [0mExpression or comma expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m17[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                               ~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m17[0m:[93m87[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m17[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                      ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m17[0m:[93m99[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m17[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                  ~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m17[0m:[93m104[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m17[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m17[0m:[93m138[0m - [91merror[0m[90m TS1005: [0m':' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m17[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, import { Payment } from '../sales/entities/payment.entity';
+@dream-gadgets/api:dev: [7m  [0m [91m                                                                                                                                         ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m21[0m:[93m18[0m - [91merror[0m[90m TS1005: [0m',' expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m21[0m     TypeOrmModule.forFeature([Return, Sale, SaleItem, Purchase, InventoryItem, Payment]),
+@dream-gadgets/api:dev: [7m  [0m [91m                 ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m22[0m:[93m3[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m22[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m  ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [96msrc/modules/returns/return.module.ts[0m:[93m22[0m:[93m4[0m - [91merror[0m[90m TS1136: [0mProperty assignment expected.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [7m22[0m   ],
+@dream-gadgets/api:dev: [7m  [0m [91m   ~[0m
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:16:57 pm[0m] Found 8 errors. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [2J[3J[H[[90m5:18:13 pm[0m] File change detected. Starting incremental compilation...
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: [[90m5:18:15 pm[0m] Found 0 errors. Watching for file changes.
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: (node:13032) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+@dream-gadgets/api:dev: (Use `node --trace-deprecation ...` to show where the warning was created)
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +102ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:25 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRealtimeModule dependencies initialized[39m[38;5;3m +2237ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:25 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +26ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:25 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +67ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:25 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:25 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +54ms[39m
+@dream-gadgets/api:dev: query: SELECT version()
+@dream-gadgets/api:dev: query: SELECT * FROM current_schema()
+@dream-gadgets/api:dev: query: CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[ReportService] [39m[32mReport BullMQ queue initialized[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[SearchService] [39m[32mSearch BullMQ queue initialized[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmCoreModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +5ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +5ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSearchModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[NotificationService] [39m[32mNotification BullMQ queue initialized[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +8ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReportModule dependencies initialized[39m[38;5;3m +10ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAccessoryModule dependencies initialized[39m[38;5;3m +4ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPurchaseModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSalesModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mClientModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTransferModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExchangeModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReturnModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPaymentModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RealtimeGateway] [39m[32mWebSocket Gateway initialized[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mRealtimeGateway subscribed to the "ping" message[39m[38;5;3m +5ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mRealtimeGateway subscribed to the "join-branch" message[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +4ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +6ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/register, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/send-otp, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/forgot-password, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/reset-password, POST} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInventoryController {/api/v1/inventory}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/price-suggestion, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/city-stock, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/bulk-import, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/imei/:imei, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory, GET} route[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/:id/photos, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/:id/photos/:photoId, DELETE} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/inventory/:id/toggle-online, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAccessoryController {/api/v1}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/sku/:sku, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/:id/stock, PATCH} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/:id/toggle-online, PATCH} route[39m[38;5;3m +13ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/accessories/low-stock, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPurchaseController {/api/v1/purchases}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases/:id, PATCH} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases/:id/invoice, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSalesController {/api/v1/sales}:[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id, GET} route[39m[38;5;3m +4ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/invoice, GET} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/invoice/thermal, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/invoice/email, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/invoice/whatsapp, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/void, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/lock-item, POST} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/unlock-item, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mClientController {/api/v1/clients}:[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id/history, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id/ekyc, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id/ekyc/verify, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id/send-email, POST} route[39m[38;5;3m +4ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/clients/:id/send-whatsapp, POST} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTransferController {/api/v1/transfers}:[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers/:id, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers/:id/receive, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers/:id/reject, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/transfers/:id/manifest, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExchangeController {/api/v1/exchanges}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges/price-guide, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges/price-suggestion, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/exchanges/:id/add-inventory, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReturnController {/api/v1}:[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/return, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchases/:id/return, POST} route[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/returns, GET} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/returns/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/returns/:id/pdf, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPaymentController {/api/v1}:[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/payments/razorpay/order, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/webhooks/razorpay, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/payments/razorpay/refund, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/payments/:id, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sales/:id/payments, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReportController {/api/v1/reports}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/dashboard, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/weekly-sales, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/stock-by-condition, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/:type/excel, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/:type/pdf, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reports/:type/async, GET} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/v1/admin}:[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/users, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/users, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/users/:id, DELETE} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/roles, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/roles, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/roles/:id/permissions, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/branches, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/branches, POST} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/branches/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/settings, GET} route[39m[38;5;3m +3ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/settings/:key, GET} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/settings/:key, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/banners, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/banners, POST} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/banners/:id, PATCH} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/banners/:id, DELETE} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/pages, GET} route[39m[38;5;3m +0ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/pages, POST} route[39m[38;5;3m +2ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/pages/:id, PATCH} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/pages/:id, DELETE} route[39m[38;5;3m +1ms[39m
+@dream-gadgets/api:dev: [32m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +23ms[39m
+@dream-gadgets/api:dev: [31m[Nest] 13032  - [39m12/05/2026, 5:18:27 pm [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +6ms[39m
+@dream-gadgets/api:dev: node:net:1940
+@dream-gadgets/api:dev:     const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+@dream-gadgets/api:dev:                ^
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: Error: listen EADDRINUSE: address already in use :::3000
+@dream-gadgets/api:dev:     at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+@dream-gadgets/api:dev:     at listenInCluster (node:net:1997:12)
+@dream-gadgets/api:dev:     at Server.listen (node:net:2102:7)
+@dream-gadgets/api:dev:     at ExpressAdapter.listen (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\platform-express\adapters\express-adapter.js:95:32)
+@dream-gadgets/api:dev:     at C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\nest-application.js:183:30
+@dream-gadgets/api:dev:     at new Promise (<anonymous>)
+@dream-gadgets/api:dev:     at NestApplication.listen (C:\Users\Administrator\Desktop\Dream Gadgets\node_modules\@nestjs\core\nest-application.js:173:16)
+@dream-gadgets/api:dev:     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+@dream-gadgets/api:dev:     at async bootstrap (C:\Users\Administrator\Desktop\Dream Gadgets\apps\api\src\main.ts:42:3) {
+@dream-gadgets/api:dev:   code: 'EADDRINUSE',
+@dream-gadgets/api:dev:   errno: -4091,
+@dream-gadgets/api:dev:   syscall: 'listen',
+@dream-gadgets/api:dev:   address: '::',
+@dream-gadgets/api:dev:   port: 3000
+@dream-gadgets/api:dev: }
+@dream-gadgets/api:dev: 
+@dream-gadgets/api:dev: Node.js v24.13.1

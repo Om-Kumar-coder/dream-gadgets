@@ -1,0 +1,16 @@
+const CONDITION_CONFIG: Record<string, { label: string; className: string }> = {
+  sealed_pack: { label: 'Sealed', className: 'bg-violet-600 text-white' },
+  open_box: { label: 'Open Box', className: 'bg-blue-600 text-white' },
+  super_mint: { label: 'Super Mint', className: 'bg-emerald-500 text-white' },
+  mint: { label: 'Mint', className: 'bg-teal-500 text-white' },
+  good: { label: 'Good', className: 'bg-amber-500 text-white' },
+};
+
+export function ConditionBadge({ condition }: { condition: string }) {
+  const config = CONDITION_CONFIG[condition] ?? { label: condition, className: 'bg-gray-500 text-white' };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${config.className}`}>
+      {config.label}
+    </span>
+  );
+}
