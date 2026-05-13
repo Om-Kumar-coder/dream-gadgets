@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@dream-gadgets/ui', '@dream-gadgets/shared-types'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.dreamgadgets.in' },
