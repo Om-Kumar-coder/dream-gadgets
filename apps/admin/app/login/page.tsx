@@ -37,7 +37,7 @@ export default function LoginPage() {
       const { accessToken, refreshToken, user } = data.data;
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', refreshToken);
-      // Also set cookie so middleware can read it
+      // Cookie path must be / so middleware (which runs before basePath stripping) can read it
       document.cookie = `admin_access_token=${accessToken}; path=/; max-age=900; SameSite=Lax`;
       setTokens(accessToken, refreshToken, user);
       router.push('/dashboard');

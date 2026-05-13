@@ -1,24 +1,32 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// These are relative to basePath (/admin)
+// With basePath: '/admin', Next.js strips the basePath from pathname
+// So pathname here is relative — e.g. '/', '/dashboard', '/login'
 const PUBLIC_PATHS = ['/login'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths (relative to basePath)
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+  // Always allow public paths and Next.js internals
+  if (
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/')) ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  // Check for token cookie set by login
+  // Check for auth cookie
   const token = request.cookies.get('admin_access_token')?.value;
 
   if (!token) {
-    const loginUrl = new URL('/admin/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
+    // Redirect to /login (relative to basePath — Next.js prepends basePath automatically)
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('from', pathname);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

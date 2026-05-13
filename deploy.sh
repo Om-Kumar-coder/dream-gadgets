@@ -143,7 +143,7 @@ run_health_checks() {
     pm2 logs dream-gadgets-web --lines 15 --nostream || true
   fi
 
-  if curl -s -o /dev/null -w "%{http_code}" http://localhost:$ADMIN_PORT 2>/dev/null | grep -q "200"; then
+  if curl -s -o /dev/null -w "%{http_code}" http://localhost:$ADMIN_PORT/admin/login 2>/dev/null | grep -q "200\|304"; then
     info "✅ Admin panel responding on :$ADMIN_PORT"
   else
     warn "⚠️  Admin not responding on :$ADMIN_PORT"
