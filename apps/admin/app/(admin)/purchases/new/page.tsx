@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Scan, Upload, Lightbulb, ArrowLeft } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { Button } from '@dream-gadgets/ui';
 
 const purchaseSchema = z.object({
   imei: z.string().length(15, 'IMEI must be 15 digits').regex(/^\d+$/, 'IMEI must be numeric'),

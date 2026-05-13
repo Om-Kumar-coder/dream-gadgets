@@ -192,12 +192,13 @@ export default function SalesPage() {
           <h1 className="text-xl font-semibold text-gray-900">Sales</h1>
           <p className="text-sm text-gray-500">All completed transactions</p>
         </div>
-        <Button variant="default" size="md" asChild>
-          <Link href="/sales/pos">
-            <Plus className="w-4 h-4" />
-            New Sale (POS)
-          </Link>
-        </Button>
+        <Link
+          href="/sales/pos"
+          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          New Sale (POS)
+        </Link>
       </div>
 
       <DataTable<Sale, any>

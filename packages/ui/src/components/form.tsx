@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Label } from '@radix-ui/react-label';
-import { Input } from './input';
+import { Button } from './button';
 
 interface FormFieldProps {
   label: string;

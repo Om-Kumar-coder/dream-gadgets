@@ -152,11 +152,14 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="default" size="md" asChild>
-            <a href={`/api/v1/sales/${sale.id}/invoice`} target="_blank" rel="noreferrer">
-              <FileText className="w-4 h-4" /> Download PDF
-            </a>
-          </Button>
+          <a
+            href={`/api/v1/sales/${sale.id}/invoice`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FileText className="w-4 h-4" /> Download PDF
+          </a>
         </div>
       </div>
 

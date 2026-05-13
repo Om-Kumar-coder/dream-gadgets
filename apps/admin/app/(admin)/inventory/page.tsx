@@ -165,12 +165,13 @@ export default function InventoryPage() {
           <h1 className="text-xl font-semibold text-gray-900">Inventory</h1>
           <p className="text-sm text-gray-500">All inventory items</p>
         </div>
-        <Button variant="default" size="md" asChild>
-          <Link href="/purchases/new">
-            <Plus className="w-4 h-4" />
-            Add Item
-          </Link>
-        </Button>
+        <Link
+          href="/purchases/new"
+          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Item
+        </Link>
       </div>
 
       <DataTable<InventoryItem, any>
