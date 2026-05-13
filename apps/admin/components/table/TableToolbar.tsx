@@ -34,10 +34,10 @@ export function TableToolbar<TData>({
           </div>
         )}
 
-        {enableFilters && table.getColumnFilters().length > 0 && (
+        {enableFilters && table.getState().columnFilters.length > 0 && (
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium">Filters applied:</span>
-            {table.getColumnFilters().map((filter) => (
+            {table.getState().columnFilters.map((filter) => (
               <span key={filter.id} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
                 {filter.id}: {String(filter.value)}
               </span>
