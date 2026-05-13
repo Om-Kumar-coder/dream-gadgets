@@ -17,10 +17,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[#0A0A0A] text-white`}>
         <Providers>
           <Header />
-          {children}
+          <main className="min-h-screen bg-cyber-grid">{children}</main>
           <Footer />
           <WhatsAppButton />
         </Providers>

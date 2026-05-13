@@ -3,19 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Boxes,
-  Users,
-  ArrowLeftRight,
-  RefreshCw,
-  ShoppingBag,
-  RotateCcw,
-  BarChart2,
-  UserCog,
-  Settings,
-  Smartphone,
+  LayoutDashboard, ShoppingCart, Package, Boxes, Users,
+  ArrowLeftRight, RefreshCw, ShoppingBag, RotateCcw,
+  BarChart2, UserCog, Settings, Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,13 +28,17 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col">
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-700">
-        <Smartphone className="w-5 h-5 text-blue-400" />
-        <span className="font-bold text-white">Dream Gadgets</span>
+    <aside className="w-60 min-h-screen bg-[#0A0A0A] border-r border-[#2a2a2a] flex flex-col">
+      {/* Logo */}
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-[#2a2a2a]">
+        <div className="w-7 h-7 rounded-lg bg-[#FF2D2D] flex items-center justify-center">
+          <Smartphone className="w-4 h-4 text-white" />
+        </div>
+        <span className="font-bold text-white tracking-wide">Dream Gadgets</span>
       </div>
 
-      <nav className="flex-1 py-4 space-y-0.5 px-2">
+      {/* Nav */}
+      <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -52,18 +46,30 @@ export function AdminSidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group',
                 active
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                  ? 'bg-[#FF2D2D]/10 text-[#FF2D2D] border border-[#FF2D2D]/30'
+                  : 'text-gray-500 hover:text-[#00FF9C] hover:bg-[#00FF9C]/5',
               )}
+              style={active ? { boxShadow: '0 0 8px rgba(255,45,45,0.2)' } : {}}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className={cn(
+                'w-4 h-4 shrink-0 transition-colors',
+                active ? 'text-[#FF2D2D]' : 'text-gray-600 group-hover:text-[#00FF9C]',
+              )} />
               {label}
+              {active && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF2D2D]" />
+              )}
             </Link>
           );
         })}
       </nav>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-[#2a2a2a]">
+        <p className="text-xs text-gray-700">v1.0.0 · Admin Panel</p>
+      </div>
     </aside>
   );
 }

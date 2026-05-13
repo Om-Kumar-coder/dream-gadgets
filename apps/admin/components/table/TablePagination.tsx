@@ -11,61 +11,36 @@ export function TablePagination({ table, total }: TablePaginationProps) {
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
+  const btnClass = 'px-3 py-1 rounded border border-[#2a2a2a] text-xs text-gray-500 hover:border-[#00FF9C] hover:text-[#00FF9C] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[#2a2a2a] disabled:hover:text-gray-500';
+
   return (
-    <div className="flex items-center justify-between text-sm text-gray-500">
+    <div className="flex items-center justify-between text-sm text-gray-600">
       <div className="flex items-center gap-4">
-        <span>
-          Showing <span className="font-medium text-gray-900">{start}</span>–
-          <span className="font-medium text-gray-900">{end}</span> of{' '}
-          <span className="font-medium text-gray-900">{total}</span>
+        <span className="text-xs">
+          Showing <span className="text-white font-medium">{start}</span>–
+          <span className="text-white font-medium">{end}</span> of{' '}
+          <span className="text-[#00FF9C] font-medium">{total}</span>
         </span>
         <select
           value={pageSize}
-          onChange={(e) => {
-            table.setPageSize(Number(e.target.value));
-          }}
-          className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(e) => table.setPageSize(Number(e.target.value))}
+          className="bg-[#0f0f0f] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-gray-400 focus:outline-none focus:border-[#00FF9C] transition-colors"
         >
-          <option value={10}>10 per page</option>
-          <option value={20}>20 per page</option>
-          <option value={50}>50 per page</option>
-          <option value={100}>100 per page</option>
+          {[10, 20, 50, 100].map(n => (
+            <option key={n} value={n}>{n} per page</option>
+          ))}
         </select>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => table.setPageIndex(0)}
-          disabled={!table.getCanPreviousPage()}
-          className="px-3 py-1 border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-        >
-          « First
-        </button>
-        <button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          className="px-3 py-1 border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-        >
-          ← Prev
-        </button>
-        <span className="px-2">
-          Page <span className="font-medium">{page}</span> of{' '}
-          <span className="font-medium">{table.getPageCount()}</span>
+      <div className="flex items-center gap-1.5">
+        <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className={btnClass}>« First</button>
+        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className={btnClass}>← Prev</button>
+        <span className="px-3 py-1 text-xs text-gray-400">
+          Page <span className="text-white font-medium">{page}</span> of{' '}
+          <span className="text-white font-medium">{table.getPageCount()}</span>
         </span>
-        <button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          className="px-3 py-1 border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-        >
-          Next →
-        </button>
-        <button
-          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-          disabled={!table.getCanNextPage()}
-          className="px-3 py-1 border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-        >
-          Last »
-        </button>
+        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className={btnClass}>Next →</button>
+        <button onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className={btnClass}>Last »</button>
       </div>
     </div>
   );

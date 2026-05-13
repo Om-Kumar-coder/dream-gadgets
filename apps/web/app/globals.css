@@ -4,31 +4,71 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 71% 4%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 262 83% 96%;
-    --accent-foreground: 262 83% 38%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+    --border: 0 0% 16%;
     --radius: 0.75rem;
+  }
+
+  * { border-color: #2a2a2a; }
+
+  body {
+    background-color: #0A0A0A;
+    color: #FFFFFF;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0A0A0A; }
+  ::-webkit-scrollbar-thumb { background: #FF2D2D; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #00FF9C; }
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-black/60 backdrop-blur-sm border border-[#2a2a2a] rounded-xl;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .cyber-input {
+    @apply w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600
+           focus:outline-none focus:border-[#00FF9C] focus:ring-1 focus:ring-[#00FF9C] transition-all duration-200;
+  }
+  .cyber-input:focus { box-shadow: 0 0 8px rgba(0,255,156,0.3); }
+
+  .cyber-btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-[#0A0A0A] border border-[#FF2D2D] text-white transition-all duration-200;
+  }
+  .cyber-btn:hover {
+    box-shadow: 0 0 12px rgba(0,255,156,0.5);
+    border-color: #00FF9C;
+    color: #00FF9C;
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent;
+  .bg-cyber-grid {
+    background-image:
+      linear-gradient(rgba(255,45,45,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,45,45,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
-  .card-hover {
-    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
+
+  .text-cyber-red { color: #FF2D2D; }
+  .text-cyber-green { color: #00FF9C; }
+  .glow-green { box-shadow: 0 0 10px #00FF9C, 0 0 20px rgba(0,255,156,0.3); }
+  .glow-red { box-shadow: 0 0 10px #FF2D2D, 0 0 20px rgba(255,45,45,0.3); }
+
+  .text-gradient-cyber {
+    background: linear-gradient(135deg, #FF2D2D, #00FF9C);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  .section-pad {
-    @apply py-16 px-4;
-  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px #00FF9C, 0 0 10px rgba(0,255,156,0.3); }
+  50% { box-shadow: 0 0 15px #00FF9C, 0 0 30px rgba(0,255,156,0.5); }
 }
