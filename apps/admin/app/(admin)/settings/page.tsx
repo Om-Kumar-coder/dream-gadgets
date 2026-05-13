@@ -48,7 +48,7 @@ export default function SettingsPage() {
 
   const { data: bannersData, isLoading: bannersLoading } = useQuery({
     queryKey: ['banners'],
-    queryFn: () => apiClient.get('/admin/content/banners').then(r => r.data),
+    queryFn: () => apiClient.get('/admin/banners').then(r => r.data),
     enabled: tab === 'Content',
   });
 
@@ -159,7 +159,7 @@ export default function SettingsPage() {
         <DataTable<Banner, any>
           columns={bannersColumns}
           queryKey={['banners']}
-          apiEndpoint="/admin/content/banners"
+          apiEndpoint="/admin/banners"
           enableSorting={true}
           enableFilters={true}
           enablePagination={true}

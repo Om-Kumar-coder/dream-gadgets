@@ -4,10 +4,8 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  CreateDateColumn,
 } from 'typeorm';
 import { Sale } from './sale.entity';
-import { InventoryItem } from '../../inventory/entities/inventory-item.entity';
 
 @Entity('sale_items')
 export class SaleItem {
@@ -21,17 +19,13 @@ export class SaleItem {
   @Column({ name: 'sale_id' })
   saleId: string;
 
-  @ManyToOne(() => InventoryItem, { eager: false, nullable: false })
-  @JoinColumn({ name: 'item_id' })
-  item: InventoryItem;
-
-  @Column({ name: 'item_id' })
+  @Column({ name: 'item_id', nullable: true, type: 'varchar' })
   itemId: string;
 
   @Column({ length: 15 })
   imei: string;
 
-  @Column({ length: 500 })
+  @Column({ length: 500, nullable: true, type: 'varchar' })
   description: string;
 
   @Column('decimal', { name: 'unit_price', precision: 12, scale: 2 })
@@ -51,7 +45,4 @@ export class SaleItem {
 
   @Column({ name: 'hsn_code', type: 'varchar', length: 20, nullable: true })
   hsnCode: string | null;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
 }

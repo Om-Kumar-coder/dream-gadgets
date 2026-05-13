@@ -32,7 +32,7 @@ export class Model {
   @Column({ nullable: true, type: 'jsonb' })
   specs: object;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

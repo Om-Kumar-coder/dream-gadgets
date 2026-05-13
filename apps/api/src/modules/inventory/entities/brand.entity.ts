@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 @Entity('brands')
 export class Brand {
@@ -8,10 +8,10 @@ export class Brand {
   @Column({ unique: true })
   name: string;
 
-  @Column({ nullable: true, type: 'varchar' })
+  @Column({ name: 'logo_url', nullable: true, type: 'varchar' })
   logoUrl: string;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @Column({ name: 'sort_order', default: 0 })
