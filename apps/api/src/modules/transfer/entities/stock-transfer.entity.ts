@@ -38,18 +38,20 @@ export class StockTransfer {
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
+  // DB column is 'initiated_by' not 'initiated_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'initiated_by_id' })
+  @JoinColumn({ name: 'initiated_by' })
   initiatedBy: User;
 
-  @Column({ name: 'initiated_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'initiated_by', nullable: true, type: 'varchar' })
   initiatedById: string;
 
+  // DB column is 'received_by' not 'received_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'received_by_id' })
+  @JoinColumn({ name: 'received_by' })
   receivedBy: User;
 
-  @Column({ name: 'received_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'received_by', nullable: true, type: 'varchar' })
   receivedById: string | null;
 
   @Column({ name: 'initiated_at', type: 'timestamptz', default: () => 'NOW()' })
@@ -58,7 +60,7 @@ export class StockTransfer {
   @Column({ name: 'received_at', nullable: true, type: 'timestamptz' })
   receivedAt: Date | null;
 
-  @Column({ name: 'rejection_reason', nullable: true, type: 'text' })
+  // rejection_reason not in DB — virtual only
   rejectionReason: string | null;
 
   @OneToMany(() => StockTransferItem, (i) => i.transfer, { cascade: true })

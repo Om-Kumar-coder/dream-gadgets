@@ -17,7 +17,7 @@ export class Client {
   @Column({ name: 'first_name' })
   firstName: string;
 
-  @Column({ name: 'last_name' })
+  @Column({ name: 'last_name', nullable: true, type: 'varchar' })
   lastName: string;
 
   @Column({ unique: true })
@@ -62,14 +62,19 @@ export class Client {
   @Column({ name: 'ekyc_verified_at', nullable: true, type: 'timestamptz' })
   ekycVerifiedAt: Date | null;
 
+  // DB column is 'ekyc_verified_by' not 'ekyc_verified_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'ekyc_verified_by_id' })
+  @JoinColumn({ name: 'ekyc_verified_by' })
   ekycVerifiedBy: User;
 
-  @Column({ name: 'ekyc_verified_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'ekyc_verified_by', nullable: true, type: 'varchar' })
   ekycVerifiedById: string | null;
 
-  @Column({ name: 'ekyc_documents', nullable: true, type: 'jsonb' })
+  // ekyc_documents not in DB schema — store as tags jsonb or skip
+  @Column({ nullable: true, type: 'jsonb' })
+  tags: object | null;
+
+  // Virtual field for ekyc documents (stored in kyc_documents table separately)
   ekycDocuments: object | null;
 
   @Column({ name: 'customer_type', default: 'walk-in' })
@@ -84,11 +89,12 @@ export class Client {
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
+  // DB column is 'created_by' not 'created_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'created_by_id' })
+  @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'created_by', nullable: true, type: 'varchar' })
   createdById: string;
 
   @ManyToOne(() => Branch, { eager: false, nullable: true })

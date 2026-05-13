@@ -51,24 +51,21 @@ export class Sale {
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
+  // DB column is 'created_by' not 'created_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'created_by_id' })
+  @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'created_by', nullable: true, type: 'varchar' })
   createdById: string;
 
   @Column({ name: 'sale_date', type: 'timestamptz', default: () => 'NOW()' })
   saleDate: Date;
 
-  @Column({ name: 'is_voided', default: false })
-  isVoided: boolean;
-
-  @Column({ name: 'voided_by_id', nullable: true, type: 'varchar' })
-  voidedById: string | null;
-
-  @Column({ name: 'voided_at', nullable: true, type: 'timestamptz' })
-  voidedAt: Date | null;
+  // is_voided, voided_by, voided_at don't exist in DB yet — make them virtual/ignored
+  isVoided: boolean = false;
+  voidedById: string | null = null;
+  voidedAt: Date | null = null;
 
   @OneToMany(() => SaleItem, (i) => i.sale)
   items: SaleItem[];

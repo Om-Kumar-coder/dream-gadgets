@@ -84,7 +84,6 @@ export class PurchaseService {
     const qb = this.purchaseRepo
       .createQueryBuilder('purchase')
       .leftJoinAndSelect('purchase.branch', 'branch')
-      .leftJoinAndSelect('purchase.createdBy', 'createdBy')
       .orderBy('purchase.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);

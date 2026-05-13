@@ -37,18 +37,20 @@ export class Return {
   @Column({ name: 'refund_status', default: 'pending' })
   refundStatus: string;
 
+  // DB column is 'approved_by' not 'approved_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'approved_by_id' })
+  @JoinColumn({ name: 'approved_by' })
   approvedBy: User;
 
-  @Column({ name: 'approved_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'approved_by', nullable: true, type: 'varchar' })
   approvedById: string | null;
 
+  // DB column is 'created_by' not 'created_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'created_by_id' })
+  @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'created_by', nullable: true, type: 'varchar' })
   createdById: string;
 
   @CreateDateColumn({ name: 'created_at' })

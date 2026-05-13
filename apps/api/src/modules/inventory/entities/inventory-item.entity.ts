@@ -126,11 +126,12 @@ export class InventoryItem {
   @Column({ name: 'warranty_expiry', nullable: true, type: 'date' })
   warrantyExpiry: Date | null;
 
+  // DB column is 'created_by' not 'created_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'created_by_id' })
+  @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'created_by', nullable: true, type: 'varchar' })
   createdById: string;
 
   @OneToMany(() => ItemPhoto, (p) => p.item)

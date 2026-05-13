@@ -265,7 +265,6 @@ export class SalesService {
     const qb = this.saleRepo
       .createQueryBuilder('sale')
       .leftJoinAndSelect('sale.branch', 'branch')
-      .leftJoinAndSelect('sale.createdBy', 'createdBy')
       .orderBy('sale.saleDate', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);

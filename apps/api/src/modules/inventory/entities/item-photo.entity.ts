@@ -20,10 +20,12 @@ export class ItemPhoto {
   @Column({ name: 'item_id' })
   itemId: string;
 
-  @Column({ name: 's3_key' })
+  // DB column is 'key' not 's3_key'
+  @Column({ name: 'key' })
   s3Key: string;
 
-  @Column({ name: 'cdn_url', nullable: true, type: 'varchar' })
+  // DB column is 'url' not 'cdn_url'
+  @Column({ name: 'url' })
   cdnUrl: string;
 
   @Column({ name: 'sort_order', default: 0 })

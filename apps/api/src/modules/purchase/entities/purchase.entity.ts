@@ -20,7 +20,7 @@ export class Purchase {
   @Column({ name: 'vendor_id', nullable: true, type: 'varchar' })
   vendorId: string | null;
 
-  @Column({ name: 'vendor_name' })
+  @Column({ name: 'vendor_name', nullable: true, type: 'varchar' })
   vendorName: string;
 
   @ManyToOne(() => Branch, { eager: false, nullable: false })
@@ -42,11 +42,12 @@ export class Purchase {
   @Column({ default: 'completed' })
   status: string;
 
+  // DB column is 'created_by' not 'created_by_id'
   @ManyToOne(() => User, { eager: false, nullable: true })
-  @JoinColumn({ name: 'created_by_id' })
+  @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'created_by', nullable: true, type: 'varchar' })
   createdById: string;
 
   @Column({ name: 'purchase_date', type: 'date' })
