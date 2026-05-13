@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: '/admin',
   transpilePackages: ['@dream-gadgets/ui', '@dream-gadgets/shared-types'],
   images: {
     remotePatterns: [

@@ -81,9 +81,9 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
   }
 
-  # Admin panel (port 3002)
-  location /admin/ {
-    proxy_pass http://localhost:$ADMIN_PORT/;
+  # Admin panel (port 3002) — Next.js has basePath: '/admin' so pass full path
+  location /admin {
+    proxy_pass http://localhost:$ADMIN_PORT;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection 'upgrade';
