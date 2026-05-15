@@ -13,7 +13,7 @@ const config: Config = {
         secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
         muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
-        accent-glow: { DEFAULT: 'hsl(var(--accent-glow))' },
+        accent-glow: { DEFAULT: 'hsl(var(--accent-glow) / var(--accent-glow-alpha))' },
         destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
         'primary-hover': { DEFAULT: 'hsl(var(--primary-hover))' },
       },
