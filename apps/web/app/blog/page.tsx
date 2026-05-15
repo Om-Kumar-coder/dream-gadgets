@@ -51,7 +51,7 @@ const POSTS = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   News: 'bg-blue-100 text-blue-700',
-  Technology: 'bg-violet-100 text-violet-700',
+  Technology: 'bg-red-100 text-red-700',
   Social: 'bg-emerald-100 text-emerald-700',
   Tips: 'bg-amber-100 text-amber-700',
 };
@@ -59,7 +59,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function BlogPage() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-16 px-4 text-center">
+      <section className="text-white py-16 px-4 text-center" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <h1 className="text-4xl font-extrabold mb-3">Our Blog</h1>
         <p className="text-white/80">Tips, news & tech insights from Dream Gadgets</p>
       </section>
@@ -67,16 +69,24 @@ export default function BlogPage() {
       <section className="max-w-6xl mx-auto px-4 py-16">
         {/* Featured */}
         <Link href={`/blog/${POSTS[0].slug}`}
-          className="block mb-10 bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all group">
+          className="block mb-10 bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all group" onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#E50914';
+            e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+          }} onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#E5E5E5';
+            e.currentTarget.style.boxShadow = '';
+          }}>
           <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="h-64 md:h-auto bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-8xl">
+            <div className="h-64 md:h-auto flex items-center justify-center text-8xl" style={{
+              background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
+            }}>
               {POSTS[0].emoji}
             </div>
             <div className="p-8 flex flex-col justify-center">
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full w-fit mb-3 ${CATEGORY_COLORS[POSTS[0].category]}`}>
                 {POSTS[0].category}
               </span>
-              <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-violet-600 transition-colors">
+              <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-red-600 transition-colors" style={{ '--group-hover-text-color': '#E50914' } as React.CSSProperties}>
                 {POSTS[0].title}
               </h2>
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">{POSTS[0].excerpt}</p>
@@ -89,15 +99,23 @@ export default function BlogPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {POSTS.slice(1).map(p => (
             <Link key={p.slug} href={`/blog/${p.slug}`}
-              className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all group">
-              <div className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center text-5xl">
+              className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all group" onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#E50914';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#E5E5E5';
+                e.currentTarget.style.boxShadow = '';
+              }}>
+              <div className="h-36 flex items-center justify-center text-5xl" style={{
+                background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
+              }}>
                 {p.emoji}
               </div>
               <div className="p-4">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[p.category]}`}>
                   {p.category}
                 </span>
-                <h3 className="font-bold text-gray-900 text-sm mt-2 mb-2 line-clamp-2 group-hover:text-violet-600 transition-colors">
+                <h3 className="font-bold text-gray-900 text-sm mt-2 mb-2 line-clamp-2 group-hover:text-red-600 transition-colors">
                   {p.title}
                 </h3>
                 <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{p.excerpt}</p>

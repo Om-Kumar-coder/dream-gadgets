@@ -43,7 +43,9 @@ const FAQS = [
 export default function FaqPage() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-16 px-4 text-center">
+      <section className="text-white py-16 px-4 text-center" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <h1 className="text-4xl font-extrabold mb-3">Frequently Asked Questions</h1>
         <p className="text-white/80">Do you have questions? Get answers.</p>
       </section>
@@ -53,7 +55,7 @@ export default function FaqPage() {
           <details key={i} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden">
             <summary className="flex items-center justify-between px-6 py-4 cursor-pointer font-semibold text-gray-900 text-sm list-none">
               {f.q}
-              <span className="text-violet-500 group-open:rotate-180 transition-transform shrink-0 ml-4">▼</span>
+              <span className="group-open:rotate-180 transition-transform shrink-0 ml-4" style={{ color: '#E50914' }}>▼</span>
             </summary>
             <div className="px-6 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-50 pt-3">
               {f.a}
@@ -61,10 +63,22 @@ export default function FaqPage() {
           </details>
         ))}
 
-        <div className="mt-10 bg-violet-50 rounded-2xl p-8 text-center border border-violet-100">
+        <div className="mt-10 rounded-2xl p-8 text-center border" style={{
+          backgroundColor: 'rgba(229, 9, 20, 0.05)',
+          borderColor: 'rgba(229, 9, 20, 0.2)'
+        }}>
           <p className="font-bold text-gray-900 mb-2">Still have questions?</p>
           <p className="text-sm text-gray-500 mb-4">Our support team is happy to help.</p>
-          <a href="/contact" className="inline-block px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold text-sm transition-colors">
+          <a href="/contact" className="inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm transition-all" style={{
+            backgroundColor: '#E50914',
+            boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
+          }} onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#C40812';
+            e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
+          }} onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#E50914';
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
+          }}>
             Contact Us →
           </a>
         </div>
