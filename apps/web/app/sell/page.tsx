@@ -43,8 +43,8 @@ export default function SellPage() {
                 {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               <input type="text" placeholder="Enter Model Name (e.g. iPhone 13)" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-              <input type="tel" placeholder="Your Phone Number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-              <button className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+              <input type="tel" placeholder="Your Phone Number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl text-sm transition-colors">
                 Get My Price →
               </button>
             </div>

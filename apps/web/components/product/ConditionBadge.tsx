@@ -1,6 +1,6 @@
 const CONDITION_CONFIG: Record<string, { label: string; className: string }> = {
-  sealed_pack: { label: 'Sealed', className: 'bg-violet-600 text-white' },
-  open_box: { label: 'Open Box', className: 'bg-blue-600 text-white' },
+  sealed_pack: { label: 'Sealed', className: 'bg-primary text-primary-foreground' },
+  open_box: { label: 'Open Box', className: 'bg-primary text-primary-foreground' },
   super_mint: { label: 'Super Mint', className: 'bg-emerald-500 text-white' },
   mint: { label: 'Mint', className: 'bg-teal-500 text-white' },
   good: { label: 'Good', className: 'bg-amber-500 text-white' },

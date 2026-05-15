@@ -76,7 +76,7 @@ export default function StoresPage() {
         <div className="mt-12 bg-violet-50 rounded-2xl p-8 text-center border border-violet-100">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Can't visit a store?</h2>
           <p className="text-gray-500 text-sm mb-5">No problem! We offer free doorstep pickup across India.</p>
-          <a href="/sell" className="inline-block px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold text-sm transition-colors">
+          <a href="/sell" className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold text-sm transition-colors">
             Schedule Pickup →
           </a>
         </div>

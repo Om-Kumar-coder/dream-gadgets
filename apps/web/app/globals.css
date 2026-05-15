@@ -6,17 +6,21 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 224 71% 4%;
-    --primary: 0 84% 46%;
+    --primary: 357 92.4% 46.7%;
+    --primary-hover: 356.8 92.2% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
+    --secondary: 0 0% 10.2%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 90%;
+    --muted: 0 0% 89.8%;
     --muted-foreground: 0 0% 42%;
-    --accent: 0 100% 60%;
+    --accent: 0 100% 58.8%;
+    --accent-glow: 0 100% 58.8% / 0.4;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 64% 51%;
+    --destructive: 0 65.1% 50.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;
+    --border: 0 0% 87.8%;
+    --sidebar: 240 3.2% 6.1%;
+    --sidebar-foreground: 0 0% 100%;
     --radius: 0.75rem;
   }
 }
@@ -30,5 +34,23 @@
   }
   .section-pad {
     @apply py-16 px-4;
+  }
+  .bg-primary-hover {
+    background-color: hsl(var(--primary-hover));
+  }
+  .text-primary-hover {
+    color: hsl(var(--primary-hover));
+  }
+  .border-primary-hover {
+    border-color: hsl(var(--primary-hover));
+  }
+  .bg-accent-glow {
+    background-color: hsl(var(--accent-glow));
+  }
+  .shadow-accent-glow {
+    box-shadow: 0 0 24px hsl(var(--accent-glow));
+  }
+  .ring-accent-glow {
+    box-shadow: 0 0 0 4px hsl(var(--accent-glow));
   }
 }

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Dream Gadgets Admin',
   description: 'Internal ERP for Dream Gadgets multi-branch store management',
-  icons: { icon: '/logo.jpeg', apple: '/logo.jpeg' },
+  icons: { icon: '/Logo_Dream_Gadgets.png', apple: '/Logo_Dream_Gadgets.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

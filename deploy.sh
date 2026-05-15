@@ -6,12 +6,13 @@ set -e
 # Server: 187.127.165.229
 # --------------------------------------------------------------------------
 # Usage:
-#   sudo ./deploy.sh install    – Fresh VPS install (first time)
-#   sudo ./deploy.sh update     – Pull latest code & rebuild
-#   sudo ./deploy.sh restart    – Rebuild & restart API only
-#   sudo ./deploy.sh seed       – Seed database with test data
-#   sudo ./deploy.sh nginx      – Fix/reload Nginx config
-#   sudo ./deploy.sh check      – Health check all services
+#   sudo ./deploy.sh install     – Fresh VPS install (first time)
+#   sudo ./deploy.sh update      – Pull latest code & rebuild
+#   sudo ./deploy.sh restart     – Rebuild & restart API only
+#   sudo ./deploy.sh seed        – Seed database with test data
+#   sudo ./deploy.sh nginx       – Fix/reload Nginx config
+#   sudo ./deploy.sh check       – Health check all services
+#   sudo ./deploy.sh clear-cache - Clear server caches and restart apps
 # --------------------------------------------------------------------------
 
 SERVER_IP="187.127.165.229"
@@ -551,6 +552,7 @@ case "${1:-}" in
   seed)     cmd_seed     ;;
   nginx)    cmd_nginx    ;;
   check)    cmd_check    ;;
+  clear-cache) cmd_clear_cache ;;
   *)
     echo ""
     echo "Usage: sudo ./deploy.sh <command>"
@@ -561,7 +563,19 @@ case "${1:-}" in
     echo "  seed      Seed database with test data"
     echo "  nginx     Fix/reload Nginx config"
     echo "  check     Health check all services"
+    echo "  clear-cache Clear server caches and restart apps"
     echo ""
     exit 1
     ;;
 esac
+
+cmd_clear_cache() {
+ require_root
+ require_app_dir
+ info "Clearing server caches..."
+ rm -rf "$APP_DIR/apps/web/.next"
+ rm -rf "$APP_DIR/apps/admin/.next"
+ rm -rf "$APP_DIR/apps/api/.next"
+ pm2 restart dream-gadgets-web dream-gadgets-admin dream-gadgets-api
+ info "Server caches cleared."
+}

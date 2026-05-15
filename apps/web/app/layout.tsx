@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: { default: 'Dream Gadgets', template: '%s | Dream Gadgets' },
   description: 'Certified used phones at the best prices.',
   manifest: '/manifest.json',
-  icons: { icon: '/logo.jpeg', apple: '/logo.jpeg' },
+  icons: { icon: '/Logo_Dream_Gadgets.png', apple: '/Logo_Dream_Gadgets.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

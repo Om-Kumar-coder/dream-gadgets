@@ -51,7 +51,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
         <div className="mb-8 text-center">
-          <img src="/logo.jpeg" alt="Dream Gadgets" className="h-14 w-auto mx-auto mb-4 rounded-lg" />
+          <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-14 w-auto mx-auto mb-4 rounded-lg" />
           <p className="text-sm text-gray-500">Admin Panel — Sign in to continue</p>
         </div>
 

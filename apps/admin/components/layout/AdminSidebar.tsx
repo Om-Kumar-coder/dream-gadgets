@@ -39,7 +39,7 @@ export function AdminSidebar() {
   return (
     <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col">
       <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-700">
-        <img src="/logo.jpeg" alt="Dream Gadgets" className="h-8 w-auto rounded-md" />
+        <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-8 w-auto rounded-md" />
         <span className="font-bold text-white text-sm">Dream Gadgets</span>
       </div>
 
