@@ -73,22 +73,37 @@ export default function HomePage() {
     <main className="overflow-x-hidden">
 
       {/* ── Hero ── */}
-      <section className="relative bg-gradient-to-br from-violet-700 via-indigo-600 to-blue-700 text-white overflow-hidden">
+      <section className="relative text-white overflow-hidden" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Red glow overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(circle at 30% 50%, rgba(229, 9, 20, 0.25), transparent 60%)'
+        }} />
         <div className="relative max-w-5xl mx-auto px-4 py-24 text-center">
           <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-6 tracking-widest uppercase">
             ✦ India's Most Transparent Mobile Platform
           </span>
           <h1 className="text-5xl md:text-7xl font-extrabold mb-4 leading-tight tracking-tight">
             Sell Your Old Phone<br />
-            <span className="text-yellow-300">in Minutes!</span>
+            <span style={{ color: '#E50914' }}>in Minutes!</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 mb-3 max-w-xl mx-auto">
             Highest Price &nbsp;·&nbsp; Doorstep Pickups &nbsp;·&nbsp; Instant Payment
           </p>
           <div className="flex flex-wrap gap-4 justify-center mt-8">
-            <Link href="/sell" className="px-8 py-3.5 bg-yellow-400 text-gray-900 rounded-full font-bold text-sm hover:bg-yellow-300 transition-colors shadow-lg">
+            <Link href="/sell" className="px-8 py-3.5 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all" style={{
+              backgroundColor: '#E50914',
+              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#C40812';
+              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#E50914';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
+            }}>
               Sell Now →
             </Link>
             <Link href="/products" className="px-8 py-3.5 bg-white/15 backdrop-blur-sm border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/25 transition-colors">
@@ -113,7 +128,7 @@ export default function HomePage() {
             { v: '100%', l: 'IMEI Verified' },
           ].map(s => (
             <div key={s.l}>
-              <p className="text-2xl font-extrabold text-violet-600">{s.v}</p>
+              <p className="text-2xl font-extrabold" style={{ color: '#E50914' }}>{s.v}</p>
               <p className="text-xs text-gray-500 mt-0.5">{s.l}</p>
             </div>
           ))}
@@ -127,12 +142,20 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-gray-900">Selling Services</h2>
             <p className="text-sm text-gray-500 mt-1">We buy all kinds of gadgets</p>
           </div>
-          <Link href="/sell" className="text-sm text-violet-600 font-semibold hover:underline">View All →</Link>
+          <Link href="/sell" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
           {SERVICES.map(s => (
             <Link key={s.label} href={s.href}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:border-violet-200 hover:shadow-md hover:-translate-y-0.5 transition-all">
+              className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all" style={{
+                borderColor: 'inherit'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#E50914';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#E5E5E5';
+                e.currentTarget.style.boxShadow = '';
+              }}>
               <span className="text-4xl">{s.icon}</span>
               <span className="text-sm font-semibold text-gray-700">{s.label}</span>
             </Link>
@@ -148,7 +171,7 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Buy Phone by Brand</h2>
               <p className="text-sm text-gray-500 mt-1">Certified used phones from top brands</p>
             </div>
-            <Link href="/products" className="text-sm text-violet-600 font-semibold hover:underline">View All →</Link>
+            <Link href="/products" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
           </div>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
             {BRANDS.map(b => (
@@ -166,7 +189,10 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto section-pad">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-block bg-violet-100 text-violet-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+            <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider" style={{
+              backgroundColor: 'rgba(229, 9, 20, 0.1)',
+              color: '#E50914'
+            }}>
               Quality Promise
             </span>
             <h2 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">
@@ -183,7 +209,16 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link href="/products" className="inline-block mt-8 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold text-sm transition-colors">
+            <Link href="/products" className="inline-block mt-8 px-6 py-3 text-white rounded-xl font-semibold text-sm transition-colors" style={{
+              backgroundColor: '#E50914',
+              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#C40812';
+              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#E50914';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
+            }}>
               Shop Verified Phones →
             </Link>
           </div>
@@ -205,43 +240,69 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="bg-gradient-to-br from-violet-50 to-indigo-50 section-pad">
+      <section className="section-pad" style={{
+        backgroundColor: '#111'
+      }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900">What Our Customers Say</h2>
-            <p className="text-sm text-gray-500 mt-2">Real reviews from real people</p>
+            <h2 className="text-2xl font-bold text-white">What Our Customers Say</h2>
+            <p className="text-sm text-gray-400 mt-2">Real reviews from real people</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {TESTIMONIALS.slice(0, 3).map(t => (
-              <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-white">
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border" style={{
+                backgroundColor: '#1A1A1A',
+                borderColor: 'rgba(229, 9, 20, 0.3)'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#E50914';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.3)';
+                e.currentTarget.style.boxShadow = '';
+              }}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
+                    backgroundColor: '#E50914',
+                    boxShadow: '0 0 6px rgba(229, 9, 20, 0.4)'
+                  }}>
                     {t.initials}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">{t.name}, {t.city}</p>
+                    <p className="font-semibold text-white text-sm">{t.name}, {t.city}</p>
                     <p className="text-xs text-gray-400">Sold {t.device}</p>
                   </div>
                 </div>
-                <div className="text-yellow-400 text-sm mb-2">★★★★★</div>
-                <p className="text-sm text-gray-600 leading-relaxed">{t.review}</p>
+                <div className="text-sm mb-2" style={{ color: '#E50914' }}>★★★★★</div>
+                <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5 max-w-2xl mx-auto">
             {TESTIMONIALS.slice(3).map(t => (
-              <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-white">
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border" style={{
+                backgroundColor: '#1A1A1A',
+                borderColor: 'rgba(229, 9, 20, 0.3)'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#E50914';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.3)';
+                e.currentTarget.style.boxShadow = '';
+              }}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
+                    backgroundColor: '#E50914',
+                    boxShadow: '0 0 6px rgba(229, 9, 20, 0.4)'
+                  }}>
                     {t.initials}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">{t.name}, {t.city}</p>
+                    <p className="font-semibold text-white text-sm">{t.name}, {t.city}</p>
                     <p className="text-xs text-gray-400">Sold {t.device}</p>
                   </div>
                 </div>
-                <div className="text-yellow-400 text-sm mb-2">★★★★★</div>
-                <p className="text-sm text-gray-600 leading-relaxed">{t.review}</p>
+                <div className="text-sm mb-2" style={{ color: '#E50914' }}>★★★★★</div>
+                <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
               </div>
             ))}
           </div>
@@ -279,20 +340,28 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Our Blog</h2>
               <p className="text-sm text-gray-500 mt-1">Tips, news & tech insights</p>
             </div>
-            <Link href="/blog" className="text-sm text-violet-600 font-semibold hover:underline">View All →</Link>
+            <Link href="/blog" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {BLOGS.map(b => (
               <Link key={b.slug} href={`/blog/${b.slug}`}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all">
-                <div className="h-40 bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-5xl">
+                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all" onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#E50914';
+                  e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
+                }} onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#E5E5E5';
+                  e.currentTarget.style.boxShadow = '';
+                }}>
+                <div className="h-40 flex items-center justify-center text-5xl" style={{
+                  background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
+                }}>
                   📰
                 </div>
                 <div className="p-5">
                   <p className="text-xs text-gray-400 mb-2">By Dream Gadgets · {b.date}</p>
                   <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{b.title}</h3>
                   <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{b.excerpt}</p>
-                  <span className="inline-block mt-3 text-xs text-violet-600 font-semibold">Read more →</span>
+                  <span className="inline-block mt-3 text-xs font-semibold" style={{ color: '#E50914' }}>Read more →</span>
                 </div>
               </Link>
             ))}

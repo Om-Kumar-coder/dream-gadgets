@@ -9,7 +9,9 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-20 px-4 text-center">
+      <section className="text-white py-20 px-4 text-center" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">About Dream Gadgets</h1>
           <p className="text-white/80 text-lg">India's most transparent mobile selling platform</p>
@@ -28,17 +30,18 @@ export default function AboutPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {[
-              { v: '10,000+', l: 'Devices Sold' },
-              { v: '4.8 ★', l: 'Customer Rating' },
-              { v: '5+', l: 'City Branches' },
-              { v: '2019', l: 'Founded' },
-            ].map(s => (
-              <div key={s.l} className="bg-violet-50 rounded-2xl p-5 text-center border border-violet-100">
-                <p className="text-2xl font-extrabold text-violet-600">{s.v}</p>
-                <p className="text-xs text-gray-500 mt-1">{s.l}</p>
-              </div>
-            ))}
+            {["10,000+", "4.8 ★", "5+", "2019"].map((v, i) => {
+              const labels = ['Devices Sold', 'Customer Rating', 'City Branches', 'Founded'];
+              return (
+                <div key={labels[i]} className="rounded-2xl p-5 text-center border" style={{
+                  backgroundColor: 'rgba(229, 9, 20, 0.05)',
+                  borderColor: 'rgba(229, 9, 20, 0.2)'
+                }}>
+                  <p className="text-2xl font-extrabold" style={{ color: '#E50914' }}>{v}</p>
+                  <p className="text-xs text-gray-500 mt-1">{labels[i]}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -59,14 +62,28 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-10 text-white text-center">
+        <div className="rounded-3xl p-10 text-white text-center" style={{
+          background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)',
+          boxShadow: '0 0 24px rgba(229, 9, 20, 0.3)'
+        }}>
           <h2 className="text-2xl font-bold mb-3">Ready to get started?</h2>
           <p className="text-white/80 mb-6 text-sm">Sell your old phone or buy a certified refurbished one today.</p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/sell" className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-full font-bold text-sm hover:bg-yellow-300 transition-colors">
+            <Link href="/sell" className="px-6 py-3 text-gray-900 rounded-full font-bold text-sm transition-all" style={{
+              backgroundColor: '#E50914',
+              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#C40812';
+              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#E50914';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
+            }}>
               Sell Your Phone
             </Link>
-            <Link href="/products" className="px-6 py-3 bg-white/20 border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/30 transition-colors">
+            <Link href="/products" className="px-6 py-3 border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/30 transition-colors" style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            }}>
               Buy a Phone
             </Link>
           </div>

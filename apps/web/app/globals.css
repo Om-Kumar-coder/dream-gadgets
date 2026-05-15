@@ -53,4 +53,9 @@
   .ring-accent-glow {
     box-shadow: 0 0 0 4px var(--accent-glow);
   }
+  .glow-red {
+    box-shadow:
+      0 0 6px rgba(255, 45, 45, 0.3),
+      0 0 12px rgba(255, 45, 45, 0.2);
+  }
 }

@@ -8,7 +8,9 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-16 px-4 text-center">
+      <section className="text-white py-16 px-4 text-center" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <h1 className="text-4xl font-extrabold mb-3">Contact Us</h1>
         <p className="text-white/80">We're here to help. Reach out anytime.</p>
       </section>
@@ -32,17 +34,26 @@ export default function ContactPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
-                <input type="tel" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                <input type="tel" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Message</label>
-                <textarea rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+                <textarea rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
-              <button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+              <button type="submit" className="w-full text-white font-bold py-3 rounded-xl text-sm transition-all" style={{
+                backgroundColor: '#E50914',
+                boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
+              }} onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#C40812';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
+              }} onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#E50914';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
+              }}>
                 Send Message →
               </button>
             </form>
