@@ -8,17 +8,11 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, placeholder, ...props }, ref) => {
     return (
       <select
-        className={[
-          'flex h-9 w-full rounded-lg px-3 py-1 text-sm transition-all duration-200',
-          'bg-[#0f0f0f] border border-[#2a2a2a] text-white',
-          'focus-visible:outline-none focus-visible:border-[#00FF9C] focus-visible:ring-1 focus-visible:ring-[#00FF9C]',
-          'disabled:cursor-not-allowed disabled:opacity-40',
-          className,
-        ].filter(Boolean).join(' ')}
+        className={`flex h-9 w-full rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
         ref={ref}
         {...props}
       >
-        {placeholder && <option value="" className="bg-[#0f0f0f]">{placeholder}</option>}
+        {placeholder && <option value="">{placeholder}</option>}
         {children}
       </select>
     );

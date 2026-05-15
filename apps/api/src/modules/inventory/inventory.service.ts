@@ -359,9 +359,7 @@ export class InventoryService {
     return this.modelRepo.find({ where, order: { name: 'ASC' } });
   }
 
-  // ─── 5.10 Price suggestion ──────────────────────────────────────────────────
-
-  async getPriceSuggestion(modelId: string, condition: string): Promise<{ median: number | null; count: number }> {
+  // ─── 5.10 Price suggestion ──────────────────────────────────────────────────  async getPriceSuggestion(modelId: string, condition: string): Promise<{ median: number | null; count: number }> {
     const result = await this.dataSource.query(
       `SELECT
          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY si.unit_price) AS median,

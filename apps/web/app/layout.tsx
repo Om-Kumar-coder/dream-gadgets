@@ -12,15 +12,16 @@ export const metadata: Metadata = {
   title: { default: 'Dream Gadgets', template: '%s | Dream Gadgets' },
   description: 'Certified used phones at the best prices.',
   manifest: '/manifest.json',
+  icons: { icon: '/logo.jpeg', apple: '/logo.jpeg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#0A0A0A] text-white`}>
+      <body className={inter.className}>
         <Providers>
           <Header />
-          <main className="min-h-screen bg-cyber-grid">{children}</main>
+          {children}
           <Footer />
           <WhatsAppButton />
         </Providers>

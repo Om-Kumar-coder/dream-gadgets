@@ -8,12 +8,13 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Dream Gadgets Admin',
   description: 'Internal ERP for Dream Gadgets multi-branch store management',
+  icons: { icon: '/logo.jpeg', apple: '/logo.jpeg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#0A0A0A] text-white antialiased`}>
+      <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>

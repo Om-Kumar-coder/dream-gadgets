@@ -154,94 +154,126 @@ export function DataTable<TData, TFilter>({
         onGlobalFilterChange={setGlobalFilter}
       />
 
-      <div className="bg-[#0A0A0A] rounded-xl border border-[#2a2a2a] overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="bg-[#0f0f0f] border-b border-[#2a2a2a]">
+                <tr key={headerGroup.id}>
                   {enableRowSelection && (
                     <th className="px-4 py-3 w-10">
                       <input
                         type="checkbox"
                         checked={table.getIsAllRowsSelected()}
                         onChange={table.getToggleAllRowsSelectedHandler()}
-                        className="rounded border-[#2a2a2a] bg-[#0f0f0f] text-[#FF2D2D] focus:ring-[#00FF9C]"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
                   )}
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 text-left text-xs font-semibold text-[#FF2D2D] uppercase tracking-wider cursor-pointer hover:text-[#00FF9C] transition-colors select-none"
+                      className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       <div className="flex items-center gap-1">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                         {enableSorting && header.column.getIsSorted() && (
-                          <span className="text-[#00FF9C]">
-                            {header.column.getIsSorted() === 'desc' ? '▼' : '▲'}
+                          <span className="text-gray-400">
+                            {header.column.getIsSorted() === 'desc'
+                              ? '▼'
+                              : '▲'}
                           </span>
                         )}
                       </div>
                     </th>
                   ))}
                   {actions.length > 0 && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#FF2D2D] uppercase tracking-wider w-32">Actions</th>
+                    <th className="px-4 py-3 text-left w-32">Actions</th>
                   )}
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-[#1a1a1a]">
+            <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={columns.length + (enableRowSelection ? 1 : 0) + (actions.length > 0 ? 1 : 0)}
-                    className="px-4 py-8 text-center text-gray-600">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#00FF9C] animate-pulse" />
-                      <span className="w-2 h-2 rounded-full bg-[#00FF9C] animate-pulse delay-75" />
-                      <span className="w-2 h-2 rounded-full bg-[#00FF9C] animate-pulse delay-150" />
-                    </div>
+                  <td
+                    colSpan={
+                      columns.length +
+                      (enableRowSelection ? 1 : 0) +
+                      (actions.length > 0 ? 1 : 0)
+                    }
+                    className="px-4 py-8 text-center text-gray-400"
+                  >
+                    Loading...
                   </td>
                 </tr>
               ) : table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + (enableRowSelection ? 1 : 0) + (actions.length > 0 ? 1 : 0)}
-                    className="px-4 py-12 text-center">
+                  <td
+                    colSpan={
+                      columns.length +
+                      (enableRowSelection ? 1 : 0) +
+                      (actions.length > 0 ? 1 : 0)
+                    }
+                    className="px-4 py-12 text-center"
+                  >
                     {renderNoResults ? renderNoResults(table) : (
                       <div className="space-y-2">
-                        <p className="text-gray-600 text-sm">No results found</p>
-                        <button onClick={() => { table.resetGlobalFilter(); table.resetColumnFilters(); }}
-                          className="text-[#00FF9C] hover:underline text-xs">Clear filters</button>
+                        <div className="text-gray-400 text-4xl mb-2">🔍</div>
+                        <p className="text-gray-500">No results found</p>
+                        <button
+                          onClick={() => {
+                            table.resetGlobalFilter();
+                            table.resetColumnFilters();
+                          }}
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          Clear filters
+                        </button>
                       </div>
                     )}
                   </td>
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}
-                    className="transition-all duration-150 hover:bg-[#00FF9C]/[0.03] group">
+                  <tr key={row.id} className="hover:bg-gray-50">
                     {enableRowSelection && (
                       <td className="px-4 py-3">
-                        <input type="checkbox" checked={row.getIsSelected()}
+                        <input
+                          type="checkbox"
+                          checked={row.getIsSelected()}
                           onChange={row.getToggleSelectedHandler()}
-                          className="rounded border-[#2a2a2a] bg-[#0f0f0f] text-[#FF2D2D] focus:ring-[#00FF9C]" />
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
                       </td>
                     )}
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 text-gray-400 group-hover:text-gray-200 transition-colors">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <td key={cell.id} className="px-4 py-3">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     ))}
                     {actions.length > 0 && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {actions.map((action, idx) => {
-                            const isVisible = action.visible ? action.visible(row.original) : true;
+                            const isVisible = action.visible
+                              ? action.visible(row.original)
+                              : true;
                             if (!isVisible) return null;
                             return (
-                              <button key={idx} onClick={() => action.onClick(row.original)}
-                                className="text-gray-600 hover:text-[#00FF9C] transition-colors" title={action.label}>
+                              <button
+                                key={idx}
+                                onClick={() => action.onClick(row.original)}
+                                className="text-gray-600 hover:text-blue-600 transition-colors"
+                                title={action.label}
+                              >
                                 {action.icon ?? '•••'}
                               </button>
                             );
@@ -257,7 +289,7 @@ export function DataTable<TData, TFilter>({
         </div>
 
         {enablePagination && total > 0 && (
-          <div className="p-4 border-t border-[#1a1a1a]">
+          <div className="p-4 border-t border-gray-100">
             <TablePagination table={table} total={total} />
           </div>
         )}
