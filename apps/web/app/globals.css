@@ -14,7 +14,7 @@
     --muted: 0 0% 89.8%;
     --muted-foreground: 0 0% 42%;
     --accent: 0 100% 58.8%;
-    --accent-glow: 0 100% 58.8%;
+    --accent-glow-rgb: 255, 45, 45;
     --accent-glow-alpha: 0.4;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 65.1% 50.6%;
@@ -46,12 +46,12 @@
     border-color: hsl(var(--primary-hover));
   }
   .bg-accent-glow {
-    background-color: hsl(var(--accent-glow) / var(--accent-glow-alpha));
+    background-color: rgba(var(--accent-glow-rgb), var(--accent-glow-alpha));
   }
   .shadow-accent-glow {
-    box-shadow: 0 0 24px hsl(var(--accent-glow) / var(--accent-glow-alpha));
+    box-shadow: 0 0 24px rgba(var(--accent-glow-rgb), var(--accent-glow-alpha));
   }
   .ring-accent-glow {
-    box-shadow: 0 0 0 4px hsl(var(--accent-glow) / var(--accent-glow-alpha));
+    box-shadow: 0 0 0 4px rgba(var(--accent-glow-rgb), var(--accent-glow-alpha));
   }
 }
