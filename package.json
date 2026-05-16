@@ -7,15 +7,33 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:admin": "turbo run dev --filter=admin",
+    "dev:api": "turbo run dev --filter=api",
     "build": "turbo run build",
     "test": "turbo run test",
+    "test:api": "./test.sh",
+    "test:api:extended": "./tests/api/extended-tests.sh",
+    "test:e2e": "playwright test tests/e2e/",
+    "test:e2e:web": "playwright test tests/e2e/web/",
+    "test:e2e:admin": "playwright test tests/e2e/admin/",
+    "test:components": "jest tests/components/",
+    "test:integration": "jest tests/integration/",
+    "test:all": "./run-all-tests.sh",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {
     "turbo": "^2.0.0",
     "prettier": "^3.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@playwright/test": "^1.40.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
   },
   "packageManager": "npm@11.8.0",
   "engines": {

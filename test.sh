@@ -1,15 +1,11 @@
-#!/bin/bash
+﻿#!/usr/bin/env bash
+set -u
+set -o pipefail
 
 ################################################################################
 # Dream Gadgets – Comprehensive Automated Test Suite
-# Testing: System health, APIs, workflows, edge cases, error handling
+# Improved: dependency validation, reusable helpers, token retrieval, grouped tests
 ################################################################################
-
-set -o pipefail
-
-# ──────────────────────────────────────────────────────────────────────────────
-# CONFIGURATION
-# ──────────────────────────────────────────────────────────────────────────────
 
 API_BASE_URL="${API_BASE_URL:-http://localhost:3000}"
 WEB_BASE_URL="${WEB_BASE_URL:-http://localhost:3001}"
@@ -20,10 +16,6 @@ LOG_FILE="${LOG_DIR}/test-report.log"
 TIMEOUT=10
 RETRY_COUNT=3
 SLOW_THRESHOLD=500  # milliseconds
-
-# ──────────────────────────────────────────────────────────────────────────────
-# COLORS & LOGGING
-# ──────────────────────────────────────────────────────────────────────────────
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -37,8 +29,8 @@ warn_count=0
 
 log_pass() {
   local msg="$1"
-  echo -e "${GREEN}✅ PASS${NC} $msg"
-  echo "[PASS] $msg" >> "$LOG_FILE"
+  printf "%b✅ PASS%b %s\n" "$GREEN" "$NC" "$msg"
+  printf "[PASS] %s\n" "$msg" >> "$LOG_FILE"
   ((pass_count++))
 }
 
@@ -46,47 +38,50 @@ log_fail() {
   local msg="$1"
   local expected="${2:-}"
   local actual="${3:-}"
-  echo -e "${RED}❌ FAIL${NC} $msg"
-  if [ -n "$expected" ] && [ -n "$actual" ]; then
-    echo -e "${RED}  Expected: $expected${NC}"
-    echo -e "${RED}  Actual: $actual${NC}"
-    echo "[FAIL] $msg | Expected: $expected | Actual: $actual" >> "$LOG_FILE"
+  printf "%b❌ FAIL%b %s\n" "$RED" "$NC" "$msg"
+  if [[ -n "$expected" && -n "$actual" ]]; then
+    printf "%b  Expected: %s%b\n" "$RED" "$expected" "$NC"
+    printf "%b  Actual: %s%b\n" "$RED" "$actual" "$NC"
+    printf "[FAIL] %s | Expected: %s | Actual: %s\n" "$msg" "$expected" "$actual" >> "$LOG_FILE"
   else
-    echo "[FAIL] $msg" >> "$LOG_FILE"
+    printf "[FAIL] %s\n" "$msg" >> "$LOG_FILE"
   fi
   ((fail_count++))
 }
 
 log_warn() {
   local msg="$1"
-  echo -e "${YELLOW}⚠ WARN${NC} $msg"
-  echo "[WARN] $msg" >> "$LOG_FILE"
+  printf "%b⚠ WARN%b %s\n" "$YELLOW" "$NC" "$msg"
+  printf "[WARN] %s\n" "$msg" >> "$LOG_FILE"
   ((warn_count++))
 }
 
 log_info() {
   local msg="$1"
-  echo -e "${BLUE}ℹ INFO${NC} $msg"
-  echo "[INFO] $msg" >> "$LOG_FILE"
+  printf "%bℹ INFO%b %s\n" "$BLUE" "$NC" "$msg"
+  printf "[INFO] %s\n" "$msg" >> "$LOG_FILE"
 }
 
 log_section() {
   local title="$1"
-  echo ""
-  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BLUE}$title${NC}"
-  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo "═══ $title ═══" >> "$LOG_FILE"
+  printf "\n%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n" "$BLUE" "$NC"
+  printf "%b%s%b\n" "$BLUE" "$title" "$NC"
+  printf "%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n" "$BLUE" "$NC"
+  printf "═══ %s ═══\n" "$title" >> "$LOG_FILE"
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
-# UTILITY FUNCTIONS
-# ──────────────────────────────────────────────────────────────────────────────
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    printf "%bMissing required command:%b %s\n" "$RED" "$NC" "$cmd"
+    exit 2
+  fi
+}
 
-setup() {
-  mkdir -p "$LOG_DIR"
-  > "$LOG_FILE"
-  echo "Test Report - $(date)" >> "$LOG_FILE"
+require_tools() {
+  for cmd in "$@"; do
+    require_command "$cmd"
+  done
 }
 
 curl_with_retry() {
@@ -95,35 +90,29 @@ curl_with_retry() {
   local data="$3"
   local token="$4"
   local attempt=1
+  local response
+  local http_code
+  local curl_args=(--silent --show-error --write-out "\n%{http_code}" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)) --retry 2 --retry-delay 1 --retry-connrefused -X "$method" -H "Content-Type: application/json")
 
-  while [ $attempt -le $RETRY_COUNT ]; do
-    local response
-    local http_code
+  if [[ -n "$token" ]]; then
+    curl_args+=( -H "Authorization: Bearer $token" )
+  fi
 
-    if [ -n "$token" ]; then
-      response=$(curl -s -w "\n%{http_code}" -X "$method" "$endpoint" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $token" \
-        -d "$data" \
-        --connect-timeout $TIMEOUT \
-        --max-time $((TIMEOUT * 2)))
-    else
-      response=$(curl -s -w "\n%{http_code}" -X "$method" "$endpoint" \
-        -H "Content-Type: application/json" \
-        -d "$data" \
-        --connect-timeout $TIMEOUT \
-        --max-time $((TIMEOUT * 2)))
-    fi
+  if [[ -n "$data" && "$method" != "GET" ]]; then
+    curl_args+=( -d "$data" )
+  fi
 
-    http_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n-1)
+  while [[ $attempt -le $RETRY_COUNT ]]; do
+    response=$(curl "${curl_args[@]}" "$endpoint" 2>/dev/null)
+    http_code=$(printf '%s' "$response" | tail -n1)
+    body=$(printf '%s' "$response" | head -n-1)
 
     if [[ "$http_code" =~ ^[0-9]+$ ]]; then
-      echo "$body"
-      return $http_code
+      printf '%s' "$body"
+      return "$http_code"
     fi
 
-    attempt=$((attempt + 1))
+    ((attempt++))
     sleep 1
   done
 
@@ -134,17 +123,75 @@ get_response_time() {
   local method="$1"
   local endpoint="$2"
   local token="$3"
+  local curl_args=(--silent --show-error --output /dev/null --write-out "%{time_total}" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)) -X "$method" -H "Content-Type: application/json")
 
-  if [ -n "$token" ]; then
-    curl -s -w "%{time_total}" -o /dev/null -X "$method" "$endpoint" \
-      -H "Authorization: Bearer $token" \
-      --connect-timeout $TIMEOUT \
-      --max-time $((TIMEOUT * 2))
-  else
-    curl -s -w "%{time_total}" -o /dev/null -X "$method" "$endpoint" \
-      --connect-timeout $TIMEOUT \
-      --max-time $((TIMEOUT * 2))
+  if [[ -n "$token" ]]; then
+    curl_args+=( -H "Authorization: Bearer $token" )
   fi
+
+  curl "${curl_args[@]}" "$endpoint" 2>/dev/null
+}
+
+validate_uuid() {
+  local value="$1"
+  if [[ "$value" =~ ^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$ ]]; then
+    return 0
+  fi
+  return 1
+}
+
+get_auth_token() {
+  local identifier="$1"
+  local password="$2"
+  local login_payload
+  local response
+  local code
+
+  login_payload=$(cat <<EOF
+{
+  "identifier": "$identifier",
+  "password": "$password"
+}
+EOF
+)
+
+  response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$login_payload" "")
+  code=$?
+
+  if [[ $code -ne 200 ]]; then
+    return $code
+  fi
+
+  printf '%s' "$response" | jq -r '.data.accessToken // empty'
+}
+
+performance_check() {
+  local endpoint="$1"
+  local token="$2"
+  local test_name="$3"
+  local response_time
+  local response_ms_int
+
+  response_time=$(get_response_time "GET" "$endpoint" "$token")
+  if [[ -z "$response_time" ]]; then
+    log_warn "$test_name response time unavailable"
+    return 1
+  fi
+
+  response_ms_int=$(awk -v t="$response_time" 'BEGIN { printf "%d", t * 1000 }')
+
+  if [[ $response_ms_int -lt $SLOW_THRESHOLD ]]; then
+    log_pass "$test_name (${response_ms_int}ms)"
+  else
+    log_warn "$test_name (${response_ms_int}ms > ${SLOW_THRESHOLD}ms threshold)"
+  fi
+}
+
+setup() {
+  mkdir -p "$LOG_DIR"
+  : > "$LOG_FILE"
+  printf "Test Report - %s\n" "$(date)" >> "$LOG_FILE"
+  require_tools curl jq awk
 }
 
 check_response_code() {
@@ -154,19 +201,21 @@ check_response_code() {
   local data="$4"
   local token="$5"
   local test_name="$6"
+  local response
+  local code
 
-  local response=$(curl_with_retry "$method" "$endpoint" "$data" "$token")
-  local http_code=$?
+  response=$(curl_with_retry "$method" "$endpoint" "$data" "$token")
+  code=$?
 
-  if [ "$http_code" -eq "$expected_code" ]; then
-    log_pass "$test_name (HTTP $http_code)"
-    echo "$response"
+  if [[ "$code" -eq "$expected_code" ]]; then
+    log_pass "$test_name (HTTP $code)"
+    printf '%s' "$response"
     return 0
-  else
-    log_fail "$test_name" "HTTP $expected_code" "HTTP $http_code"
-    echo "$response"
-    return 1
   fi
+
+  log_fail "$test_name" "HTTP $expected_code" "HTTP $code"
+  printf '%s' "$response"
+  return 1
 }
 
 check_json_field() {
@@ -174,38 +223,22 @@ check_json_field() {
   local field="$2"
   local test_name="$3"
 
-  if echo "$json" | jq -e "$field" > /dev/null 2>&1; then
+  if printf '%s' "$json" | jq -e "$field" >/dev/null 2>&1; then
     log_pass "$test_name"
-    echo "$json" | jq "$field"
+    printf '%s' "$json" | jq "$field"
     return 0
-  else
-    log_fail "$test_name" "Field $field exists" "Field not found"
-    return 1
   fi
+
+  log_fail "$test_name" "Field $field exists" "Field not found"
+  return 1
 }
 
-validate_uuid() {
-  local value="$1"
-  if [[ $value =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
-    return 0
+run_group() {
+  local group="$1"
+  if declare -f "$group" >/dev/null 2>&1; then
+    "$group"
   else
-    return 1
-  fi
-}
-
-performance_check() {
-  local endpoint="$1"
-  local token="$2"
-  local test_name="$3"
-
-  local response_time=$(get_response_time "GET" "$endpoint" "$token")
-  local response_ms=$(echo "$response_time * 1000" | bc)
-  local response_ms_int=${response_ms%.*}
-
-  if [ "$response_ms_int" -lt "$SLOW_THRESHOLD" ]; then
-    log_pass "$test_name (${response_ms_int}ms)"
-  else
-    log_warn "$test_name (${response_ms_int}ms > ${SLOW_THRESHOLD}ms threshold)"
+    log_warn "Unknown test group: $group"
   fi
 }
 
@@ -216,7 +249,6 @@ performance_check() {
 test_system_health() {
   log_section "SYSTEM HEALTH CHECKS"
 
-  # Check API server
   log_info "Checking API server at $API_BASE_URL..."
   if curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL" --connect-timeout 5 | grep -q "200\|404\|405"; then
     log_pass "API server is running"
@@ -225,7 +257,6 @@ test_system_health() {
     return 1
   fi
 
-  # Check Web server
   log_info "Checking Web server at $WEB_BASE_URL..."
   if curl -s -o /dev/null -w "%{http_code}" "$WEB_BASE_URL" --connect-timeout 5 | grep -q "200\|301\|302"; then
     log_pass "Web server is running"
@@ -233,7 +264,6 @@ test_system_health() {
     log_warn "Web server may not be running"
   fi
 
-  # Check Admin server
   log_info "Checking Admin server at $ADMIN_BASE_URL..."
   if curl -s -o /dev/null -w "%{http_code}" "$ADMIN_BASE_URL" --connect-timeout 5 | grep -q "200\|301\|302"; then
     log_pass "Admin server is running"
@@ -241,7 +271,6 @@ test_system_health() {
     log_warn "Admin server may not be running"
   fi
 
-  # Check Swagger docs
   log_info "Checking Swagger documentation..."
   if curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/api/docs" --connect-timeout 5 | grep -q "200"; then
     log_pass "Swagger docs available"
@@ -253,11 +282,15 @@ test_system_health() {
 test_auth_flow() {
   log_section "AUTHENTICATION FLOW TESTS"
 
-  # Test user registration
   log_info "Testing user registration..."
   local email="testuser_$(date +%s)@test.com"
   local phone="9999999999"
-  local register_payload=$(cat <<EOF
+  local register_payload
+  local register_response
+  local http_code
+  local user_id
+
+  register_payload=$(cat <<EOF
 {
   "email": "$email",
   "phone": "$phone",
@@ -268,22 +301,24 @@ test_auth_flow() {
 EOF
 )
 
-  local register_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/register" "$register_payload" "")
+  register_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/register" "$register_payload" "")
   http_code=$?
 
-  if [ "$http_code" -eq 201 ]; then
+  if [[ $http_code -eq 201 ]]; then
     log_pass "User registration successful"
-    local user_id=$(echo "$register_response" | jq -r '.data.id // empty')
+    user_id=$(printf '%s' "$register_response" | jq -r '.data.id // empty')
     if validate_uuid "$user_id"; then
       log_pass "Valid user ID returned: $user_id"
+    else
+      log_warn "User ID is missing or invalid"
     fi
   else
     log_warn "User registration failed (HTTP $http_code)"
   fi
 
-  # Test login with invalid credentials
   log_info "Testing login with invalid credentials..."
-  local login_bad_payload=$(cat <<EOF
+  local login_bad_payload
+  login_bad_payload=$(cat <<EOF
 {
   "identifier": "$email",
   "password": "WrongPassword"
@@ -291,18 +326,21 @@ EOF
 EOF
 )
 
-  curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$login_bad_payload" "" > /dev/null 2>&1
+  curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$login_bad_payload" "" >/dev/null 2>&1
   http_code=$?
 
-  if [ "$http_code" -eq 401 ]; then
+  if [[ $http_code -eq 401 ]]; then
     log_pass "Invalid credentials correctly rejected (HTTP 401)"
   else
     log_warn "Invalid credentials handled with HTTP $http_code (expected 401)"
   fi
 
-  # Test successful login
   log_info "Testing login with valid credentials..."
-  local login_payload=$(cat <<EOF
+  local login_payload
+  local login_response
+  local token=""
+
+  login_payload=$(cat <<EOF
 {
   "identifier": "$email",
   "password": "Test@12345"
@@ -310,14 +348,13 @@ EOF
 EOF
 )
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$login_payload" "")
+  login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$login_payload" "")
   http_code=$?
 
-  local token=""
-  if [ "$http_code" -eq 200 ]; then
+  if [[ $http_code -eq 200 ]]; then
     log_pass "Login successful (HTTP 200)"
-    token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-    if [ -n "$token" ] && [ "$token" != "null" ]; then
+    token=$(printf '%s' "$login_response" | jq -r '.data.accessToken // empty')
+    if [[ -n "$token" && "$token" != "null" ]]; then
       log_pass "Access token received"
     else
       log_fail "Access token not returned"
@@ -326,16 +363,17 @@ EOF
     log_fail "Login failed" "HTTP 200" "HTTP $http_code"
   fi
 
-  # Test get profile with token
-  if [ -n "$token" ]; then
+  if [[ -n "$token" ]]; then
     log_info "Testing get profile endpoint..."
-    local profile_response=$(curl_with_retry "GET" "$API_ENDPOINT/auth/me" "" "$token")
+    local profile_response
+    profile_response=$(curl_with_retry "GET" "$API_ENDPOINT/auth/me" "" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "Get profile successful"
-      local profile_email=$(echo "$profile_response" | jq -r '.data.email // empty')
-      if [ "$profile_email" = "$email" ]; then
+      local profile_email
+      profile_email=$(printf '%s' "$profile_response" | jq -r '.data.email // empty')
+      if [[ "$profile_email" == "$email" ]]; then
         log_pass "Profile data integrity verified"
       else
         log_warn "Profile email mismatch"
@@ -344,15 +382,12 @@ EOF
       log_fail "Get profile failed" "HTTP 200" "HTTP $http_code"
     fi
 
-    # Test unauthorized access without token
     log_info "Testing unauthorized access..."
-    local no_token_response=$(curl -s -w "\n%{http_code}" -X GET "$API_ENDPOINT/auth/me" \
-      -H "Content-Type: application/json" \
-      --connect-timeout $TIMEOUT \
-      --max-time $((TIMEOUT * 2)))
+    local no_token_response
+    no_token_response=$(curl -s -w "\n%{http_code}" -X GET "$API_ENDPOINT/auth/me" -H "Content-Type: application/json" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)))
+    http_code=$(printf '%s' "$no_token_response" | tail -n1)
 
-    http_code=$(echo "$no_token_response" | tail -n1)
-    if [ "$http_code" -eq 401 ]; then
+    if [[ $http_code -eq 401 ]]; then
       log_pass "Unauthorized requests correctly rejected (HTTP 401)"
     else
       log_warn "Unauthorized request returned HTTP $http_code (expected 401)"
@@ -363,27 +398,22 @@ EOF
 test_client_management() {
   log_section "CLIENT MANAGEMENT TESTS"
 
-  # First get a valid token
   log_info "Obtaining authentication token..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -z "$token" ] || [ "$token" = "null" ]; then
+  if [[ -z "$token" ]]; then
     log_warn "Could not obtain admin token, skipping client tests"
     return 1
   fi
 
-  # Test create client
   log_info "Testing client creation..."
-  local client_payload=$(cat <<EOF
+  local client_payload
+  local create_response
+  local http_code
+  local client_id
+
+  client_payload=$(cat <<EOF
 {
   "name": "Test Client $(date +%s)",
   "email": "client_$(date +%s)@test.com",
@@ -397,52 +427,57 @@ EOF
 EOF
 )
 
-  local create_response=$(curl_with_retry "POST" "$API_ENDPOINT/clients" "$client_payload" "$token")
+  create_response=$(curl_with_retry "POST" "$API_ENDPOINT/clients" "$client_payload" "$token")
   http_code=$?
 
-  local client_id=""
-  if [ "$http_code" -eq 201 ]; then
+  if [[ $http_code -eq 201 ]]; then
     log_pass "Client created successfully"
-    client_id=$(echo "$create_response" | jq -r '.data.id // empty')
+    client_id=$(printf '%s' "$create_response" | jq -r '.data.id // empty')
     if validate_uuid "$client_id"; then
       log_pass "Valid client ID received: $client_id"
+    else
+      log_warn "Client ID is missing or invalid"
     fi
   else
     log_fail "Client creation failed" "HTTP 201" "HTTP $http_code"
   fi
 
-  # Test get all clients
   log_info "Testing get all clients..."
-  local list_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients" "" "$token")
+  local list_response
+  list_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients" "" "$token")
   http_code=$?
 
-  if [ "$http_code" -eq 200 ]; then
+  if [[ $http_code -eq 200 ]]; then
     log_pass "Get clients list successful"
-    local client_count=$(echo "$list_response" | jq '.data | length')
-    log_info "Found $client_count clients"
+    if printf '%s' "$list_response" | jq -e '.data | type == "array"' >/dev/null 2>&1; then
+      local client_count
+      client_count=$(printf '%s' "$list_response" | jq '.data | length')
+      log_info "Found $client_count clients"
+    fi
   else
     log_warn "Get clients list returned HTTP $http_code"
   fi
 
-  # Test get single client
-  if [ -n "$client_id" ]; then
+  if [[ -n "$client_id" ]]; then
     log_info "Testing get single client..."
-    local single_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$client_id" "" "$token")
+    local single_response
+    single_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$client_id" "" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "Get single client successful"
-      local retrieved_name=$(echo "$single_response" | jq -r '.data.name // empty')
-      if [ -n "$retrieved_name" ]; then
+      local retrieved_name
+      retrieved_name=$(printf '%s' "$single_response" | jq -r '.data.name // empty')
+      if [[ -n "$retrieved_name" ]]; then
         log_pass "Client data integrity verified"
       fi
     else
       log_fail "Get single client failed" "HTTP 200" "HTTP $http_code"
     fi
 
-    # Test update client
     log_info "Testing client update..."
-    local update_payload=$(cat <<EOF
+    local update_payload
+    update_payload=$(cat <<EOF
 {
   "name": "Updated Client Name",
   "phone": "9999888877"
@@ -450,21 +485,22 @@ EOF
 EOF
 )
 
-    local update_response=$(curl_with_retry "PATCH" "$API_ENDPOINT/clients/$client_id" "$update_payload" "$token")
+    local update_response
+    update_response=$(curl_with_retry "PATCH" "$API_ENDPOINT/clients/$client_id" "$update_payload" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "Client update successful"
     else
       log_warn "Client update returned HTTP $http_code"
     fi
 
-    # Test get client history
     log_info "Testing get client history..."
-    local history_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$client_id/history" "" "$token")
+    local history_response
+    history_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$client_id/history" "" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "Get client history successful"
     else
       log_warn "Get client history returned HTTP $http_code"
@@ -476,78 +512,74 @@ test_inventory_management() {
   log_section "INVENTORY MANAGEMENT TESTS"
 
   log_info "Obtaining authentication token..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -z "$token" ] || [ "$token" = "null" ]; then
+  if [[ -z "$token" ]]; then
     log_warn "Could not obtain token, skipping inventory tests"
     return 1
   fi
 
-  # Test get brands
   log_info "Testing get brands list..."
-  local brands_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/brands" "" "$token")
-  http_code=$?
+  local brands_response
+  brands_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/brands" "" "$token")
+  local http_code
 
-  if [ "$http_code" -eq 200 ]; then
+  http_code=$?
+  if [[ $http_code -eq 200 ]]; then
     log_pass "Get brands successful"
-    local brand_count=$(echo "$brands_response" | jq '.data | length')
+    local brand_count
+    brand_count=$(printf '%s' "$brands_response" | jq '.data | length')
     log_info "Found $brand_count brands"
   else
     log_warn "Get brands returned HTTP $http_code"
   fi
 
-  # Test get models
   log_info "Testing get models list..."
-  local models_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/models" "" "$token")
+  local models_response
+  models_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/models" "" "$token")
   http_code=$?
 
-  if [ "$http_code" -eq 200 ]; then
+  if [[ $http_code -eq 200 ]]; then
     log_pass "Get models successful"
-    local model_count=$(echo "$models_response" | jq '.data | length')
+    local model_count
+    model_count=$(printf '%s' "$models_response" | jq '.data | length')
     log_info "Found $model_count models"
   else
     log_warn "Get models returned HTTP $http_code"
   fi
 
-  # Test get inventory items
   log_info "Testing get inventory items..."
-  local inventory_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory?limit=10" "" "$token")
+  local inventory_response
+  inventory_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory?limit=10" "" "$token")
   http_code=$?
 
-  if [ "$http_code" -eq 200 ]; then
+  if [[ $http_code -eq 200 ]]; then
     log_pass "Get inventory items successful"
-    local item_count=$(echo "$inventory_response" | jq '.data | length')
+    local item_count
+    item_count=$(printf '%s' "$inventory_response" | jq '.data | length')
     log_info "Found $item_count inventory items"
   else
     log_warn "Get inventory items returned HTTP $http_code"
   fi
 
-  # Test price suggestion
   log_info "Testing price suggestion endpoint..."
-  local price_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/price-suggestion?modelId=test&condition=good" "" "$token")
+  local price_response
+  price_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/price-suggestion?modelId=test&condition=good" "" "$token")
   http_code=$?
 
-  if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 404 ]; then
+  if [[ $http_code -eq 200 || $http_code -eq 404 ]]; then
     log_pass "Price suggestion endpoint accessible (HTTP $http_code)"
   else
     log_warn "Price suggestion returned HTTP $http_code"
   fi
 
-  # Test city stock
   log_info "Testing city stock endpoint..."
-  local stock_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/city-stock?modelId=test" "" "$token")
+  local stock_response
+  stock_response=$(curl_with_retry "GET" "$API_ENDPOINT/inventory/city-stock?modelId=test" "" "$token")
   http_code=$?
 
-  if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 404 ]; then
+  if [[ $http_code -eq 200 || $http_code -eq 404 ]]; then
     log_pass "City stock endpoint accessible (HTTP $http_code)"
   else
     log_warn "City stock returned HTTP $http_code"
@@ -557,87 +589,75 @@ EOF
 test_error_handling() {
   log_section "ERROR HANDLING & EDGE CASES"
 
-  # Test invalid endpoint
   log_info "Testing invalid endpoint..."
-  local invalid_response=$(curl -s -w "\n%{http_code}" -X GET "$API_ENDPOINT/invalid-endpoint" \
-    -H "Content-Type: application/json" \
-    --connect-timeout $TIMEOUT \
-    --max-time $((TIMEOUT * 2)))
+  local invalid_response
+  invalid_response=$(curl -s -w "\n%{http_code}" -X GET "$API_ENDPOINT/invalid-endpoint" -H "Content-Type: application/json" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)))
+  local http_code
+  http_code=$(printf '%s' "$invalid_response" | tail -n1)
 
-  http_code=$(echo "$invalid_response" | tail -n1)
-  if [ "$http_code" -eq 404 ]; then
+  if [[ $http_code -eq 404 ]]; then
     log_pass "Invalid endpoint correctly returns 404"
   else
     log_warn "Invalid endpoint returned HTTP $http_code (expected 404)"
   fi
 
-  # Test malformed JSON
   log_info "Testing malformed JSON handling..."
-  local malformed_response=$(curl -s -w "\n%{http_code}" -X POST "$API_ENDPOINT/auth/login" \
-    -H "Content-Type: application/json" \
-    -d "{invalid json" \
-    --connect-timeout $TIMEOUT \
-    --max-time $((TIMEOUT * 2)))
+  local malformed_response
+  malformed_response=$(curl -s -w "\n%{http_code}" -X POST "$API_ENDPOINT/auth/login" -H "Content-Type: application/json" -d "{invalid json" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)))
+  http_code=$(printf '%s' "$malformed_response" | tail -n1)
 
-  http_code=$(echo "$malformed_response" | tail -n1)
-  if [ "$http_code" -eq 400 ]; then
+  if [[ $http_code -eq 400 ]]; then
     log_pass "Malformed JSON correctly rejected (HTTP 400)"
   else
     log_warn "Malformed JSON returned HTTP $http_code (expected 400)"
   fi
 
-  # Test missing required fields
   log_info "Testing missing required fields..."
-  local incomplete_payload=$(cat <<EOF
+  local incomplete_payload
+  incomplete_payload=$(cat <<EOF
 {
   "email": "test@test.com"
 }
 EOF
 )
-
-  local incomplete_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$incomplete_payload" "")
+  local incomplete_response
+  incomplete_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$incomplete_payload" "")
   http_code=$?
 
-  if [ "$http_code" -eq 400 ]; then
+  if [[ $http_code -eq 400 ]]; then
     log_pass "Missing required fields correctly rejected (HTTP 400)"
   else
     log_warn "Missing required fields returned HTTP $http_code (expected 400)"
   fi
 
-  # Test non-existent resource
   log_info "Testing non-existent resource..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -n "$token" ] && [ "$token" != "null" ]; then
+  if [[ -n "$token" ]]; then
     local fake_uuid="00000000-0000-0000-0000-000000000000"
-    local not_found_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$fake_uuid" "" "$token")
+    local not_found_response
+    not_found_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$fake_uuid" "" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 404 ]; then
+    if [[ $http_code -eq 404 ]]; then
       log_pass "Non-existent resource correctly returns 404"
     else
       log_warn "Non-existent resource returned HTTP $http_code (expected 404)"
     fi
-  fi
 
-  # Test invalid UUID format
-  log_info "Testing invalid UUID format..."
-  local invalid_uuid_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/invalid-uuid-format" "" "$token")
-  http_code=$?
+    log_info "Testing invalid UUID format..."
+    local invalid_uuid_response
+    invalid_uuid_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/invalid-uuid-format" "" "$token")
+    http_code=$?
 
-  if [ "$http_code" -eq 400 ]; then
-    log_pass "Invalid UUID format correctly rejected (HTTP 400)"
+    if [[ $http_code -eq 400 ]]; then
+      log_pass "Invalid UUID format correctly rejected (HTTP 400)"
+    else
+      log_warn "Invalid UUID format returned HTTP $http_code (expected 400)"
+    fi
   else
-    log_warn "Invalid UUID format returned HTTP $http_code (expected 400)"
+    log_warn "Could not obtain token to verify non-existent resource and invalid UUID handling"
   fi
 }
 
@@ -645,32 +665,17 @@ test_performance() {
   log_section "PERFORMANCE CHECKS"
 
   log_info "Obtaining authentication token..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -z "$token" ] || [ "$token" = "null" ]; then
+  if [[ -z "$token" ]]; then
     log_warn "Could not obtain token, skipping performance tests"
     return 1
   fi
 
-  # Test auth endpoint performance
   performance_check "$API_ENDPOINT/auth/me" "$token" "Auth /me endpoint response time"
-
-  # Test inventory list performance
   performance_check "$API_ENDPOINT/inventory?limit=10" "$token" "Inventory list endpoint response time"
-
-  # Test clients list performance
   performance_check "$API_ENDPOINT/clients" "$token" "Clients list endpoint response time"
-
-  # Test brands list performance
   performance_check "$API_ENDPOINT/inventory/brands" "$token" "Brands list endpoint response time"
 }
 
@@ -678,27 +683,20 @@ test_crud_operations() {
   log_section "CRUD OPERATIONS VALIDATION"
 
   log_info "Obtaining authentication token..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -z "$token" ] || [ "$token" = "null" ]; then
+  if [[ -z "$token" ]]; then
     log_warn "Could not obtain token, skipping CRUD tests"
     return 1
   fi
 
-  local test_id=$(date +%s)
+  local test_id
+  test_id=$(date +%s)
 
-  # CREATE
   log_info "Testing CREATE operation..."
-  local create_payload=$(cat <<EOF
+  local create_payload
+  create_payload=$(cat <<EOF
 {
   "name": "CRUD Test Client $test_id",
   "email": "crud_test_$test_id@test.com",
@@ -712,37 +710,40 @@ EOF
 EOF
 )
 
-  local create_response=$(curl_with_retry "POST" "$API_ENDPOINT/clients" "$create_payload" "$token")
+  local create_response
+  create_response=$(curl_with_retry "POST" "$API_ENDPOINT/clients" "$create_payload" "$token")
+  local http_code
   http_code=$?
-
   local resource_id=""
-  if [ "$http_code" -eq 201 ]; then
+
+  if [[ $http_code -eq 201 ]]; then
     log_pass "CREATE operation successful"
-    resource_id=$(echo "$create_response" | jq -r '.data.id // empty')
+    resource_id=$(printf '%s' "$create_response" | jq -r '.data.id // empty')
   else
     log_fail "CREATE operation failed" "HTTP 201" "HTTP $http_code"
     return 1
   fi
 
-  # READ
-  if [ -n "$resource_id" ]; then
+  if [[ -n "$resource_id" ]]; then
     log_info "Testing READ operation..."
-    local read_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$resource_id" "" "$token")
+    local read_response
+    read_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$resource_id" "" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "READ operation successful"
-      local read_name=$(echo "$read_response" | jq -r '.data.name // empty')
-      if [ -n "$read_name" ]; then
+      local read_name
+      read_name=$(printf '%s' "$read_response" | jq -r '.data.name // empty')
+      if [[ -n "$read_name" ]]; then
         log_pass "READ data validation passed"
       fi
     else
       log_fail "READ operation failed" "HTTP 200" "HTTP $http_code"
     fi
 
-    # UPDATE
     log_info "Testing UPDATE operation..."
-    local update_payload=$(cat <<EOF
+    local update_payload
+    update_payload=$(cat <<EOF
 {
   "name": "CRUD Test Client Updated $test_id",
   "phone": "8888888888"
@@ -750,12 +751,14 @@ EOF
 EOF
 )
 
-    local update_response=$(curl_with_retry "PATCH" "$API_ENDPOINT/clients/$resource_id" "$update_payload" "$token")
+    local update_response
+    update_response=$(curl_with_retry "PATCH" "$API_ENDPOINT/clients/$resource_id" "$update_payload" "$token")
     http_code=$?
 
-    if [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 200 ]]; then
       log_pass "UPDATE operation successful"
-      local updated_name=$(echo "$update_response" | jq -r '.data.name // empty')
+      local updated_name
+      updated_name=$(printf '%s' "$update_response" | jq -r '.data.name // empty')
       if [[ "$updated_name" == *"Updated"* ]]; then
         log_pass "UPDATE data validation passed"
       fi
@@ -763,24 +766,20 @@ EOF
       log_fail "UPDATE operation failed" "HTTP 200" "HTTP $http_code"
     fi
 
-    # DELETE (if endpoint exists)
     log_info "Testing DELETE operation..."
-    local delete_response=$(curl -s -w "\n%{http_code}" -X DELETE "$API_ENDPOINT/clients/$resource_id" \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $token" \
-      --connect-timeout $TIMEOUT \
-      --max-time $((TIMEOUT * 2)))
+    local delete_response
+    delete_response=$(curl -s -w "\n%{http_code}" -X DELETE "$API_ENDPOINT/clients/$resource_id" -H "Content-Type: application/json" -H "Authorization: Bearer $token" --connect-timeout "$TIMEOUT" --max-time $((TIMEOUT * 2)))
+    http_code=$(printf '%s' "$delete_response" | tail -n1)
 
-    http_code=$(echo "$delete_response" | tail -n1)
-
-    if [ "$http_code" -eq 204 ] || [ "$http_code" -eq 200 ]; then
+    if [[ $http_code -eq 204 || $http_code -eq 200 ]]; then
       log_pass "DELETE operation successful"
 
-      # Verify resource is deleted
-      local verify_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$resource_id" "" "$token")
+      local verify_response
+      verify_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$resource_id" "" "$token")
+      local verify_code
       verify_code=$?
 
-      if [ "$verify_code" -eq 404 ]; then
+      if [[ $verify_code -eq 404 ]]; then
         log_pass "DELETE verification passed (resource not found)"
       else
         log_warn "DELETE verification inconclusive (HTTP $verify_code)"
@@ -795,112 +794,114 @@ test_response_structure() {
   log_section "API RESPONSE STRUCTURE VALIDATION"
 
   log_info "Obtaining authentication token..."
-  local admin_payload=$(cat <<EOF
-{
-  "identifier": "admin@test.com",
-  "password": "Admin@12345"
-}
-EOF
-)
+  local token
+  token=$(get_auth_token "admin@test.com" "Admin@12345")
 
-  local login_response=$(curl_with_retry "POST" "$API_ENDPOINT/auth/login" "$admin_payload" "")
-  local token=$(echo "$login_response" | jq -r '.data.accessToken // empty')
-
-  if [ -z "$token" ] || [ "$token" = "null" ]; then
+  if [[ -z "$token" ]]; then
     log_warn "Could not obtain token, skipping response structure tests"
     return 1
   fi
 
-  # Test response structure for list endpoint
   log_info "Validating list endpoint response structure..."
-  local list_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients?limit=5" "" "$token")
+  local list_response
+  list_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients?limit=5" "" "$token")
+  local http_code
   http_code=$?
 
-  if [ "$http_code" -eq 200 ]; then
-    if echo "$list_response" | jq -e '.data' > /dev/null 2>&1; then
+  if [[ $http_code -eq 200 ]]; then
+    if printf '%s' "$list_response" | jq -e '.data' >/dev/null 2>&1; then
       log_pass "List response has 'data' field"
     else
       log_warn "List response missing 'data' field"
     fi
 
-    if echo "$list_response" | jq -e '.meta' > /dev/null 2>&1; then
+    if printf '%s' "$list_response" | jq -e '.meta' >/dev/null 2>&1; then
       log_pass "List response has 'meta' field"
     else
       log_warn "List response missing 'meta' field"
     fi
   fi
 
-  # Test response structure for single resource
   log_info "Validating single resource response structure..."
-  local single_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients?limit=1" "" "$token")
-  http_code=$?
+  local first_id
+  first_id=$(printf '%s' "$list_response" | jq -r '.data[0].id // empty')
 
-  if [ "$http_code" -eq 200 ]; then
-    if echo "$single_response" | jq -e '.data[0].id' > /dev/null 2>&1; then
-      log_pass "Single resource has 'id' field"
-    else
-      log_warn "Single resource missing 'id' field"
+  if [[ -n "$first_id" ]]; then
+    local single_response
+    single_response=$(curl_with_retry "GET" "$API_ENDPOINT/clients/$first_id" "" "$token")
+    http_code=$?
+
+    if [[ $http_code -eq 200 ]]; then
+      if printf '%s' "$single_response" | jq -e '.data.id' >/dev/null 2>&1; then
+        log_pass "Single resource has 'id' field"
+      else
+        log_warn "Single resource missing 'id' field"
+      fi
     fi
+  else
+    log_warn "No client resource available to validate single-response structure"
   fi
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
-# MAIN EXECUTION
-# ──────────────────────────────────────────────────────────────────────────────
-
 print_summary() {
-  echo ""
+  printf "\n"
   log_section "TEST SUMMARY"
-  
-  local total=$((pass_count + fail_count + warn_count))
-  
-  echo -e "${GREEN}Total Tests: $total${NC}"
-  echo -e "${GREEN}Passed: $pass_count${NC}"
-  echo -e "${RED}Failed: $fail_count${NC}"
-  echo -e "${YELLOW}Warnings: $warn_count${NC}"
 
-  if [ $fail_count -eq 0 ]; then
-    echo -e "\n${GREEN}✅ ALL TESTS PASSED${NC}"
-    echo "═════════════════════════════════════════" >> "$LOG_FILE"
-    echo "SUMMARY: PASS=$pass_count FAIL=$fail_count WARN=$warn_count" >> "$LOG_FILE"
-    echo "═════════════════════════════════════════" >> "$LOG_FILE"
+  local total=$((pass_count + fail_count + warn_count))
+  local elapsed
+  elapsed=$(awk -v start="$START_TIME" 'BEGIN { print int(systime() - start) }')
+
+  printf "%bTotal Tests:%b %d\n" "$GREEN" "$NC" "$total"
+  printf "%bPassed:%b %d\n" "$GREEN" "$NC" "$pass_count"
+  printf "%bFailed:%b %d\n" "$RED" "$NC" "$fail_count"
+  printf "%bWarnings:%b %d\n" "$YELLOW" "$NC" "$warn_count"
+  printf "%bElapsed time:%b %ds\n" "$BLUE" "$NC" "$elapsed"
+
+  printf "═════════════════════════════════════════\n" >> "$LOG_FILE"
+  printf "SUMMARY: PASS=%d FAIL=%d WARN=%d ELAPSED=%ds\n" "$pass_count" "$fail_count" "$warn_count" "$elapsed" >> "$LOG_FILE"
+  printf "═════════════════════════════════════════\n" >> "$LOG_FILE"
+
+  if [[ $fail_count -eq 0 ]]; then
+    printf "%b\n✅ ALL TESTS PASSED%b\n" "$GREEN" "$NC"
     return 0
-  else
-    echo -e "\n${RED}❌ SOME TESTS FAILED${NC}"
-    echo "═════════════════════════════════════════" >> "$LOG_FILE"
-    echo "SUMMARY: PASS=$pass_count FAIL=$fail_count WARN=$warn_count" >> "$LOG_FILE"
-    echo "═════════════════════════════════════════" >> "$LOG_FILE"
-    return 1
   fi
+
+  printf "%b\n❌ SOME TESTS FAILED%b\n" "$RED" "$NC"
+  return 1
 }
 
 main() {
   setup
+  START_TIME=$(date +%s)
 
-  echo -e "${BLUE}"
-  echo "╔════════════════════════════════════════════════════════════╗"
-  echo "║     Dream Gadgets - Comprehensive Test Suite               ║"
-  echo "║     API: $API_BASE_URL"
-  echo "║     Timestamp: $(date)"
-  echo "╚════════════════════════════════════════════════════════════╝"
-  echo -e "${NC}"
-  echo ""
+  printf "%b" "$BLUE"
+  printf "╔════════════════════════════════════════════════════════════╗\n"
+  printf "║     Dream Gadgets - Comprehensive Test Suite               ║\n"
+  printf "║     API: %s\n" "$API_BASE_URL"
+  printf "║     Timestamp: %s\n" "$(date)"
+  printf "╚════════════════════════════════════════════════════════════╝\n"
+  printf "%b" "$NC"
+  printf "\n"
 
-  test_system_health
-  test_auth_flow
-  test_client_management
-  test_inventory_management
-  test_crud_operations
-  test_response_structure
-  test_error_handling
-  test_performance
+  if [[ $# -gt 0 ]]; then
+    for group in "$@"; do
+      run_group "$group"
+    done
+  else
+    test_system_health
+    test_auth_flow
+    test_client_management
+    test_inventory_management
+    test_crud_operations
+    test_response_structure
+    test_error_handling
+    test_performance
+  fi
 
   print_summary
   local exit_code=$?
-
   log_info "Full test report saved to: $LOG_FILE"
-
-  exit $exit_code
+  exit "$exit_code"
 }
 
 main "$@"

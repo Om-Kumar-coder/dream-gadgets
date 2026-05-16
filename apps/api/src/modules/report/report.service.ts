@@ -526,11 +526,11 @@ export class ReportService {
   <title>${title}</title>
   <style>
     body { font-family: Arial, sans-serif; font-size: 12px; }
-    h1 { color: #333; }
+    h1 { color: #1A1A1A; }
     table { width: 100%; border-collapse: collapse; }
-    th { background: #4472C4; color: white; padding: 6px; text-align: left; }
-    td { padding: 5px; border-bottom: 1px solid #ddd; }
-    tr:nth-child(even) { background: #f5f5f5; }
+    th { background: #E50914; color: white; padding: 6px; text-align: left; }
+    td { padding: 5px; border-bottom: 1px solid #E0E0E0; }
+    tr:nth-child(even) { background: #E5E5E5; }
   </style>
 </head>
 <body>

@@ -215,7 +215,7 @@ export default function HomePage() {
 
       {/* ── Testimonials ── */}
       <section className="section-pad" style={{
-        backgroundColor: '#111'
+        backgroundColor: '#0F0F10'
       }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">

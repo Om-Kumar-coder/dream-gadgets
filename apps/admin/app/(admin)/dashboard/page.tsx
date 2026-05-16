@@ -217,18 +217,18 @@ export default function DashboardPage() {
               <AreaChart data={salesChartData}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#E50914" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#E50914" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
                 <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${v / 1000}K`} />
                 <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Sales']} />
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#3b82f6"
+                  stroke="#E50914"
                   fill="url(#salesGrad)"
                   strokeWidth={2}
                 />
@@ -246,11 +246,11 @@ export default function DashboardPage() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stockChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
                 <XAxis dataKey="condition" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#FF2D2D" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

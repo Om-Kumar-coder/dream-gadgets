@@ -3,7 +3,7 @@ import Link from 'next/link';
 export function Footer() {
   return (
     <footer className="text-gray-400 mt-16" style={{
-      backgroundColor: '#0A0A0A',
+      backgroundColor: '#0F0F10',
       borderTop: '1px solid rgba(255, 0, 0, 0.2)'
     }}>
       <div className="max-w-7xl mx-auto px-4 pt-14 pb-8">

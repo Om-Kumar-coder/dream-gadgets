@@ -334,8 +334,8 @@ export class SalesService {
   body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
   h1 { font-size: 18px; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-  th { background: #f5f5f5; }
+  th, td { border: 1px solid #E0E0E0; padding: 6px; text-align: left; }
+  th { background: #E5E5E5; }
   .totals { margin-top: 10px; text-align: right; }
 </style>
 </head><body>

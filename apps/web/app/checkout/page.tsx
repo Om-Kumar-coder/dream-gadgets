@@ -53,7 +53,7 @@ export default function CheckoutPage() {
             router.push(`/orders/${order.id}?payment=success`);
           },
           prefill: { name: address.name, contact: address.phone },
-          theme: { color: '#6366f1' },
+          theme: { color: '#E50914' },
         });
         rzp.open();
       };
