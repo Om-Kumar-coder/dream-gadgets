@@ -44,16 +44,7 @@ export default function ContactPage() {
                 <label className="block text-xs font-semibold text-gray-400 mb-1">Message</label>
                 <textarea rows={4} className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 resize-none" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
-              <button type="submit" className="w-full text-white font-bold py-3 rounded-xl text-sm transition-all" style={{
-                backgroundColor: '#E50914',
-                boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
-              }} onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#C40812';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
-              }} onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#E50914';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
-              }}>
+              <button type="submit" className="w-full btn-red font-bold py-3 rounded-xl text-sm transition-all">
                 Send Message →
               </button>
             </form>
@@ -84,16 +75,7 @@ export default function ContactPage() {
                 href="https://wa.me/919800000000"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-4 py-2 text-white text-xs font-bold rounded-lg transition-all"
-                style={{ backgroundColor: '#E50914', boxShadow: '0 0 10px rgba(229, 9, 20, 0.28)' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#C40812';
-                  e.currentTarget.style.boxShadow = '0 0 14px rgba(255, 45, 45, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#E50914';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.28)';
-                }}
+                className="inline-block px-4 py-2 btn-red text-xs font-bold rounded-lg transition-all"
               >
                 Chat on WhatsApp
               </a>

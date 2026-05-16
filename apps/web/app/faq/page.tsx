@@ -69,16 +69,7 @@ export default function FaqPage() {
         }}>
           <p className="font-bold text-gray-900 mb-2">Still have questions?</p>
           <p className="text-sm text-gray-500 mb-4">Our support team is happy to help.</p>
-          <a href="/contact" className="inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm transition-all" style={{
-            backgroundColor: '#E50914',
-            boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
-          }} onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#C40812';
-            e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
-          }} onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#E50914';
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
-          }}>
+          <a href="/contact" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-all">
             Contact Us →
           </a>
         </div>

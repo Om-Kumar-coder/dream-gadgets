@@ -78,13 +78,7 @@ export default function StoresPage() {
         <div className="mt-12 rounded-2xl p-8 text-center border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.2)' }}>
           <h2 className="text-xl font-bold text-white mb-2">Can't visit a store?</h2>
           <p className="text-gray-400 text-sm mb-5">No problem! We offer free doorstep pickup across India.</p>
-          <a href="/sell" className="inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm transition-all" style={{ backgroundColor: '#E50914', boxShadow: '0 0 12px rgba(229, 9, 20, 0.35)' }} onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#C40812';
-            e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.5)';
-          }} onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#E50914';
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.35)';
-          }}>
+          <a href="/sell" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-all">
             Schedule Pickup →
           </a>
         </div>

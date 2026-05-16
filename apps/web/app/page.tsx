@@ -94,16 +94,7 @@ export default function HomePage() {
             Highest Price &nbsp;·&nbsp; Doorstep Pickups &nbsp;·&nbsp; Instant Payment
           </p>
           <div className="flex flex-wrap gap-4 justify-center mt-8">
-            <Link href="/sell" className="px-8 py-3.5 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all" style={{
-              backgroundColor: '#E50914',
-              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
-            }} onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#C40812';
-              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
-            }} onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#E50914';
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
-            }}>
+            <Link href="/sell" className="px-8 py-3.5 rounded-full font-bold text-sm btn-red hover:shadow-lg transition-all">
               Sell Now →
             </Link>
             <Link href="/products" className="px-8 py-3.5 bg-white/15 backdrop-blur-sm border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/25 transition-colors">
@@ -144,18 +135,10 @@ export default function HomePage() {
           </div>
           <Link href="/sell" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
           {SERVICES.map(s => (
             <Link key={s.label} href={s.href}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all" style={{
-                borderColor: 'inherit'
-              }} onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#E50914';
-                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-              }} onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#E5E5E5';
-                e.currentTarget.style.boxShadow = '';
-              }}>
+              className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
               <span className="text-4xl">{s.icon}</span>
               <span className="text-sm font-semibold text-gray-700">{s.label}</span>
             </Link>
@@ -209,16 +192,7 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link href="/products" className="inline-block mt-8 px-6 py-3 text-white rounded-xl font-semibold text-sm transition-colors" style={{
-              backgroundColor: '#E50914',
-              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
-            }} onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#C40812';
-              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
-            }} onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#E50914';
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
-            }}>
+            <Link href="/products" className="inline-block mt-8 px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-colors">
               Shop Verified Phones →
             </Link>
           </div>
@@ -250,15 +224,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {TESTIMONIALS.slice(0, 3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border" style={{
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border card-hover-red" style={{
                 backgroundColor: '#1A1A1A',
                 borderColor: 'rgba(229, 9, 20, 0.3)'
-              }} onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#E50914';
-                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-              }} onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.3)';
-                e.currentTarget.style.boxShadow = '';
               }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
@@ -279,15 +247,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5 max-w-2xl mx-auto">
             {TESTIMONIALS.slice(3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border" style={{
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border card-hover-red" style={{
                 backgroundColor: '#1A1A1A',
                 borderColor: 'rgba(229, 9, 20, 0.3)'
-              }} onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#E50914';
-                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-              }} onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.3)';
-                e.currentTarget.style.boxShadow = '';
               }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
@@ -345,13 +307,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {BLOGS.map(b => (
               <Link key={b.slug} href={`/blog/${b.slug}`}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all" onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#E50914';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-                }} onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#E5E5E5';
-                  e.currentTarget.style.boxShadow = '';
-                }}>
+                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all card-hover-red">
                 <div className="h-40 flex items-center justify-center text-5xl" style={{
                   background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
                 }}>
@@ -387,16 +343,7 @@ export default function HomePage() {
                 className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-slate-950 border border-gray-800 focus:outline-none focus:ring-2"
                 style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties}
               />
-              <button type="submit" className="px-6 py-3 text-white font-bold text-sm rounded-xl transition-all whitespace-nowrap" style={{
-                backgroundColor: '#E50914',
-                boxShadow: '0 0 12px rgba(229, 9, 20, 0.35)'
-              }} onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#C40812';
-                e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.5)';
-              }} onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#E50914';
-                e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.35)';
-              }}>
+              <button type="submit" className="px-6 py-3 text-white font-bold text-sm rounded-xl btn-red whitespace-nowrap transition-all">
                 Subscribe
               </button>
             </form>

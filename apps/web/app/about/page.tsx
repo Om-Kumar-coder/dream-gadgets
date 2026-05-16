@@ -69,16 +69,7 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold mb-3">Ready to get started?</h2>
           <p className="text-white/80 mb-6 text-sm">Sell your old phone or buy a certified refurbished one today.</p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/sell" className="px-6 py-3 text-gray-900 rounded-full font-bold text-sm transition-all" style={{
-              backgroundColor: '#E50914',
-              boxShadow: '0 0 12px rgba(229, 9, 20, 0.4)'
-            }} onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#C40812';
-              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.6)';
-            }} onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#E50914';
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.4)';
-            }}>
+            <Link href="/sell" className="px-6 py-3 rounded-full font-bold text-sm btn-red">
               Sell Your Phone
             </Link>
             <Link href="/products" className="px-6 py-3 border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/30 transition-colors" style={{

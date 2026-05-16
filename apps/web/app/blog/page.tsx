@@ -69,13 +69,7 @@ export default function BlogPage() {
       <section className="max-w-6xl mx-auto px-4 py-16">
         {/* Featured */}
         <Link href={`/blog/${POSTS[0].slug}`}
-          className="block mb-10 bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all group" onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#E50914';
-            e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-          }} onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#E5E5E5';
-            e.currentTarget.style.boxShadow = '';
-          }}>
+          className="block mb-10 bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all group card-hover-red">
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="h-64 md:h-auto flex items-center justify-center text-8xl" style={{
               background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
@@ -99,13 +93,7 @@ export default function BlogPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {POSTS.slice(1).map(p => (
             <Link key={p.slug} href={`/blog/${p.slug}`}
-              className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all group" onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#E50914';
-                e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.25)';
-              }} onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#E5E5E5';
-                e.currentTarget.style.boxShadow = '';
-              }}>
+              className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all group card-hover-red">
               <div className="h-36 flex items-center justify-center text-5xl" style={{
                 background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
               }}>

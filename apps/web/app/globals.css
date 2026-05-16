@@ -58,4 +58,24 @@
       0 0 6px rgba(255, 45, 45, 0.3),
       0 0 12px rgba(255, 45, 45, 0.2);
   }
+  .btn-red {
+    background-color: #E50914;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.4);
+    transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .btn-red:hover {
+    background-color: #C40812;
+    box-shadow: 0 0 18px rgba(255, 45, 45, 0.6);
+    transform: translateY(-1px);
+  }
+  .card-hover-red {
+    transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
+    border-color: #E5E5E5;
+  }
+  .card-hover-red:hover {
+    border-color: #E50914;
+    box-shadow: 0 0 10px rgba(229,9,20,0.25);
+    transform: translateY(-4px);
+  }
 }
