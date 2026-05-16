@@ -20,29 +20,29 @@ export default function ContactPage() {
 
           {/* Form */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Send us a message</h2>
+            <h2 className="text-xl font-bold text-white mb-6">Send us a message</h2>
             <form className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-                  <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">First Name</label>
+                  <input type="text" className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Last Name</label>
-                  <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Last Name</label>
+                  <input type="text" className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
-                <input type="tel" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Phone Number</label>
+                <input type="tel" className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Email</label>
+                <input type="email" className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Message</label>
-                <textarea rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Message</label>
+                <textarea rows={4} className="w-full border border-gray-700 bg-slate-950 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 resize-none" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               </div>
               <button type="submit" className="w-full text-white font-bold py-3 rounded-xl text-sm transition-all" style={{
                 backgroundColor: '#E50914',
@@ -77,14 +77,23 @@ export default function ContactPage() {
               </div>
             ))}
 
-            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
-              <p className="font-semibold text-gray-900 text-sm mb-1">💬 WhatsApp Support</p>
-              <p className="text-xs text-gray-500 mb-3">Chat with us directly on WhatsApp for quick help.</p>
+            <div className="rounded-2xl p-5 border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.15)' }}>
+              <p className="font-semibold text-white text-sm mb-1">💬 WhatsApp Support</p>
+              <p className="text-xs text-gray-400 mb-3">Chat with us directly on WhatsApp for quick help.</p>
               <a
                 href="https://wa.me/919800000000"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors"
+                className="inline-block px-4 py-2 text-white text-xs font-bold rounded-lg transition-all"
+                style={{ backgroundColor: '#E50914', boxShadow: '0 0 10px rgba(229, 9, 20, 0.28)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#C40812';
+                  e.currentTarget.style.boxShadow = '0 0 14px rgba(255, 45, 45, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#E50914';
+                  e.currentTarget.style.boxShadow = '0 0 10px rgba(229, 9, 20, 0.28)';
+                }}
               >
                 Chat on WhatsApp
               </a>

@@ -28,22 +28,24 @@ export default function SellPage() {
   return (
     <main>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-20 px-4 text-center relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="text-white py-20 px-4 text-center relative overflow-hidden" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
+        <div className="absolute -top-20 -right-20 w-72 h-72 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
-            Sell Your Old Phone<br /><span className="text-yellow-300">Get Best Price!</span>
+            Sell Your Old Phone<br /><span className="text-red-400">Get Best Price!</span>
           </h1>
           <p className="text-white/80 text-lg mb-8">Highest price guaranteed · Doorstep pickup · Instant payment</p>
           <div className="bg-white rounded-2xl p-6 text-left max-w-lg mx-auto shadow-xl">
             <h2 className="font-bold text-gray-900 mb-4">Get Instant Quote</h2>
             <div className="space-y-3">
-              <select className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                <option value="">Select Brand</option>
+              <select className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties}>
+                <option value="" className="text-gray-800">Select Brand</option>
                 {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <input type="text" placeholder="Enter Model Name (e.g. iPhone 13)" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-              <input type="tel" placeholder="Your Phone Number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input type="text" placeholder="Enter Model Name (e.g. iPhone 13)" className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
+              <input type="tel" placeholder="Your Phone Number" className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
               <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl text-sm transition-colors">
                 Get My Price →
               </button>
@@ -77,13 +79,13 @@ export default function SellPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {HOW_IT_WORKS.map(s => (
-              <div key={s.step} className="bg-white rounded-2xl p-6 border border-gray-100 text-center">
-                <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center text-2xl mx-auto mb-4">
+              <div key={s.step} className="rounded-2xl p-6 border border-gray-800 bg-slate-950 text-center">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-4" style={{ backgroundColor: 'rgba(229, 9, 20, 0.08)' }}>
                   {s.icon}
                 </div>
-                <span className="text-xs font-bold text-violet-400 tracking-widest">STEP {s.step}</span>
-                <h3 className="font-bold text-gray-900 mt-1 mb-2">{s.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+                <span className="text-xs font-bold text-red-300 tracking-widest">STEP {s.step}</span>
+                <h3 className="font-bold text-white mt-1 mb-2">{s.title}</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -100,10 +102,10 @@ export default function SellPage() {
             { icon: '⚡', title: 'Instant Payment', desc: 'Get paid via bank transfer or UPI within minutes of inspection.' },
             { icon: '🔒', title: 'Secure Data Wipe', desc: 'Complete data erasure before your device is processed.' },
           ].map(b => (
-            <div key={b.title} className="flex gap-4 p-5 bg-violet-50 rounded-2xl border border-violet-100">
+            <div key={b.title} className="flex gap-4 p-5 rounded-2xl border border-gray-800 bg-slate-950">
               <span className="text-3xl shrink-0">{b.icon}</span>
               <div>
-                <h3 className="font-bold text-gray-900 mb-1">{b.title}</h3>
+                <h3 className="font-bold text-white mb-1">{b.title}</h3>
                 <p className="text-sm text-gray-600">{b.desc}</p>
               </div>
             </div>

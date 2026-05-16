@@ -29,11 +29,11 @@ async function getProducts(searchParams: Record<string, string>) {
 }
 
 const CONDITIONS = [
-  { value: 'sealed_pack', label: 'Sealed Pack', color: 'bg-violet-100 text-violet-700' },
-  { value: 'open_box', label: 'Open Box', color: 'bg-blue-100 text-blue-700' },
-  { value: 'super_mint', label: 'Super Mint', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'mint', label: 'Mint', color: 'bg-teal-100 text-teal-700' },
-  { value: 'good', label: 'Good', color: 'bg-amber-100 text-amber-700' },
+  { value: 'sealed_pack', label: 'Sealed Pack', color: 'bg-red-100 text-red-700' },
+  { value: 'open_box', label: 'Open Box', color: 'bg-red-100 text-red-700' },
+  { value: 'super_mint', label: 'Super Mint', color: 'bg-red-100 text-red-700' },
+  { value: 'mint', label: 'Mint', color: 'bg-red-100 text-red-700' },
+  { value: 'good', label: 'Good', color: 'bg-red-100 text-red-700' },
 ];
 
 const BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme', 'Vivo', 'Oppo'];
@@ -65,7 +65,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
             <div className="space-y-1">
               <a
                 href="/products"
-                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeBrand ? 'bg-violet-50 text-violet-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeBrand ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 All Brands
               </a>
@@ -73,7 +73,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
                 <a
                   key={b}
                   href={`/products?brand=${b}`}
-                  className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${activeBrand === b ? 'bg-violet-50 text-violet-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${activeBrand === b ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                   {b}
                 </a>
@@ -86,7 +86,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
             <div className="space-y-1">
               <a
                 href="/products"
-                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeCondition ? 'bg-violet-50 text-violet-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeCondition ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 All Conditions
               </a>
@@ -94,7 +94,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
                 <a
                   key={c.value}
                   href={`/products?condition=${c.value}`}
-                  className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg transition-colors ${activeCondition === c.value ? 'bg-violet-50 text-violet-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg transition-colors ${activeCondition === c.value ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${c.color}`}>{c.label}</span>
                 </a>
@@ -111,7 +111,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
               <a
                 key={c.value}
                 href={`/products?condition=${c.value}`}
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${activeCondition === c.value ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-200'}`}
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${activeCondition === c.value ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
               >
                 {c.label}
               </a>
@@ -123,7 +123,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
               <div className="text-6xl mb-4">📱</div>
               <p className="text-lg font-semibold text-gray-700">No phones found</p>
               <p className="text-sm text-gray-400 mt-1">Try adjusting your filters</p>
-              <a href="/products" className="mt-4 text-sm text-violet-600 font-medium hover:underline">
+              <a href="/products" className="mt-4 text-sm text-red-600 font-medium hover:underline">
                 Clear all filters
               </a>
             </div>

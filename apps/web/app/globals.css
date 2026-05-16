@@ -27,7 +27,7 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent;
   }
   .card-hover {
     @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;

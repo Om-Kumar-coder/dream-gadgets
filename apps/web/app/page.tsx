@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 
 const BRANDS = [
   { name: 'Apple', emoji: '🍎', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
-  { name: 'Samsung', emoji: '📱', color: 'from-blue-50 to-blue-100', text: 'text-blue-700' },
+  { name: 'Samsung', emoji: '📱', color: 'from-red-50 to-red-100', text: 'text-red-700' },
   { name: 'OnePlus', emoji: '🔴', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Xiaomi', emoji: '🟠', color: 'from-orange-50 to-orange-100', text: 'text-orange-700' },
-  { name: 'Realme', emoji: '⚡', color: 'from-yellow-50 to-yellow-100', text: 'text-yellow-700' },
-  { name: 'Vivo', emoji: '💙', color: 'from-indigo-50 to-indigo-100', text: 'text-indigo-700' },
-  { name: 'Oppo', emoji: '🟢', color: 'from-emerald-50 to-emerald-100', text: 'text-emerald-700' },
-  { name: 'Google', emoji: '🔵', color: 'from-sky-50 to-sky-100', text: 'text-sky-700' },
+  { name: 'Xiaomi', emoji: '🟠', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Realme', emoji: '⚡', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Vivo', emoji: '💙', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Oppo', emoji: '🟢', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Google', emoji: '🔵', color: 'from-red-50 to-red-100', text: 'text-red-700' },
 ];
 
 const SERVICES = [
@@ -204,7 +204,7 @@ export default function HomePage() {
             <ul className="space-y-3">
               {QUALITY_POINTS.map(p => (
                 <li key={p} className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: 'rgba(229, 9, 20, 0.15)', color: '#E50914' }}>✓</span>
                   {p}
                 </li>
               ))}
@@ -229,10 +229,10 @@ export default function HomePage() {
               { icon: '🛡️', title: 'Free Warranty', desc: 'Every purchase comes with warranty coverage.' },
               { icon: '↩️', title: '30-Day Returns', desc: 'Not happy? Return within 30 days, no questions.' },
             ].map(c => (
-              <div key={c.title} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+              <div key={c.title} className="bg-slate-950 rounded-2xl p-5 border border-gray-800">
                 <span className="text-3xl mb-3 block">{c.icon}</span>
-                <h3 className="font-bold text-gray-900 text-sm mb-1">{c.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{c.desc}</p>
+                <h3 className="font-bold text-white text-sm mb-1">{c.title}</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
               </div>
             ))}
           </div>
@@ -312,7 +312,7 @@ export default function HomePage() {
       {/* ── Eco Impact ── */}
       <section className="max-w-7xl mx-auto section-pad">
         <div className="text-center mb-10">
-          <span className="inline-block bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+          <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider" style={{ backgroundColor: 'rgba(229, 9, 20, 0.12)', color: '#E50914' }}>
             🌍 Environmental Impact
           </span>
           <h2 className="text-2xl font-bold text-gray-900">Used vs. Brand New</h2>
@@ -322,11 +322,11 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ECO_STATS.map(e => (
-            <div key={e.label} className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center card-hover">
+            <div key={e.label} className="bg-slate-950 border border-gray-800 rounded-2xl p-6 text-center card-hover">
               <span className="text-4xl mb-3 block">{e.icon}</span>
-              <p className="text-2xl font-extrabold text-emerald-700 mb-1">{e.value}</p>
-              <p className="font-bold text-gray-900 text-sm mb-2">{e.label}</p>
-              <p className="text-xs text-gray-500 leading-relaxed">{e.desc}</p>
+              <p className="text-2xl font-extrabold text-red-400 mb-1">{e.value}</p>
+              <p className="font-bold text-white text-sm mb-2">{e.label}</p>
+              <p className="text-xs text-gray-400 leading-relaxed">{e.desc}</p>
             </div>
           ))}
         </div>
@@ -371,9 +371,11 @@ export default function HomePage() {
 
       {/* ── Newsletter ── */}
       <section className="max-w-7xl mx-auto section-pad">
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-10 text-white text-center relative overflow-hidden">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden" style={{
+          background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 55%, #0F0F10 100%)'
+        }}>
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative">
             <p className="text-3xl mb-1">💌</p>
             <h2 className="text-2xl font-extrabold mb-2">Love gadgets? We do too.</h2>
@@ -382,9 +384,19 @@ export default function HomePage() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-slate-950 border border-gray-800 focus:outline-none focus:ring-2"
+                style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties}
               />
-              <button type="submit" className="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold text-sm rounded-xl transition-colors whitespace-nowrap">
+              <button type="submit" className="px-6 py-3 text-white font-bold text-sm rounded-xl transition-all whitespace-nowrap" style={{
+                backgroundColor: '#E50914',
+                boxShadow: '0 0 12px rgba(229, 9, 20, 0.35)'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#C40812';
+                e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.5)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#E50914';
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.35)';
+              }}>
                 Subscribe
               </button>
             </form>
@@ -404,7 +416,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
             {['Sell Old Apple Mobile', 'Sell Old Samsung Mobile', 'Sell Old OnePlus Mobile', 'Sell Old Xiaomi Mobile', 'Sell Old Vivo Mobile'].map(l => (
-              <Link key={l} href="/sell" className="text-xs text-violet-600 hover:underline border border-violet-200 px-3 py-1.5 rounded-full bg-violet-50">
+              <Link key={l} href="/sell" className="text-xs text-red-600 hover:underline border border-red-200 px-3 py-1.5 rounded-full bg-red-50">
                 {l}
               </Link>
             ))}

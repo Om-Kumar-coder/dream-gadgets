@@ -41,7 +41,9 @@ const STORES = [
 export default function StoresPage() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-violet-700 to-indigo-700 text-white py-16 px-4 text-center">
+      <section className="text-white py-16 px-4 text-center" style={{
+        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
+      }}>
         <h1 className="text-4xl font-extrabold mb-3">Our Stores</h1>
         <p className="text-white/80">Visit us at a branch near you</p>
       </section>
@@ -65,7 +67,7 @@ export default function StoresPage() {
                 href={`https://maps.google.com/?q=${encodeURIComponent(s.address + ' ' + s.city)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-4 text-xs text-violet-600 font-semibold hover:underline"
+                className="inline-block mt-4 text-xs text-red-600 font-semibold hover:underline"
               >
                 Get Directions →
               </a>
@@ -73,10 +75,16 @@ export default function StoresPage() {
           ))}
         </div>
 
-        <div className="mt-12 bg-violet-50 rounded-2xl p-8 text-center border border-violet-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Can't visit a store?</h2>
-          <p className="text-gray-500 text-sm mb-5">No problem! We offer free doorstep pickup across India.</p>
-          <a href="/sell" className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold text-sm transition-colors">
+        <div className="mt-12 rounded-2xl p-8 text-center border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.2)' }}>
+          <h2 className="text-xl font-bold text-white mb-2">Can't visit a store?</h2>
+          <p className="text-gray-400 text-sm mb-5">No problem! We offer free doorstep pickup across India.</p>
+          <a href="/sell" className="inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm transition-all" style={{ backgroundColor: '#E50914', boxShadow: '0 0 12px rgba(229, 9, 20, 0.35)' }} onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#C40812';
+            e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 45, 45, 0.5)';
+          }} onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#E50914';
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(229, 9, 20, 0.35)';
+          }}>
             Schedule Pickup →
           </a>
         </div>
