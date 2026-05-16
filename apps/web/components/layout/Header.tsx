@@ -18,7 +18,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-9 w-auto rounded-md" />
+          <img src="/logo.jpeg" alt="Dream Gadgets" className="h-9 w-auto rounded-md" />
         </Link>
 
         {/* Desktop nav */}
