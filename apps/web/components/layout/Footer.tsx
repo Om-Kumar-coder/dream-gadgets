@@ -14,7 +14,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logo.jpeg" alt="Dream Gadgets" className="h-9 w-auto rounded-md" />
+              <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-9 w-auto rounded-md" />
             </div>
             <p className="text-sm leading-relaxed mb-4">
               India's most transparent mobile selling platform. Certified used phones, doorstep pickup, instant payment.
