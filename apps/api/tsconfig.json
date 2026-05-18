@@ -9,7 +9,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
