@@ -324,7 +324,7 @@ const ACCESSORIES: AccessoryData[] = [
   { sku: 'ACC-USB-CABLE-3IN1', name: '3-in-1 USB Charging Cable', description: 'USB-C, Lightning, Micro USB', category: 'cable', brandName: null, purchasePrice: 250, sellingPrice: 599 },
   { sku: 'ACC-EARBUDS-GENERIC', name: 'Wireless Bluetooth Earbuds', description: 'Touch controls, Noise cancellation', category: 'earphones', brandName: null, purchasePrice: 1500, sellingPrice: 2499 },
   { sku: 'ACC-STAND-TRIPOD', name: 'Mobile Phone Tripod Stand', description: 'Adjustable, portable stand', category: 'stand', brandName: null, purchasePrice: 400, sellingPrice: 799 },
-  { sku: 'ACC-SCREEN-PROTECTOR-FILM', name: 'Screen Protector Film (Hydrogel)', description: 'Self-healing hydrogel film', category: 'screen_guard', brandName: null, purchasePrice: 150, sellingPrice: 399 },
+  { sku: 'ACC-HYDROGEL-FILM', name: 'Screen Protector Film (Hydrogel)', description: 'Self-healing hydrogel film', category: 'screen_guard', brandName: null, purchasePrice: 150, sellingPrice: 399 },
 ];
 
 // Helper function to generate variants
