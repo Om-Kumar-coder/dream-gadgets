@@ -82,3 +82,4 @@ var NotificationChannel;
     NotificationChannel["PUSH"] = "push";
     NotificationChannel["IN_APP"] = "in_app";
 })(NotificationChannel || (exports.NotificationChannel = NotificationChannel = {}));
+//# sourceMappingURL=index.js.map
