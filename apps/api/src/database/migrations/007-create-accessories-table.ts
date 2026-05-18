@@ -7,7 +7,7 @@ export class CreateAccessoriesTable1700000000007 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "accessories" (
         "id"               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "sku"              VARCHAR(20) UNIQUE NOT NULL,
+        "sku"              VARCHAR(50) UNIQUE NOT NULL,
         "name"             VARCHAR(100) NOT NULL,
         "description"      TEXT,
         "brand_id"         UUID REFERENCES "brands"("id"),

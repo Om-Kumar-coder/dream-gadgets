@@ -17,7 +17,7 @@ export class Accessory {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, length: 20 })
+  @Column({ unique: true, length: 50 })
   sku: string;
 
   @Column({ type: 'varchar', length: 100 })
