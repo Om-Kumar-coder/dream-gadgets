@@ -12,22 +12,24 @@ interface ProductCardProps {
   storage?: string;
 }
 
+const FALLBACK_IMAGE = 'https://via.placeholder.com/300x300?text=No+Image';
+
 export function ProductCard({ slug, name, condition, price, imageUrl, storage }: ProductCardProps) {
+  const src = imageUrl || FALLBACK_IMAGE;
+
   return (
     <Link
       href={`/products/${slug}`}
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
     >
-      <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-        {imageUrl ? (
-          <Image src={imageUrl} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
-            <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          </div>
-        )}
+      <div className="relative aspect-square bg-gray-200 overflow-hidden">
+        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <Image
+          src={src}
+          alt={name}
+          fill
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+        />
         <div className="absolute top-2 left-2">
           <ConditionBadge condition={condition} />
         </div>

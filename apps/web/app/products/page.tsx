@@ -141,11 +141,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
                 <ProductCard
                   key={p.id}
                   id={p.id}
-                  slug={p.slug ?? p.id}
-                  name={p.itemName ?? `${p.model?.name ?? ''} ${p.storage ?? ''}`.trim()}
+                  slug={p.id}
+                  name={p.itemName ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim()}
                   condition={p.condition}
-                  price={Number(p.onlinePrice ?? p.sellingPrice ?? 0)}
-                  imageUrl={p.photos?.[0]?.cdnUrl}
+                  price={Number(p.price ?? p.onlinePrice ?? p.sellingPrice ?? 0)}
+                  imageUrl={p.images?.[0]}
                   storage={p.storage}
                 />
               ))}

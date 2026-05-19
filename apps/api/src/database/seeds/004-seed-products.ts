@@ -327,6 +327,56 @@ const ACCESSORIES: AccessoryData[] = [
   { sku: 'ACC-HYDROGEL-FILM', name: 'Screen Protector Film (Hydrogel)', description: 'Self-healing hydrogel film', category: 'screen_guard', brandName: null, purchasePrice: 150, sellingPrice: 399 },
 ];
 
+const FALLBACK_IMAGE_URL = 'https://via.placeholder.com/300x300?text=No+Image';
+
+const MODEL_IMAGE_URLS: Record<string, string[]> = {
+  'iPhone 14 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+  ],
+  'iPhone 14': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+  ],
+  'iPhone 13': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+  ],
+  'Galaxy S23 Ultra': [
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+  ],
+  'Galaxy A54': [
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+  ],
+  'Mi 13 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+  ],
+  'OnePlus Nord CE 3': [
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+  ],
+  'Pixel 7 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+  ],
+  'Moto Edge 50 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+  ],
+};
+
 // Helper function to generate variants
 function generateVariants(
   modelName: string,
@@ -345,6 +395,12 @@ function generateVariants(
   for (const color of colors) {
     for (const storage of storages) {
       for (const ram of rams) {
+        const photoUrls = MODEL_IMAGE_URLS[modelName] ?? [
+          FALLBACK_IMAGE_URL,
+          FALLBACK_IMAGE_URL,
+          FALLBACK_IMAGE_URL,
+        ];
+
         items.push({
           modelName,
           brandName,
@@ -357,11 +413,7 @@ function generateVariants(
           wholesalePrice,
           sellingPrice: sellingPrice + (storage === '1TB' ? 30000 : storage === '512GB' ? 15000 : storage === '256GB' ? 5000 : 0),
           onlinePrice: onlinePrice + (storage === '1TB' ? 30000 : storage === '512GB' ? 15000 : storage === '256GB' ? 5000 : 0),
-          photoUrls: [
-            `https://via.placeholder.com/400?text=${encodeURIComponent(modelName + ' ' + color)}+1`,
-            `https://via.placeholder.com/400?text=${encodeURIComponent(modelName + ' ' + color)}+2`,
-            `https://via.placeholder.com/400?text=${encodeURIComponent(modelName + ' ' + color)}+3`,
-          ],
+          photoUrls,
         });
       }
     }
@@ -459,8 +511,8 @@ export async function seedProducts(dataSource: DataSource): Promise<void> {
         `INSERT INTO inventory_items (
           id, imei, brand_id, model_id, colour, storage, ram, box_type, condition,
           purchase_price, wholesale_price, tax_rate, tax_amount, total_cost,
-          selling_price, online_price, status, is_online, branch_id, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW())`,
+          selling_price, online_price, images, status, is_online, branch_id, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW())`,
         [
           itemId,
           imei,
@@ -478,6 +530,7 @@ export async function seedProducts(dataSource: DataSource): Promise<void> {
           totalCost,
           itemData.sellingPrice,
           itemData.onlinePrice,
+          JSON.stringify(itemData.photoUrls),
           'available',
           true,
           branch.id,
@@ -535,13 +588,30 @@ export async function seedProducts(dataSource: DataSource): Promise<void> {
 }
 
 // Helper function to generate realistic IMEI
+const usedImeis = new Set<string>();
+
 function generateIMEI(): string {
-  // IMEI format: 15 digits
-  // First 8 digits: TAC (Type Allocation Code)
-  // Next 6 digits: Serial number
-  // Last digit: Check digit
-  const tac = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
-  const serial = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-  const checkDigit = Math.floor(Math.random() * 10);
-  return `${tac}${serial}${checkDigit}`;
+  while (true) {
+    const tac = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+    const serial = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const base = `${tac}${serial}`;
+    const imei = `${base}${calculateCheckDigit(base)}`;
+    if (!usedImeis.has(imei)) {
+      usedImeis.add(imei);
+      return imei;
+    }
+  }
+}
+
+function calculateCheckDigit(base: string): string {
+  let sum = 0;
+  for (let i = 0; i < base.length; i++) {
+    let digit = parseInt(base[base.length - 1 - i], 10);
+    if (i % 2 === 0) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  return ((10 - (sum % 10)) % 10).toString();
 }

@@ -26,13 +26,13 @@ async function getProduct(slug: string) {
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const product = await getProduct(params.slug);
   if (!product) return { title: 'Product Not Found' };
-  const name = product.itemName ?? product.model?.name ?? 'Phone';
+  const name = product.itemName ?? product.model ?? 'Phone';
   return {
     title: name,
     description: `Buy ${name} — ${product.condition?.replace('_', ' ')} condition. ₹${Number(product.onlinePrice ?? product.sellingPrice ?? 0).toLocaleString('en-IN')}`,
     openGraph: {
       title: name,
-      images: product.photos?.[0]?.cdnUrl ? [product.photos[0].cdnUrl] : [],
+      images: product.images?.[0] ? [product.images[0]] : [],
     },
   };
 }
@@ -41,9 +41,10 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   const product = await getProduct(params.slug);
   if (!product) notFound();
 
-  const price = Number(product.onlinePrice ?? product.sellingPrice ?? 0);
-  const name = product.itemName ?? `${product.model?.name ?? ''} ${product.storage ?? ''}`.trim();
-  const photos: string[] = (product.photos ?? []).map((p: any) => p.cdnUrl).filter(Boolean);
+  const price = Number(product.price ?? product.onlinePrice ?? product.sellingPrice ?? 0);
+  const name = product.itemName ?? `${product.model ?? ''} ${product.storage ?? ''}`.trim();
+  const photos: string[] = (product.images ?? []).filter(Boolean);
+  const imageUrls = photos.length > 0 ? photos : ['https://via.placeholder.com/300x300?text=No+Image'];
 
   // JSON-LD structured data
   const jsonLd = {
@@ -68,19 +69,11 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
         {/* Image Gallery */}
         <div>
           <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 mb-3">
-            {photos[0] ? (
-              <Image src={photos[0]} alt={name} fill className="object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-            )}
+            <Image src={imageUrls[0]} alt={name} fill className="object-cover" />
           </div>
-          {photos.length > 1 && (
+          {imageUrls.length > 1 && (
             <div className="flex gap-2 overflow-x-auto">
-              {photos.slice(1).map((url, i) => (
+              {imageUrls.slice(1).map((url, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                   <Image src={url} alt={`${name} ${i + 2}`} fill className="object-cover" />
                 </div>
@@ -113,7 +106,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
 
           {/* Actions */}
           <div className="flex gap-3">
-            <AddToCartButton product={{ id: product.id, imei: product.imei, name, price, slug: params.slug, imageUrl: photos[0] }} />
+            <AddToCartButton product={{ id: product.id, imei: product.imei, name, price, slug: params.slug, imageUrl: imageUrls[0] }} />
             <a
               href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent(`Hi! I am interested in ${name} (IMEI: ${product.imei?.slice(0, 8)}*****)`)}`}
               target="_blank"

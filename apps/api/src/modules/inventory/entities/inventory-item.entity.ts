@@ -120,6 +120,9 @@ export class InventoryItem {
   @Column({ nullable: true, type: 'jsonb' })
   accessories: object;
 
+  @Column({ nullable: true, type: 'jsonb', default: () => "'[]'" })
+  images: string[];
+
   @Column({ name: 'warranty_status', nullable: true, type: 'varchar' })
   warrantyStatus: string;
 

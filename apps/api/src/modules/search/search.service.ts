@@ -40,6 +40,8 @@ export class SearchService {
     this.initQueue();
   }
 
+  private readonly fallbackImage = 'https://via.placeholder.com/300x300?text=No+Image';
+
   // ─── Queue init ───────────────────────────────────────────────────────────────
 
   private initQueue(): void {
@@ -223,12 +225,20 @@ export class SearchService {
       const items = await this.dataSource.query(
         `SELECT
           i.id, i.imei, i.condition, i.status,
-          i.online_price, i.colour, i.storage, i.battery_health,
+          i.online_price AS price, i.selling_price,
+          i.colour, i.storage, i.battery_health,
           i.warranty_expiry,
-          brd.name AS brand_name,
-          mdl.name AS model_name,
+          i.item_name AS item_name,
+          brd.name AS brand,
+          mdl.name AS model,
           b.name AS branch_name,
-          b.id AS branch_id
+          b.id AS branch_id,
+          COALESCE(
+            (SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'
+          ) AS images,
+          COALESCE(
+            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1), $${paramIdx}
+          ) AS thumbnail
           ${rankClause}
         FROM inventory_items i
         LEFT JOIN brands brd ON brd.id = i.brand_id
@@ -236,15 +246,22 @@ export class SearchService {
         LEFT JOIN branches b ON b.id = i.branch_id
         ${whereClause}
         ${orderClause}
-        LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-        [...params, limit, offset],
+        LIMIT $${paramIdx + 1} OFFSET $${paramIdx + 2}`,
+        [...params, this.fallbackImage, limit, offset],
       );
+
+      const normalizedItems = items.map((item: any) => ({
+        ...item,
+        images: Array.isArray(item.images) ? item.images : [],
+        thumbnail: item.thumbnail || this.fallbackImage,
+        price: Number(item.price ?? item.online_price ?? item.selling_price ?? 0),
+      }));
 
       // Faceted aggregations
       const facets = await this.getPublicFacets(conditions, params);
 
       return {
-        items,
+        items: normalizedItems,
         total: countResult[0]?.total ?? 0,
         page,
         limit,
@@ -260,6 +277,7 @@ export class SearchService {
     try {
       const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
+      const storageWhereClause = `${whereClause} AND i.storage IS NOT NULL`;
       const [conditionFacets, storageFacets] = await Promise.all([
         this.dataSource.query(
           `SELECT i.condition, COUNT(*)::int AS count
@@ -269,8 +287,7 @@ export class SearchService {
         ),
         this.dataSource.query(
           `SELECT i.storage, COUNT(*)::int AS count
-           FROM inventory_items i ${whereClause}
-           WHERE i.storage IS NOT NULL
+           FROM inventory_items i ${storageWhereClause}
            GROUP BY i.storage ORDER BY count DESC`,
           params,
         ),
