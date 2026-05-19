@@ -11,9 +11,13 @@ async function getProduct(slug: string) {
       `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1'}/public/products/${slug}`,
       { next: { revalidate: 60 } },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('Product detail API returned error', slug, res.status, res.statusText);
+      return null;
+    }
     const json = await res.json();
-    return json.data;
+    console.log('Product detail API Response:', json);
+    return json.data ?? json;
   } catch {
     return null;
   }

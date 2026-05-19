@@ -7,6 +7,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Sale } from './sale.entity';
+import { OnlineOrder } from './online-order.entity';
 
 @Entity('payments')
 export class Payment {
@@ -19,6 +20,10 @@ export class Payment {
 
   @Column({ name: 'sale_id', nullable: true, type: 'varchar' })
   saleId: string | null;
+
+  @ManyToOne(() => OnlineOrder, (o) => o.payments, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'online_order_id' })
+  onlineOrder: OnlineOrder;
 
   @Column({ name: 'online_order_id', nullable: true, type: 'varchar' })
   onlineOrderId: string | null;

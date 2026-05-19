@@ -21,6 +21,7 @@ import { ReportModule } from './modules/report/report.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SearchModule } from './modules/search/search.module';
+import { PublicModule } from './modules/public/public.module';
 import { AccessoryModule } from './modules/inventory/accessory.module';
 
 @Module({
@@ -91,6 +92,7 @@ import { AccessoryModule } from './modules/inventory/accessory.module';
     AdminModule,
     RealtimeModule,
     SearchModule,
+    PublicModule,
     AccessoryModule,
   ],
 })

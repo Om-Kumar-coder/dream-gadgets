@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 export interface SearchFilters {
+  itemId?: string;
   condition?: string;
   status?: string;
   brand?: string;
@@ -168,6 +169,16 @@ export class SearchService {
     if (filters.condition) {
       conditions.push(`i.condition = $${paramIdx}`);
       params.push(filters.condition);
+      paramIdx++;
+    }
+    if (filters.brand) {
+      conditions.push(`brd.name = $${paramIdx}`);
+      params.push(filters.brand);
+      paramIdx++;
+    }
+    if (filters.itemId) {
+      conditions.push(`i.id = $${paramIdx}`);
+      params.push(filters.itemId);
       paramIdx++;
     }
     if (filters.minPrice !== undefined) {

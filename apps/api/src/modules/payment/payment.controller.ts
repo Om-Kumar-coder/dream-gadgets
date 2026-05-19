@@ -12,9 +12,10 @@ import {
   RawBodyRequest,
   Req,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiSecurity } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { IsNumber, IsOptional, IsString, IsObject, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -66,19 +67,19 @@ class CreateRefundDto {
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // ─── 13.2 POST /payments/razorpay/order ──────────────────────────────────────
-
+  // ─── POST /payments/razorpay/order ────────────────────────────────────────────
+  // PUBLIC endpoint for guest & authenticated checkout
   @Post('payments/razorpay/order')
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'), PermissionGuard)
-  @RequirePermission('sales.create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a Razorpay order for online payment' })
-  async createOrder(@Body() dto: CreateRazorpayOrderDto) {
+  @ApiOperation({ summary: 'Create a Razorpay order for online payment (public access for checkout)' })
+  @ApiSecurity('optional')
+  async createPublicOrder(@Body() dto: CreateRazorpayOrderDto, @Req() req: any) {
+    // Allow both authenticated and unauthenticated access
+    // In production, you might want to rate-limit guest orders
     return this.paymentService.createRazorpayOrder(dto);
   }
 
-  // ─── 13.3 POST /webhooks/razorpay ────────────────────────────────────────────
+  // ─── POST /webhooks/razorpay ──────────────────────────────────────────────────
 
   @Post('webhooks/razorpay')
   @HttpCode(HttpStatus.OK)
@@ -100,36 +101,36 @@ export class PaymentController {
     return this.paymentService.handleWebhook(rawBody, signature, body);
   }
 
-  // ─── 13.5 POST /payments/razorpay/refund ─────────────────────────────────────
-
+  // ─── POST /payments/razorpay/refund ───────────────────────────────────────────
+  // PROTECTED admin endpoint
   @Post('payments/razorpay/refund')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
   @RequirePermission('sales.approve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Trigger a Razorpay refund' })
+  @ApiOperation({ summary: 'Trigger a Razorpay refund (admin only)' })
   async createRefund(@Body() dto: CreateRefundDto) {
     return this.paymentService.createRefund(dto);
   }
 
-  // ─── GET /payments/:id ───────────────────────────────────────────────────────
-
+  // ─── GET /payments/:id ─────────────────────────────────────────────────────────
+  // PROTECTED admin endpoint
   @Get('payments/:id')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
   @RequirePermission('sales.view')
-  @ApiOperation({ summary: 'Get payment by ID' })
+  @ApiOperation({ summary: 'Get payment by ID (admin only)' })
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.paymentService.findById(id);
   }
 
-  // ─── GET /sales/:id/payments ─────────────────────────────────────────────────
-
+  // ─── GET /sales/:id/payments ──────────────────────────────────────────────────
+  // PROTECTED admin endpoint
   @Get('sales/:id/payments')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
   @RequirePermission('sales.view')
-  @ApiOperation({ summary: 'List payments for a sale' })
+  @ApiOperation({ summary: 'List payments for a sale (admin only)' })
   async findBySaleId(@Param('id', ParseUUIDPipe) saleId: string) {
     return this.paymentService.findBySaleId(saleId);
   }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ItemCondition } from '@dream-gadgets/shared-types';
 import { ProductCard } from '../../components/product/ProductCard';
 
 export const metadata: Metadata = {
@@ -20,20 +21,27 @@ async function getProducts(searchParams: Record<string, string>) {
       `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1'}/public/products?${params}`,
       { next: { revalidate: 60 } },
     );
-    if (!res.ok) return { data: [], total: 0 };
+    if (!res.ok) {
+      console.error('Products API returned error', res.status, res.statusText);
+      return { data: [], total: 0 };
+    }
     const json = await res.json();
-    return json.data ?? { data: [], total: 0 };
+    console.log('Products API Response:', json);
+    return {
+      data: json.data ?? json.items ?? [],
+      total: json.meta?.total ?? json.total ?? 0,
+    };
   } catch {
     return { data: [], total: 0 };
   }
 }
 
 const CONDITIONS = [
-  { value: 'sealed_pack', label: 'Sealed Pack', color: 'bg-red-100 text-red-700' },
-  { value: 'open_box', label: 'Open Box', color: 'bg-red-100 text-red-700' },
-  { value: 'super_mint', label: 'Super Mint', color: 'bg-red-100 text-red-700' },
-  { value: 'mint', label: 'Mint', color: 'bg-red-100 text-red-700' },
-  { value: 'good', label: 'Good', color: 'bg-red-100 text-red-700' },
+  { value: ItemCondition.SEALED_PACK, label: 'Sealed Pack', color: 'bg-red-100 text-red-700' },
+  { value: ItemCondition.OPEN_BOX, label: 'Open Box', color: 'bg-red-100 text-red-700' },
+  { value: ItemCondition.SUPER_MINT, label: 'Super Mint', color: 'bg-red-100 text-red-700' },
+  { value: ItemCondition.MINT, label: 'Mint', color: 'bg-red-100 text-red-700' },
+  { value: ItemCondition.GOOD, label: 'Good', color: 'bg-red-100 text-red-700' },
 ];
 
 const BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme', 'Vivo', 'Oppo'];

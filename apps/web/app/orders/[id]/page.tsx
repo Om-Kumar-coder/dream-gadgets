@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 
 export const metadata: Metadata = { title: 'Order Confirmation' };
 
@@ -13,7 +14,16 @@ async function getOrder(id: string) {
   } catch { return null; }
 }
 
-const STATUS_STEPS = ['pending_payment', 'payment_confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered'];
+// Use shared enum for status progression
+const STATUS_STEPS = [
+  OnlineOrderStatus.PENDING_PAYMENT,
+  OnlineOrderStatus.PAYMENT_CONFIRMED,
+  OnlineOrderStatus.PROCESSING,
+  OnlineOrderStatus.PACKED,
+  OnlineOrderStatus.SHIPPED,
+  OnlineOrderStatus.OUT_FOR_DELIVERY,
+  OnlineOrderStatus.DELIVERED,
+];
 
 export default async function OrderPage({ params }: { params: { id: string } }) {
   const order = await getOrder(params.id);
@@ -32,8 +42,8 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
-        <div className="text-5xl mb-3">{order.status === 'delivered' ? '✅' : '📦'}</div>
-        <h1 className="text-2xl font-bold">Order {order.status === 'delivered' ? 'Delivered' : 'Confirmed'}</h1>
+        <div className="text-5xl mb-3">{order.status === OnlineOrderStatus.DELIVERED ? '✅' : '📦'}</div>
+        <h1 className="text-2xl font-bold">Order {order.status === OnlineOrderStatus.DELIVERED ? 'Delivered' : 'Confirmed'}</h1>
         <p className="text-muted-foreground mt-1">Order #{order.orderNumber}</p>
       </div>
 
