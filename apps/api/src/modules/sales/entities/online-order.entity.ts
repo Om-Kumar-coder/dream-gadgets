@@ -63,10 +63,10 @@ export class OnlineOrder {
     pincode: string;
   };
 
-  @Column({ name: 'tracking_number', nullable: true })
+  @Column({ name: 'tracking_number', type: 'varchar', nullable: true })
   trackingNumber: string | null;
 
-  @Column({ name: 'courier', nullable: true })
+  @Column({ name: 'courier', type: 'varchar', nullable: true })
   courier: string | null;
 
   @Column({ nullable: true, type: 'text' })
