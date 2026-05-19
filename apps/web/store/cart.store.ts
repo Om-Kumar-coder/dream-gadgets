@@ -18,20 +18,48 @@ interface CartState {
   total: () => number;
 }
 
+const isClient = typeof window !== 'undefined';
+
+const safeStorage = {
+  getItem: (name: string) => {
+    if (!isClient) return null;
+    const raw = window.localStorage.getItem(name);
+    if (!raw) return null;
+    try {
+      JSON.parse(raw);
+      return raw;
+    } catch (error) {
+      console.error('Cart parse error', error);
+      window.localStorage.removeItem(name);
+      return null;
+    }
+  },
+  setItem: (name: string, value: string) => {
+    if (!isClient) return;
+    window.localStorage.setItem(name, value);
+  },
+  removeItem: (name: string) => {
+    if (!isClient) return;
+    window.localStorage.removeItem(name);
+  },
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
       addItem: (item) =>
         set((state) => {
-          // Each IMEI item is unique — no duplicates
           if (state.items.find((i) => i.id === item.id)) return state;
           return { items: [...state.items, item] };
         }),
       removeItem: (id) => set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
       clearCart: () => set({ items: [] }),
-      total: () => get().items.reduce((sum, i) => sum + i.price, 0),
+      total: () => get().items.reduce((sum, i) => sum + (Number(i.price) || 0), 0),
     }),
-    { name: 'cart-storage' },
+    {
+      name: 'cart-storage',
+      storage: safeStorage as any,
+    },
   ),
 );
