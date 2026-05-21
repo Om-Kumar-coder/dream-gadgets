@@ -110,7 +110,7 @@ export default function TransfersPage() {
 
   const receiveMutation = useMutation({
     mutationFn: async ({ id, itemIds }: { id: string; itemIds: string[] }) => {
-      const { data } = await apiClient.patch(`/transfers/${id}/receive`, { confirmedItemIds: itemIds });
+      const { data } = await apiClient.patch(`/transfers/${id}/receive`, { itemIds });
       return data;
     },
     onSuccess: (_, variables) => {
@@ -124,7 +124,7 @@ export default function TransfersPage() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { data } = await apiClient.post(`/transfers/${id}/reject`, { rejectionReason: reason });
+      const { data } = await apiClient.patch(`/transfers/${id}/reject`, { reason });
       return data;
     },
     onSuccess: (_, variables) => {

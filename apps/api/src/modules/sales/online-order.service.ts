@@ -171,6 +171,10 @@ export class OnlineOrderService {
         method: p.method,
         amount: p.amount,
         status: p.status,
+        razorpayRefundId: p.razorpayRefundId,
+        refundAmount: p.refundAmount,
+        refundStatus: p.refundStatus,
+        refundedAt: p.refundedAt,
       })),
     };
   }

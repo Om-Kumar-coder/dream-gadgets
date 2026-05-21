@@ -2,12 +2,16 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { Payment } from '../sales/entities/payment.entity';
+import { OnlineOrder } from '../sales/entities/online-order.entity';
+import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
+import { NotificationService } from '../notification/notification.service';
 
 // Redis key for idempotency
 const WEBHOOK_IDEMPOTENCY_KEY = (webhookId: string) => `webhook:processed:${webhookId}`;
@@ -15,12 +19,16 @@ const WEBHOOK_TTL = 24 * 60 * 60; // 24 hours
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   private redisClient: any;
 
   constructor(
     @InjectRepository(Payment)
     private paymentRepo: Repository<Payment>,
+    @InjectRepository(OnlineOrder)
+    private orderRepo: Repository<OnlineOrder>,
     private configService: ConfigService,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── Redis lazy init ─────────────────────────────────────────────────────────
@@ -178,11 +186,12 @@ export class PaymentService {
   // ─── 13.5 Razorpay refund ────────────────────────────────────────────────────
 
   async createRefund(params: {
-    paymentId: string;
-    amount?: number;   // in paise; if omitted, full refund
+    paymentId: string;         // Razorpay payment ID ("pay_xxx")
+    amount?: number;           // in paise; if omitted, full refund
     notes?: Record<string, string>;
+    dbPaymentId?: string;      // Local DB payment UUID to persist refund on
   }): Promise<{ refundId: string; amount: number; status: string }> {
-    const { paymentId, amount, notes } = params;
+    const { paymentId, amount, notes, dbPaymentId } = params;
 
     if (!paymentId) {
       throw new BadRequestException({
@@ -203,26 +212,118 @@ export class PaymentService {
 
       const refund = await razorpay.payments.refund(paymentId, refundPayload);
 
-      return {
+      const result = {
         refundId: refund.id,
         amount: refund.amount,
         status: refund.status,
       };
+
+      // Persist refund details on the local payment record
+      if (dbPaymentId) {
+        const refundAmountRupees = refund.amount ? refund.amount / 100 : null;
+        await this.paymentRepo.update(dbPaymentId, {
+          razorpayRefundId: refund.id,
+          refundAmount: refundAmountRupees,
+          refundStatus: refund.status,
+          refundedAt: new Date(),
+        }).catch((err) => {
+          console.warn(`[Refund] Failed to persist refund on payment ${dbPaymentId}:`, err?.message);
+        });
+
+        // Send customer notifications
+        await this.sendRefundNotifications(dbPaymentId, refund.id, refundAmountRupees).catch((err) =>
+          this.logger.warn(`Failed to send refund notifications for payment ${dbPaymentId}: ${err?.message}`),
+        );
+      }
+
+      return result;
     } catch (err: any) {
       if (err?.code === 'MODULE_NOT_FOUND' || err?.message?.includes('Cannot find module')) {
         // Razorpay not installed — return mock for development
         console.warn('[Payment] Razorpay package not available, returning mock refund');
-        return {
+        const mockResult = {
           refundId: `rfnd_mock_${Date.now()}`,
           amount: amount ?? 0,
           status: 'processed',
         };
+
+        // Persist mock refund too
+        if (dbPaymentId) {
+          const refundAmountRupees = amount ? amount / 100 : null;
+          await this.paymentRepo.update(dbPaymentId, {
+            razorpayRefundId: mockResult.refundId,
+            refundAmount: refundAmountRupees,
+            refundStatus: mockResult.status,
+            refundedAt: new Date(),
+          }).catch(() => {});
+
+          // Send customer notifications (mock)
+          await this.sendRefundNotifications(dbPaymentId, mockResult.refundId, refundAmountRupees).catch((err) =>
+            this.logger.warn(`Failed to send refund notifications for payment ${dbPaymentId}: ${err?.message}`),
+          );
+        }
+
+        return mockResult;
       }
       throw new BadRequestException({
         code: 'RAZORPAY_REFUND_FAILED',
         message: err?.message ?? 'Failed to create Razorpay refund',
       });
     }
+  }
+
+  // ─── Verify Razorpay payment (frontend callback) ────────────────────────────
+
+  async verifyPayment(params: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+    orderId: string;
+  }): Promise<{ verified: boolean; payment: Payment; order: OnlineOrder }> {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderId } = params;
+
+    // Verify signature using Razorpay's method:
+    // expected = HMAC_SHA256(order_id + "|" + payment_id, secret)
+    const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET') ?? '';
+    const expectedSignature = createHmac('sha256', secret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+
+    if (expectedSignature !== razorpaySignature) {
+      throw new BadRequestException({
+        code: 'PAYMENT_VERIFICATION_FAILED',
+        message: 'Razorpay payment signature verification failed',
+      });
+    }
+
+    // Find the order
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException({
+        code: 'ORDER_NOT_FOUND',
+        message: `Order ${orderId} not found`,
+      });
+    }
+
+    // Create payment record
+    const payment = this.paymentRepo.create({
+      onlineOrderId: orderId,
+      method: 'razorpay',
+      amount: order.totalAmount,
+      status: 'completed',
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    });
+    await this.paymentRepo.save(payment);
+
+    // Update order status
+    if (order.status === OnlineOrderStatus.PENDING_PAYMENT) {
+      order.status = OnlineOrderStatus.PAYMENT_CONFIRMED;
+      await this.orderRepo.save(order);
+    }
+
+    return { verified: true, payment, order };
   }
 
   // ─── Get payment by ID ───────────────────────────────────────────────────────
@@ -233,9 +334,153 @@ export class PaymentService {
     return payment;
   }
 
+  // ─── Send refund notifications to customer ───────────────────────────────────
+
+  private async sendRefundNotifications(
+    dbPaymentId: string,
+    refundId: string,
+    refundAmountRupees: number | null,
+  ): Promise<void> {
+    const payment = await this.paymentRepo.findOne({
+      where: { id: dbPaymentId },
+      relations: ['onlineOrder', 'onlineOrder.client'],
+    });
+
+    const order = payment?.onlineOrder;
+    const client = order?.client;
+
+    if (!order || !client) {
+      this.logger.warn(`Cannot send refund notifications: order/client not found for payment ${dbPaymentId}`);
+      return;
+    }
+
+    const name = [client.firstName, client.lastName].filter(Boolean).join(' ');
+    const formattedAmount = refundAmountRupees != null
+      ? Number(refundAmountRupees).toLocaleString('en-IN')
+      : Number(payment.amount).toLocaleString('en-IN');
+
+    const templateVars = {
+      name,
+      orderNumber: order.orderNumber,
+      amount: formattedAmount,
+      refundId,
+    };
+
+    // Send email if client has an email address
+    if (client.email) {
+      await this.notificationService.sendEmail({
+        to: client.email,
+        type: 'refund_processed',
+        templateKey: 'refund_processed',
+        templateVars,
+        metadata: { paymentId: dbPaymentId, refundId, orderId: order.id, orderNumber: order.orderNumber },
+      }).catch((err) => {
+        this.logger.warn(`Failed to send refund email to ${client.email}: ${err?.message}`);
+      });
+    }
+
+    // Send SMS
+    await this.notificationService.sendSms({
+      to: client.phone,
+      type: 'refund_processed',
+      body: `Refund of ₹${formattedAmount} initiated for order ${order.orderNumber}. Will be credited to your payment method within 2–5 business days. — Dream Gadgets`,
+      metadata: { paymentId: dbPaymentId, refundId, orderId: order.id, orderNumber: order.orderNumber },
+    }).catch((err) => {
+      this.logger.warn(`Failed to send refund SMS to ${client.phone}: ${err?.message}`);
+    });
+  }
+
   // ─── List payments for a sale ────────────────────────────────────────────────
 
   async findBySaleId(saleId: string): Promise<Payment[]> {
     return this.paymentRepo.find({ where: { saleId } });
+  }
+
+  // ─── 13.6 List refunds needing manual action ──────────────────────────────────
+
+  async findRefundsNeedingAction(): Promise<any[]> {
+    // Find cancelled online orders where payment was completed
+    // but refund was not successfully processed
+    const orders = await this.orderRepo.find({
+      where: { status: OnlineOrderStatus.CANCELLED },
+      relations: ['payments', 'client', 'branch'],
+      order: { orderedAt: 'DESC' },
+    });
+
+    // Filter to orders with completed payments that need refund attention
+    return orders
+      .filter(order =>
+        order.payments?.some(p =>
+          p.status === 'completed' &&
+          p.method === 'razorpay' &&
+          (!p.razorpayRefundId || p.refundStatus === 'failed' || p.refundStatus === 'pending')
+        ),
+      )
+      .map(order => ({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        cancelledAt: order.orderedAt, // No dedicated cancelledAt column; use orderedAt
+        clientName: order.client
+          ? `${order.client.firstName} ${order.client.lastName}`
+          : 'Guest',
+        clientEmail: order.client?.email ?? null,
+        branchName: order.branch?.name ?? 'N/A',
+        totalAmount: order.totalAmount,
+        payments: order.payments
+          .filter(p => p.status === 'completed' && p.method === 'razorpay')
+          .map(p => ({
+            paymentId: p.id,
+            amount: p.amount,
+            razorpayPaymentId: p.razorpayPaymentId,
+            razorpayRefundId: p.razorpayRefundId,
+            refundAmount: p.refundAmount,
+            refundStatus: p.refundStatus,
+            refundedAt: p.refundedAt,
+          })),
+      }));
+  }
+
+  // ─── 13.7 Retry refund for a payment ──────────────────────────────────────────
+
+  async retryRefund(params: {
+    paymentId: string;
+    amount?: number;    // in paise; omit for full refund
+    adminId: string;
+    notes?: Record<string, string>;
+  }): Promise<{ refundId: string; amount: number; status: string }> {
+    const { paymentId, amount, adminId, notes } = params;
+
+    const payment = await this.paymentRepo.findOne({ where: { id: paymentId } });
+    if (!payment) {
+      throw new NotFoundException({
+        code: 'PAYMENT_NOT_FOUND',
+        message: `Payment ${paymentId} not found`,
+      });
+    }
+
+    if (!payment.razorpayPaymentId) {
+      throw new BadRequestException({
+        code: 'NO_RAZORPAY_PAYMENT',
+        message: 'This payment has no associated Razorpay payment ID',
+      });
+    }
+
+    if (payment.status !== 'completed') {
+      throw new BadRequestException({
+        code: 'PAYMENT_NOT_COMPLETED',
+        message: 'Only completed payments can be refunded',
+      });
+    }
+
+    return this.createRefund({
+      paymentId: payment.razorpayPaymentId,
+      amount,
+      notes: {
+        ...notes,
+        initiatedBy: `admin:${adminId}`,
+        reason: 'Manual refund via admin panel',
+      },
+      dbPaymentId: payment.id,
+    });
   }
 }

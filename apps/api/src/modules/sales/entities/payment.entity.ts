@@ -57,4 +57,18 @@ export class Payment {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  // ─── Refund fields ─────────────────────────────────────────────────────────
+
+  @Column({ name: 'razorpay_refund_id', nullable: true, type: 'varchar' })
+  razorpayRefundId: string | null;
+
+  @Column({ name: 'refund_amount', nullable: true, type: 'decimal', precision: 12, scale: 2 })
+  refundAmount: number | null;
+
+  @Column({ name: 'refund_status', nullable: true, type: 'varchar', length: 50 })
+  refundStatus: string | null;
+
+  @Column({ name: 'refunded_at', nullable: true, type: 'timestamp' })
+  refundedAt: Date | null;
 }

@@ -15,6 +15,7 @@ const MODULES = [
   'users',
   'settings',
   'content',
+  'buyback',
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve'];
@@ -38,6 +39,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     users: ['view', 'create', 'edit'],
     settings: [],
     content: [],
+    buyback: ['view', 'edit'],
   },
 
   shop_sales: {
@@ -54,6 +56,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     users: [],
     settings: [],
     content: [],
+    buyback: ['view'],
   },
 
   store_sales: {
@@ -70,22 +73,24 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     users: [],
     settings: [],
     content: [],
+    buyback: ['view'],
   },
 
   calling_staff: {
-    dashboard: [],
-    inventory: [],
-    purchases: [],
-    sales: [],
+    dashboard: ['view'],
+    inventory: ['view'],
+    purchases: ['view'],
+    sales: ['view'],
     clients: ['view', 'create', 'edit'],
     transfers: [],
     exchange: [],
     orders: ['view', 'edit'],
-    returns: [],
+    returns: ['view', 'create'],
     reports: [],
     users: [],
     settings: [],
     content: [],
+    buyback: ['view', 'edit'],
   },
 
   employee: {

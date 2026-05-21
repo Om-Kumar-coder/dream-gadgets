@@ -7,9 +7,10 @@ interface Props {
 }
 
 export function AddToCartButton({ product }: Props) {
-  const { items, addItem, removeItem } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity } = useCartStore();
   const [justAdded, setJustAdded] = useState(false);
-  const inCart = items.some(i => i.id === product.id);
+  const cartItem = items.find(i => i.id === product.id);
+  const qty = cartItem?.quantity ?? 0;
 
   function handleAdd() {
     addItem(product);
@@ -17,18 +18,25 @@ export function AddToCartButton({ product }: Props) {
     setTimeout(() => setJustAdded(false), 1500);
   }
 
-  function handleRemove() {
-    removeItem(product.id);
-  }
-
-  if (inCart) {
+  if (qty > 0) {
     return (
-      <button
-        onClick={handleRemove}
-        className="flex-1 py-3 bg-red-50 border-2 border-red-300 text-red-600 rounded-xl font-medium hover:bg-red-100 active:scale-95 transition-all"
-      >
-        Remove from Cart
-      </button>
+      <div className="flex-1 flex items-center gap-0 border-2 border-primary/20 rounded-xl overflow-hidden">
+        <button
+          onClick={() => qty > 1 ? updateQuantity(product.id, qty - 1) : removeItem(product.id)}
+          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-600 font-bold text-lg"
+        >
+          −
+        </button>
+        <div className="flex-1 h-11 flex items-center justify-center bg-white font-semibold text-sm text-gray-900 border-x border-gray-100">
+          {qty} in Cart
+        </div>
+        <button
+          onClick={() => updateQuantity(product.id, qty + 1)}
+          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-600 font-bold text-lg"
+        >
+          +
+        </button>
+      </div>
     );
   }
 

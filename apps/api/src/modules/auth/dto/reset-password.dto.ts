@@ -30,4 +30,21 @@ export class UpdateProfileDto {
   @IsString()
   @IsNotEmpty()
   lastName?: string;
+
+  @ApiProperty({ required: false, description: 'New email address' })
+  @IsString()
+  @IsNotEmpty()
+  email?: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ description: 'Current password for verification' })
+  @IsString()
+  @IsNotEmpty()
+  currentPassword: string;
+
+  @ApiProperty({ description: 'New password (min 8 characters)' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
 }

@@ -28,21 +28,21 @@ export class ExchangeController {
   constructor(private readonly exchangeService: ExchangeService) {}
 
   @Post()
-  @RequirePermission('exchanges.create')
+  @RequirePermission('exchange.create')
   @ApiOperation({ summary: 'Create a new exchange entry with condition assessment' })
   async create(@Body() dto: CreateExchangeDto, @CurrentUser() user: any) {
     return this.exchangeService.create(dto, user.sub);
   }
 
   @Get('price-guide')
-  @RequirePermission('exchanges.view')
+  @RequirePermission('exchange.view')
   @ApiOperation({ summary: 'Get market price guide per model+condition' })
   async getPriceGuide(@Query('modelId') modelId?: string) {
     return this.exchangeService.getPriceGuide(modelId);
   }
 
   @Get('price-suggestion')
-  @RequirePermission('exchanges.view')
+  @RequirePermission('exchange.view')
   @ApiOperation({ summary: 'Get exchange price suggestion using formula' })
   async suggestPrice(
     @Query('basePrice') basePrice: string,
@@ -57,7 +57,7 @@ export class ExchangeController {
   }
 
   @Get()
-  @RequirePermission('exchanges.view')
+  @RequirePermission('exchange.view')
   @UseInterceptors(BranchFilterInterceptor)
   @ApiOperation({ summary: 'List exchanges with optional filters' })
   async findAll(@Query() query: QueryExchangeDto) {
@@ -65,14 +65,14 @@ export class ExchangeController {
   }
 
   @Get(':id')
-  @RequirePermission('exchanges.view')
+  @RequirePermission('exchange.view')
   @ApiOperation({ summary: 'Get exchange by ID' })
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.exchangeService.findById(id);
   }
 
   @Patch(':id')
-  @RequirePermission('exchanges.edit')
+  @RequirePermission('exchange.edit')
   @ApiOperation({ summary: 'Update exchange details' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -82,7 +82,7 @@ export class ExchangeController {
   }
 
   @Post(':id/add-inventory')
-  @RequirePermission('exchanges.edit')
+  @RequirePermission('exchange.edit')
   @ApiOperation({ summary: 'Add exchanged device to inventory' })
   async addToInventory(
     @Param('id', ParseUUIDPipe) id: string,

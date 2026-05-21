@@ -24,6 +24,7 @@ import { SearchModule } from './modules/search/search.module';
 import { PublicModule } from './modules/public/public.module';
 import { AccessoryModule } from './modules/inventory/accessory.module';
 import { BuybackModule } from './modules/buyback/buyback.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { BuybackModule } from './modules/buyback/buyback.module';
     PublicModule,
     AccessoryModule,
     BuybackModule,
+    ReviewsModule,
   ],
 })
 export class AppModule {}

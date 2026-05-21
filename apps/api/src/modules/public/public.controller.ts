@@ -14,8 +14,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { SearchService } from '../search/search.service';
 import { OnlineOrderService, CreateOnlineOrderDto } from '../sales/online-order.service';
+import { PaymentService } from '../payment/payment.service';
+import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 import { IsArray, IsObject, IsOptional, IsNumber } from 'class-validator';
 
 class CreatePublicOrderDto {
@@ -45,6 +49,8 @@ export class PublicController {
   constructor(
     private readonly searchService: SearchService,
     private readonly onlineOrderService: OnlineOrderService,
+    private readonly paymentService: PaymentService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   // ─── Health check ──────────────────────────────────────────────────────────────
@@ -85,18 +91,20 @@ export class PublicController {
   }
 
   @Get('products/:id')
-  @ApiOperation({ summary: 'Get public product by ID' })
+  @ApiOperation({ summary: 'Get public product by ID with specs and details' })
   async getProduct(@Param('id') id: string) {
-    const result = await this.searchService.searchPublicProducts('', {
-      itemId: id,
-      page: 1,
-      limit: 1,
-    });
-    const item = result.items[0];
+    const item = await this.searchService.getProductWithSpecs(id);
     if (!item) {
       throw new NotFoundException({ code: 'PRODUCT_NOT_FOUND', message: 'Product not found' });
     }
     return { data: item };
+  }
+
+  @Get('products/related/:id')
+  @ApiOperation({ summary: 'Get related products' })
+  async getRelatedProducts(@Param('id') id: string) {
+    const items = await this.searchService.getRelatedProducts(id);
+    return { data: items };
   }
 
   // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -112,8 +120,8 @@ export class PublicController {
       });
     }
 
-    // Default to first branch (in production, allow branch selection)
-    const branchId = 'default-branch-uuid';
+    // Use configured branch ID or default
+    const branchId = process.env.DEFAULT_BRANCH_ID ?? 'default-branch-uuid';
 
     // Use authenticated user's clientId if available, otherwise null (guest)
     const clientId = req.user?.sub ?? null;
@@ -147,6 +155,60 @@ export class PublicController {
     }
   }
 
+  @Post('orders/:id/cancel')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel an order (only pending_payment or payment_confirmed)' })
+  async cancelOrder(@Param('id') id: string, @Request() req: any) {
+    if (!req.user?.sub) {
+      throw new BadRequestException({
+        code: 'NOT_AUTHENTICATED',
+        message: 'User not authenticated',
+      });
+    }
+
+    // Verify the order belongs to this user
+    const order = await this.onlineOrderService.findById(id);
+    if (order.clientId !== req.user.sub) {
+      throw new BadRequestException({
+        code: 'ORDER_NOT_OWNED',
+        message: 'You can only cancel your own orders',
+      });
+    }
+
+    // Auto-refund if the order was payment_confirmed — persist refund details on the Payment record
+    let refund: { refundId: string; amount: number; status: string } | null = null;
+    if (order.status === OnlineOrderStatus.PAYMENT_CONFIRMED) {
+      const completedPayment = order.payments?.find(p => p.razorpayPaymentId && p.status === 'completed');
+      if (completedPayment?.razorpayPaymentId) {
+        try {
+          refund = await this.paymentService.createRefund({
+            paymentId: completedPayment.razorpayPaymentId,
+            dbPaymentId: completedPayment.id,  // Persist refund details on this local payment record
+            notes: {
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              reason: 'Customer requested cancellation',
+            },
+          });
+        } catch (err: any) {
+          // Refund failure shouldn't block cancellation — log and continue
+          console.warn(
+            `[CancelOrder] Refund failed for order ${order.orderNumber}: ${err?.message ?? 'Unknown error'}`,
+          );
+        }
+      }
+    }
+
+    const cancelledOrder = await this.onlineOrderService.updateStatus(id, OnlineOrderStatus.CANCELLED);
+
+    return {
+      data: cancelledOrder,
+      refund: refund ?? undefined,
+    };
+  }
+
   @Get('orders')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -159,23 +221,70 @@ export class PublicController {
       });
     }
 
-    // Fetch client's orders from database
-    // Note: In a real system, you'd join with payments to get a list of online orders for the client
-    // For now, we return an empty array since we need to map user -> client -> orders
-    // This assumes the clientId is stored in the JWT payload or user table
+    const userId = req.user.sub;
     const page = query.page ? Number(query.page) : 1;
     const limit = query.limit ? Number(query.limit) : 20;
 
-    // TODO: implement user -> client mapping in auth flow
-    // For now, return empty result
+    // Orders are stored with clientId = userId (from checkout flow)
+    const result = await this.onlineOrderService.findByClientId(userId, page, limit);
+
     return {
       data: {
-        data: [],
-        total: 0,
+        data: result.data,
+        total: result.total,
         page,
         limit,
       },
     };
   }
-}
 
+  // ─── User Profile ─────────────────────────────────────────────────────────────
+
+  @Get('account/profile')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get authenticated user profile with order stats' })
+  async getUserProfile(@Request() req: any) {
+    if (!req.user?.sub) {
+      throw new BadRequestException({
+        code: 'NOT_AUTHENTICATED',
+        message: 'User not authenticated',
+      });
+    }
+
+    const userRow = await this.dataSource.query(
+      `SELECT id, first_name, last_name, email, phone, created_at FROM users WHERE id = $1`,
+      [req.user.sub],
+    );
+
+    if (!userRow?.length) {
+      throw new NotFoundException({ code: 'USER_NOT_FOUND', message: 'User not found' });
+    }
+
+    const user = userRow[0];
+
+    // Get order stats
+    const stats = await this.dataSource.query(
+      `SELECT
+        COUNT(*)::int AS total_orders,
+        COALESCE(SUM(total_amount), 0)::numeric(12,2) AS total_spent,
+        COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered_count,
+        COUNT(*) FILTER (WHERE status = 'pending_payment')::int AS pending_count
+      FROM online_orders
+      WHERE client_id = $1`,
+      [req.user.sub],
+    );
+
+    return {
+      data: {
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        memberSince: user.created_at,
+        stats: stats[0] ?? { totalOrders: 0, totalSpent: 0, deliveredCount: 0, pendingCount: 0 },
+      },
+    };
+  }
+}

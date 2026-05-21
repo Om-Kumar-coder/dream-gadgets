@@ -1,10 +1,12 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 export const PERMISSION_KEY = 'permission';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
+  private readonly logger = new Logger(PermissionGuard.name);
+
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -13,10 +15,26 @@ export class PermissionGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!required) return true;
-    const { user } = context.switchToHttp().getRequest();
+
+    // DEBUG bypass — allow all requests when DEBUG=true
+    if (process.env.DEBUG === 'true') {
+      return true;
+    }
+
+    const { user, method, path } = context.switchToHttp().getRequest();
     const hasPermission = user?.permissions?.includes(required) ?? false;
+
     if (!hasPermission) {
-      throw new ForbiddenException(`Missing required permission: ${required}`);
+      this.logger.warn(
+        `Permission denied: ${method} ${path} | user=${user?.sub ?? 'unknown'} role=${user?.role ?? 'none'} missing=${required}`,
+      );
+      throw new ForbiddenException({
+        status: 'error',
+        error: {
+          code: 'FORBIDDEN',
+          message: `Missing required permission: ${required}`,
+        },
+      });
     }
     return true;
   }

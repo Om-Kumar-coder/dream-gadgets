@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
@@ -15,13 +16,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiSecurity } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { IsNumber, IsOptional, IsString, IsObject, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 class CreateRazorpayOrderDto {
   @ApiProperty({ description: 'Amount in paise (INR * 100)' })
@@ -43,6 +45,20 @@ class CreateRazorpayOrderDto {
   @IsOptional()
   @IsObject()
   notes?: Record<string, string>;
+}
+
+class VerifyPaymentDto {
+  @IsString()
+  razorpayOrderId: string;
+
+  @IsString()
+  razorpayPaymentId: string;
+
+  @IsString()
+  razorpaySignature: string;
+
+  @IsString()
+  orderId: string;
 }
 
 class CreateRefundDto {
@@ -101,6 +117,20 @@ export class PaymentController {
     return this.paymentService.handleWebhook(rawBody, signature, body);
   }
 
+  // ─── POST /payments/razorpay/verify ───────────────────────────────────────────
+  // PUBLIC endpoint for frontend payment verification callback
+  @Post('payments/razorpay/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify Razorpay payment signature and confirm order' })
+  async verifyPayment(@Body() dto: VerifyPaymentDto) {
+    return this.paymentService.verifyPayment({
+      razorpayOrderId: dto.razorpayOrderId,
+      razorpayPaymentId: dto.razorpayPaymentId,
+      razorpaySignature: dto.razorpaySignature,
+      orderId: dto.orderId,
+    });
+  }
+
   // ─── POST /payments/razorpay/refund ───────────────────────────────────────────
   // PROTECTED admin endpoint
   @Post('payments/razorpay/refund')
@@ -133,5 +163,37 @@ export class PaymentController {
   @ApiOperation({ summary: 'List payments for a sale (admin only)' })
   async findBySaleId(@Param('id', ParseUUIDPipe) saleId: string) {
     return this.paymentService.findBySaleId(saleId);
+  }
+
+  // ─── GET /admin/refunds ──────────────────────────────────────────────────────
+  // PROTECTED admin endpoint
+  @Get('admin/refunds')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('sales.approve')
+  @ApiOperation({ summary: 'List cancelled orders needing manual refund action' })
+  async findRefundsNeedingAction() {
+    return this.paymentService.findRefundsNeedingAction();
+  }
+
+  // ─── POST /admin/refunds/:paymentId/retry ────────────────────────────────────
+  // PROTECTED admin endpoint
+  @Post('admin/refunds/:paymentId/retry')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('sales.approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retry a manual refund for a specific payment' })
+  @ApiQuery({ name: 'amount', required: false, type: Number, description: 'Amount in paise; omit for full refund' })
+  async retryRefund(
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+    @Query('amount') amount: string | undefined,
+    @CurrentUser() user: any,
+  ) {
+    return this.paymentService.retryRefund({
+      paymentId,
+      amount: amount ? parseInt(amount, 10) : undefined,
+      adminId: user.sub,
+    });
   }
 }

@@ -57,6 +57,10 @@ type Sale = {
     reference?: string | null;
     note?: string | null;
     status: string;
+    razorpayRefundId?: string | null;
+    refundAmount?: number | null;
+    refundStatus?: string | null;
+    refundedAt?: string | null;
   }[];
   createdAt: string;
 };
@@ -263,14 +267,45 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
             <div className="space-y-3">
               {sale.payments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium capitalize">{payment.method}</span>
-                    {payment.reference && (
-                      <span className="text-xs text-gray-400">Ref: {payment.reference}</span>
-                    )}
+                <div key={payment.id} className="py-3 border-b border-gray-100 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium capitalize">{payment.method}</span>
+                      {payment.reference && (
+                        <span className="text-xs text-gray-400">Ref: {payment.reference}</span>
+                      )}
+                      {payment.status && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          payment.status === 'completed' ? 'bg-green-50 text-green-700' :
+                          payment.status === 'failed' ? 'bg-red-50 text-red-700' :
+                          'bg-gray-50 text-gray-600'
+                        }`}>
+                          {payment.status}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-medium">₹{Number(payment.amount).toLocaleString()}</span>
                   </div>
-                  <span className="font-medium">₹{Number(payment.amount).toLocaleString()}</span>
+                  {/* Refund info */}
+                  {payment.razorpayRefundId && (
+                    <div className="mt-2 ml-2 pl-3 border-l-2 border-amber-200 bg-amber-50/50 rounded-r p-2">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-amber-800 mb-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        Refund {payment.refundStatus === 'processed' ? 'Processed' : payment.refundStatus ?? ''}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-600">
+                        <span>ID: <span className="font-mono">{payment.razorpayRefundId}</span></span>
+                        {payment.refundAmount != null && (
+                          <span>Amount: <strong>₹{Number(payment.refundAmount).toLocaleString('en-IN')}</strong></span>
+                        )}
+                        {payment.refundedAt && (
+                          <span>{new Date(payment.refundedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

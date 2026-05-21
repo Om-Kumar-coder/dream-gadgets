@@ -15,7 +15,7 @@ import { User } from './entities/user.entity';
 import { JwtPayload } from '@dream-gadgets/shared-types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { UpdateProfileDto } from './dto/reset-password.dto';
+import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 
 // Redis key helpers
 const REFRESH_KEY = (userId: string, family: string) => `refresh:${userId}:${family}`;
@@ -348,11 +348,63 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<Partial<User>> {
-    await this.userRepository.update(userId, {
-      ...(dto.firstName && { firstName: dto.firstName }),
-      ...(dto.lastName !== undefined && { lastName: dto.lastName }),
-    });
+    const updateData: Record<string, any> = {};
+
+    if (dto.firstName) {
+      updateData.firstName = dto.firstName;
+    }
+    if (dto.lastName !== undefined) {
+      updateData.lastName = dto.lastName;
+    }
+    if (dto.email) {
+      // Check email is not taken by another user
+      const existing = await this.userRepository.findOne({
+        where: { email: dto.email },
+      });
+      if (existing && existing.id !== userId) {
+        throw new BadRequestException({
+          code: 'EMAIL_TAKEN',
+          message: 'This email is already in use by another account',
+        });
+      }
+      updateData.email = dto.email;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.userRepository.update(userId, updateData);
+    }
+
     return this.getProfile(userId);
+  }
+
+  // ─── Change password (requires current password verification) ────────────────
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'passwordHash'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException({
+        code: 'INVALID_CURRENT_PASSWORD',
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Hash and update new password
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.userRepository.update(userId, { passwordHash });
+
+    // Invalidate all sessions except current one
+    // For security, user will need to log in again
+    await this.invalidateAllFamilies(userId);
   }
 
   // ─── Invalidate all sessions for a user (used by admin deactivation) ────────

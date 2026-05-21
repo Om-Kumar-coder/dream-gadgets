@@ -16,6 +16,7 @@ import {
   BarChart2,
   UserCog,
   Settings,
+  Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/orders', label: 'Online Orders', icon: Package },
   { href: '/buyback', label: 'Buyback Leads', icon: DollarSign },
   { href: '/returns', label: 'Returns', icon: RotateCcw },
+  { href: '/refunds', label: 'Refunds', icon: Undo2 },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
   { href: '/users', label: 'Users & Roles', icon: UserCog },
   { href: '/settings', label: 'Settings', icon: Settings },

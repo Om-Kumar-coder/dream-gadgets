@@ -15,7 +15,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ForgotPasswordDto, ResetPasswordDto, UpdateProfileDto } from './dto/reset-password.dto';
+import { ForgotPasswordDto, ResetPasswordDto, UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '@dream-gadgets/shared-types';
 
@@ -96,5 +96,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Update current user profile' })
   async updateMe(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
     return this.authService.updateProfile(user.sub, dto);
+  }
+
+  // 3.7 Change password
+  @Post('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password (requires current password)' })
+  async changePassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangePasswordDto) {
+    await this.authService.changePassword(user.sub, dto);
+    return { message: 'Password changed successfully. Please log in again.' };
   }
 }

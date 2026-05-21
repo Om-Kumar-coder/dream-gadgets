@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { PermissionGuard } from '../../common/guards/permission.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { BuybackService } from './buyback.service';
 import { IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
 
@@ -77,8 +79,9 @@ export class BuybackController {
 
   // ─── Admin: List leads ────────────────────────────────────────────────────────
 
-  @Get('admin/buyback/leads')
-  @UseGuards(AuthGuard('jwt'))
+  @Get('buyback/leads')
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('buyback.view')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List buyback leads (admin)' })
   async findAll(@Query() query: { page?: string; limit?: string; status?: string }) {
@@ -91,8 +94,9 @@ export class BuybackController {
 
   // ─── Admin: Get lead by ID ────────────────────────────────────────────────────
 
-  @Get('admin/buyback/leads/:id')
-  @UseGuards(AuthGuard('jwt'))
+  @Get('buyback/leads/:id')
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('buyback.view')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get buyback lead by ID (admin)' })
   async findById(@Param('id', ParseUUIDPipe) id: string) {
@@ -105,8 +109,9 @@ export class BuybackController {
 
   // ─── Admin: Update lead status ────────────────────────────────────────────────
 
-  @Patch('admin/buyback/leads/:id')
-  @UseGuards(AuthGuard('jwt'))
+  @Patch('buyback/leads/:id')
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('buyback.edit')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update buyback lead status (admin)' })

@@ -98,6 +98,10 @@ export class NotificationService {
         subject: 'New Buyback Request — {{brand}} {{model}}',
         body: '<h2>New Buyback Lead</h2><p><strong>Device:</strong> {{brand}} {{model}}</p><p><strong>Phone:</strong> {{phone}}</p><p><strong>Submitted:</strong> {{date}}</p><p><a href="{{adminUrl}}">View in Admin Panel</a></p>',
       },
+      refund_processed: {
+        subject: 'Refund Initiated — {{orderNumber}}',
+        body: '<h2>Refund Initiated</h2><p>Dear {{name}},</p><p>A refund of <strong>₹{{amount}}</strong> for your order <strong>{{orderNumber}}</strong> has been initiated.</p><p>The refund will be credited to your original payment method within <strong>2–5 business days</strong>.</p><p>Refund ID: {{refundId}}</p><p>If you have any questions, please contact our support team.</p><p>— Dream Gadgets</p>',
+      },
     };
 
     const tpl = defaults[templateKey] ?? { subject: templateKey, body: '' };

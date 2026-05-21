@@ -305,7 +305,96 @@ export class SearchService {
     }
   }
 
-  // ─── 18.4 BullMQ index sync (no-op for MVP) ───────────────────────────────────
+  // ─── 18.4 Related products ────────────────────────────────────────────────
+
+  async getRelatedProducts(itemId: string, limit = 8): Promise<any[]> {
+    try {
+      // Get the item's brand_id and model_id first
+      const [item] = await this.dataSource.query(
+        `SELECT brand_id, model_id, condition FROM inventory_items WHERE id = $1`,
+        [itemId],
+      );
+
+      if (!item) return [];
+
+      // Find related: same brand or same category, exclude current item
+      const items = await this.dataSource.query(
+        `SELECT
+          i.id, i.imei, i.condition, i.status,
+          i.online_price AS price, i.selling_price,
+          i.colour, i.storage, i.battery_health,
+          i.item_name AS item_name,
+          brd.name AS brand,
+          mdl.name AS model,
+          COALESCE(
+            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1), $1
+          ) AS thumbnail
+        FROM inventory_items i
+        LEFT JOIN brands brd ON brd.id = i.brand_id
+        LEFT JOIN models mdl ON mdl.id = i.model_id
+        WHERE i.id != $2
+          AND i.is_online = true
+          AND i.status = 'available'
+          AND (i.brand_id = $3 OR i.model_id = $4)
+        ORDER BY i.created_at DESC
+        LIMIT $5`,
+        [this.fallbackImage, itemId, item.brand_id, item.model_id, limit],
+      );
+
+      return items.map((item: any) => ({
+        ...item,
+        price: Number(item.price ?? item.selling_price ?? 0),
+        thumbnail: item.thumbnail || this.fallbackImage,
+      }));
+    } catch (err: any) {
+      this.logger.warn(`Related products query failed: ${err?.message}`);
+      return [];
+    }
+  }
+
+  // ─── 18.5 Get product with specs ───────────────────────────────────────────
+
+  async getProductWithSpecs(itemId: string): Promise<any | null> {
+    try {
+      const [item] = await this.dataSource.query(
+        `SELECT
+          i.id, i.imei, i.condition, i.status,
+          i.online_price AS price, i.selling_price,
+          i.colour, i.storage, i.ram, i.battery_health,
+          i.box_type,
+          i.warranty_status, i.warranty_expiry,
+          i.item_name AS item_name,
+          i.pku_code,
+          brd.id AS brand_id, brd.name AS brand,
+          mdl.id AS model_id, mdl.name AS model, mdl.slug AS model_slug,
+          mdl.description AS description, mdl.specs AS specs,
+          COALESCE(
+            (SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'
+          ) AS images
+        FROM inventory_items i
+        LEFT JOIN brands brd ON brd.id = i.brand_id
+        LEFT JOIN models mdl ON mdl.id = i.model_id
+        WHERE i.id = $1 AND i.is_online = true`,
+        [itemId],
+      );
+
+      if (!item) return null;
+
+      return {
+        ...item,
+        price: Number(item.price ?? item.selling_price ?? 0),
+        images: Array.isArray(item.images) ? item.images : [],
+        specs: item.specs ?? {},
+        description: item.description ?? '',
+        model_slug: item.model_slug ?? '',
+      };
+    } catch (err: any) {
+      this.logger.warn(`Product detail query failed: ${err?.message}`);
+      return null;
+    }
+  }
+
+  // ─── 18.6 BullMQ index sync (no-op for MVP) ───────────────────────────────────
 
   async syncItem(itemId: string): Promise<void> {
     this.logger.log(`[Search] syncItem: ${itemId} (no-op for MVP)`);
