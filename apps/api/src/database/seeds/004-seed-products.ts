@@ -41,13 +41,13 @@ interface AccessoryData {
 
 // Brand data
 const BRANDS: BrandData[] = [
-  { name: 'Apple', logoUrl: 'https://via.placeholder.com/100?text=Apple' },
-  { name: 'Samsung', logoUrl: 'https://via.placeholder.com/100?text=Samsung' },
-  { name: 'Xiaomi', logoUrl: 'https://via.placeholder.com/100?text=Xiaomi' },
-  { name: 'OnePlus', logoUrl: 'https://via.placeholder.com/100?text=OnePlus' },
-  { name: 'Google', logoUrl: 'https://via.placeholder.com/100?text=Google' },
-  { name: 'Motorola', logoUrl: 'https://via.placeholder.com/100?text=Motorola' },
-  { name: 'Realme', logoUrl: 'https://via.placeholder.com/100?text=Realme' },
+  { name: 'Apple', logoUrl: '/images/placeholders/brand-apple.svg' },
+  { name: 'Samsung', logoUrl: '/images/placeholders/brand-samsung.svg' },
+  { name: 'Xiaomi', logoUrl: '/images/placeholders/brand-xiaomi.svg' },
+  { name: 'OnePlus', logoUrl: '/images/placeholders/brand-oneplus.svg' },
+  { name: 'Google', logoUrl: '/images/placeholders/brand-google.svg' },
+  { name: 'Motorola', logoUrl: '/images/placeholders/brand-motorola.svg' },
+  { name: 'Realme', logoUrl: '/images/placeholders/brand-realme.svg' },
 ];
 
 // Model data
@@ -272,7 +272,7 @@ const MODELS: ModelData[] = [
 ];
 
 // Fallback images for seeded products
-const FALLBACK_IMAGE_URL = 'https://via.placeholder.com/300x300?text=No+Image';
+const FALLBACK_IMAGE_URL = '/images/placeholders/no-image.svg';
 
 const MODEL_IMAGE_URLS: Record<string, string[]> = {
   'iPhone 14 Pro': [

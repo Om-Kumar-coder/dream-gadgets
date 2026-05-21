@@ -13,7 +13,7 @@ interface ProductCardProps {
   storage?: string;
 }
 
-const FALLBACK_IMAGE = 'https://via.placeholder.com/300x300?text=No+Image';
+const FALLBACK_IMAGE = '/images/placeholders/no-image.svg';
 
 export function ProductCard({ slug, name, condition, price, imageUrl, storage }: ProductCardProps) {
   const src = imageUrl || FALLBACK_IMAGE;

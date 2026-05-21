@@ -40,7 +40,7 @@ export class SearchService {
     this.initQueue();
   }
 
-  private readonly fallbackImage = 'https://via.placeholder.com/300x300?text=No+Image';
+  private readonly fallbackImage = '/images/placeholders/no-image.svg';
 
   // ─── Queue init ───────────────────────────────────────────────────────────────
 

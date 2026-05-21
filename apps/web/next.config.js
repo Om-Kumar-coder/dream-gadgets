@@ -7,7 +7,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
       { protocol: 'https', hostname: '*.s3.amazonaws.com' },
       { protocol: 'https', hostname: 'fdn2.gsmarena.com' },
-      { protocol: 'https', hostname: 'via.placeholder.com' },
     ],
   },
   env: {

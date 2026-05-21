@@ -46,7 +46,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   const price = Number(product.price ?? product.onlinePrice ?? product.sellingPrice ?? 0);
   const name = product.itemName ?? `${product.model ?? ''} ${product.storage ?? ''}`.trim();
   const photos: string[] = (product.images ?? []).filter(Boolean);
-  const imageUrls = photos.length > 0 ? photos : ['https://via.placeholder.com/300x300?text=No+Image'];
+  const imageUrls = photos.length > 0 ? photos : ['/images/placeholders/no-image.svg'];
 
   // JSON-LD structured data
   const jsonLd = {
