@@ -29,7 +29,8 @@ export default function CheckoutPage() {
         shippingAddress: address,
         totalAmount: total(),
       });
-      const order = orderRes.data;
+      // Unwrap TransformInterceptor response: { status, data: order } or { status, data: { data: order } }
+      const order = orderRes?.data?.data ?? orderRes?.data ?? orderRes;
 
       // Create Razorpay order
       const { data: rzpRes } = await apiClient.post('/payments/razorpay/order', {

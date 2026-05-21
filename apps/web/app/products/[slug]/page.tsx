@@ -17,7 +17,9 @@ async function getProduct(slug: string) {
     }
     const json = await res.json();
     console.log('Product detail API Response:', json);
-    return json.data ?? json;
+    // Unwrap TransformInterceptor response: { status, data: item } or { status, data: { data: item } }
+    const item = json.data?.data ?? json.data ?? json;
+    return item;
   } catch {
     return null;
   }

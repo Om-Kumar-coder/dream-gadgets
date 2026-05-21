@@ -47,6 +47,18 @@ export class PublicController {
     private readonly onlineOrderService: OnlineOrderService,
   ) {}
 
+  // ─── Health check ──────────────────────────────────────────────────────────────
+
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint' })
+  async health() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+  }
+
   // ─── Products ──────────────────────────────────────────────────────────────────
 
   @Get('products')

@@ -35,7 +35,12 @@ export class OnlineOrder {
   @Column({ name: 'branch_id' })
   branchId: string;
 
-  @Column({ name: 'status', default: OnlineOrderStatus.PENDING_PAYMENT })
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    length: 50,
+    default: OnlineOrderStatus.PENDING_PAYMENT,
+  })
   status: OnlineOrderStatus;
 
   @Column('decimal', { precision: 12, scale: 2 })

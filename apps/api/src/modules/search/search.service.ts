@@ -213,7 +213,9 @@ export class SearchService {
 
     try {
       const countResult = await this.dataSource.query(
-        `SELECT COUNT(*)::int AS total FROM inventory_items i ${whereClause}`,
+        `SELECT COUNT(*)::int AS total FROM inventory_items i
+         LEFT JOIN brands brd ON brd.id = i.brand_id
+         ${whereClause}`,
         params,
       );
 
@@ -281,13 +283,17 @@ export class SearchService {
       const [conditionFacets, storageFacets] = await Promise.all([
         this.dataSource.query(
           `SELECT i.condition, COUNT(*)::int AS count
-           FROM inventory_items i ${whereClause}
+           FROM inventory_items i
+           LEFT JOIN brands brd ON brd.id = i.brand_id
+           ${whereClause}
            GROUP BY i.condition ORDER BY count DESC`,
           params,
         ),
         this.dataSource.query(
           `SELECT i.storage, COUNT(*)::int AS count
-           FROM inventory_items i ${storageWhereClause}
+           FROM inventory_items i
+           LEFT JOIN brands brd ON brd.id = i.brand_id
+           ${storageWhereClause}
            GROUP BY i.storage ORDER BY count DESC`,
           params,
         ),

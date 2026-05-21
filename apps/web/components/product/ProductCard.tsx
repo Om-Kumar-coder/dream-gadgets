@@ -23,12 +23,12 @@ export function ProductCard({ slug, name, condition, price, imageUrl, storage }:
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
     >
       <div className="relative aspect-square bg-gray-200 overflow-hidden">
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
         <Image
           src={src}
           alt={name}
           fill
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+          onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE; }}
         />
         <div className="absolute top-2 left-2">
           <ConditionBadge condition={condition} />

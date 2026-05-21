@@ -62,9 +62,13 @@ export class Sale {
   @Column({ name: 'sale_date', type: 'timestamptz', default: () => 'NOW()' })
   saleDate: Date;
 
-  // is_voided, voided_by, voided_at don't exist in DB yet — make them virtual/ignored
+  @Column({ name: 'is_voided', default: false })
   isVoided: boolean = false;
+
+  @Column({ name: 'voided_by', nullable: true, type: 'varchar' })
   voidedById: string | null = null;
+
+  @Column({ name: 'voided_at', nullable: true, type: 'timestamptz' })
   voidedAt: Date | null = null;
 
   @OneToMany(() => SaleItem, (i) => i.sale)

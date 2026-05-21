@@ -275,7 +275,7 @@ export class SalesService {
     if (saleType) qb.andWhere('sale.saleType = :saleType', { saleType });
     if (fromDate) qb.andWhere('sale.saleDate >= :fromDate', { fromDate });
     if (toDate) qb.andWhere('sale.saleDate <= :toDate', { toDate });
-    if (isVoided !== undefined) qb.andWhere('sale.isVoided = :isVoided', { isVoided });
+    if (isVoided !== undefined) qb.andWhere('sale.is_voided = :isVoided', { isVoided });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };

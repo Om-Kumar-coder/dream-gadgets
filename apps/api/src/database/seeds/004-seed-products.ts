@@ -271,6 +271,57 @@ const MODELS: ModelData[] = [
   },
 ];
 
+// Fallback images for seeded products
+const FALLBACK_IMAGE_URL = 'https://via.placeholder.com/300x300?text=No+Image';
+
+const MODEL_IMAGE_URLS: Record<string, string[]> = {
+  'iPhone 14 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+  ],
+  'iPhone 14': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
+  ],
+  'iPhone 13': [
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
+  ],
+  'Galaxy S23 Ultra': [
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
+  ],
+  'Galaxy A54': [
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
+  ],
+  'Mi 13 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
+  ],
+  'OnePlus Nord CE 3': [
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
+  ],
+  'Pixel 7 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
+  ],
+  'Moto Edge 50 Pro': [
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
+  ],
+};
+
 // Inventory items with variants
 const INVENTORY_ITEMS: InventoryItemData[] = [
   // iPhone 14 Pro
@@ -326,56 +377,6 @@ const ACCESSORIES: AccessoryData[] = [
   { sku: 'ACC-STAND-TRIPOD', name: 'Mobile Phone Tripod Stand', description: 'Adjustable, portable stand', category: 'stand', brandName: null, purchasePrice: 400, sellingPrice: 799 },
   { sku: 'ACC-HYDROGEL-FILM', name: 'Screen Protector Film (Hydrogel)', description: 'Self-healing hydrogel film', category: 'screen_guard', brandName: null, purchasePrice: 150, sellingPrice: 399 },
 ];
-
-const FALLBACK_IMAGE_URL = 'https://via.placeholder.com/300x300?text=No+Image';
-
-const MODEL_IMAGE_URLS: Record<string, string[]> = {
-  'iPhone 14 Pro': [
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
-  ],
-  'iPhone 14': [
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg',
-  ],
-  'iPhone 13': [
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg',
-  ],
-  'Galaxy S23 Ultra': [
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s23-ultra-5g.jpg',
-  ],
-  'Galaxy A54': [
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a54.jpg',
-  ],
-  'Mi 13 Pro': [
-    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13-pro.jpg',
-  ],
-  'OnePlus Nord CE 3': [
-    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/oneplus-nord-ce3.jpg',
-  ],
-  'Pixel 7 Pro': [
-    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/google-pixel7-pro-new.jpg',
-  ],
-  'Moto Edge 50 Pro': [
-    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
-    'https://fdn2.gsmarena.com/vv/bigpic/motorola-edge-50-pro.jpg',
-  ],
-};
 
 // Helper function to generate variants
 function generateVariants(
