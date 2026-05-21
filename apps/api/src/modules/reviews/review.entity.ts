@@ -11,10 +11,10 @@ export class Review {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'item_id' })
+  @Column({ name: 'item_id', type: 'uuid' })
   itemId: string;
 
-  @Column({ name: 'user_id', nullable: true })
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string | null;
 
   @Column({ name: 'client_name' })
