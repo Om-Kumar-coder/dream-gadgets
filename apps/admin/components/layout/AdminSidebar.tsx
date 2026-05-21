@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -17,6 +17,9 @@ import {
   UserCog,
   Settings,
   Undo2,
+  Building2,
+  ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,11 +37,24 @@ const navItems = [
   { href: '/refunds', label: 'Refunds', icon: Undo2 },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
   { href: '/users', label: 'Users & Roles', icon: UserCog },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/settings?tab=Branches', label: 'Branches', icon: Building2, base: '/settings', tab: 'Branches' },
+  { href: '/settings?tab=Roles', label: 'Roles', icon: ShieldCheck, base: '/settings', tab: 'Roles' },
+  { href: '/settings?tab=Content', label: 'Content', icon: FileText, base: '/settings', tab: 'Content' },
+  { href: '/settings', label: 'Settings', icon: Settings, base: '/settings' },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const isActive = (item: (typeof navItems)[number]) => {
+    const base = item.base || item.href;
+    if (item.tab) {
+      // For settings sub-tabs, match base path + correct tab param
+      return pathname === base && searchParams.get('tab') === item.tab;
+    }
+    return pathname === base || pathname.startsWith(base + '/');
+  };
 
   return (
     <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col">
@@ -48,8 +64,9 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 py-4 space-y-0.5 px-2">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/');
+        {navItems.map((item) => {
+          const { href, label, icon: Icon } = item;
+          const active = isActive(item);
           return (
             <Link
               key={href}

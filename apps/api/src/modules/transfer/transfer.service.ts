@@ -118,7 +118,7 @@ export class TransferService {
   // ─── 9.3 List transfers ──────────────────────────────────────────────────────
 
   async findAll(query: QueryTransferDto): Promise<{ data: StockTransfer[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 20, fromBranchId, toBranchId, status } = query;
+    const { page = 1, limit = 20, fromBranchId, toBranchId, status, search } = query;
 
     const qb = this.transferRepo
       .createQueryBuilder('transfer')
@@ -132,6 +132,7 @@ export class TransferService {
     if (fromBranchId) qb.andWhere('transfer.fromBranchId = :fromBranchId', { fromBranchId });
     if (toBranchId) qb.andWhere('transfer.toBranchId = :toBranchId', { toBranchId });
     if (status) qb.andWhere('transfer.status = :status', { status });
+    if (search) qb.andWhere('transfer.transferNumber ILIKE :search', { search: `%${search}%` });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };

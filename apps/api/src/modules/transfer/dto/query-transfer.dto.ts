@@ -6,6 +6,7 @@ export class QueryTransferDto {
   @ApiPropertyOptional() @IsOptional() @IsString() fromBranchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() toBranchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsIn(['draft', 'initiated', 'in_transit', 'received', 'rejected']) status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) page?: number = 1;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) limit?: number = 20;
 }

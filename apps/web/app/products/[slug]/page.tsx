@@ -23,9 +23,8 @@ async function getProduct(slug: string) {
   } catch {
     return null;
   }
-}
-
-async function getReviews(itemId: string) {
+}  async function getReviews(itemId: string) {
+    if (!itemId) return { data: [], summary: { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 } };
   try {
     const res = await fetch(`${API}/public/products/${itemId}/reviews`, {
       next: { revalidate: 30 },
@@ -69,7 +68,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   const photos: string[] = (product.images ?? []).filter(Boolean);
   const imageUrls = photos.length > 0 ? photos : ['/images/placeholders/no-image.svg'];
 
-  const reviewsData = await getReviews(params.slug);
+  const reviewsData = await getReviews(product.id);
 
   // JSON-LD structured data
   const jsonLd = {
@@ -304,7 +303,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
           {/* Reviews */}
           <div id="reviews">
             <ReviewSection
-              itemId={params.slug}
+              itemId={product.id}
               initialSummary={reviewsData.summary}
               initialReviews={reviewsData.data ?? []}
             />

@@ -79,7 +79,7 @@ export class PurchaseService {
   // ─── 6.3 List purchases ──────────────────────────────────────────────────────
 
   async findAll(query: QueryPurchaseDto): Promise<{ data: Purchase[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 20, branchId, status, vendorName, fromDate, toDate } = query;
+    const { page = 1, limit = 20, branchId, status, vendorName, search, fromDate, toDate } = query;
 
     const qb = this.purchaseRepo
       .createQueryBuilder('purchase')
@@ -91,6 +91,12 @@ export class PurchaseService {
     if (branchId) qb.andWhere('purchase.branchId = :branchId', { branchId });
     if (status) qb.andWhere('purchase.status = :status', { status });
     if (vendorName) qb.andWhere('purchase.vendorName ILIKE :vendorName', { vendorName: `%${vendorName}%` });
+    if (search) {
+      qb.andWhere(
+        '(purchase.invoiceNumber ILIKE :search OR purchase.vendorName ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
     if (fromDate) qb.andWhere('purchase.purchaseDate >= :fromDate', { fromDate });
     if (toDate) qb.andWhere('purchase.purchaseDate <= :toDate', { toDate });
 

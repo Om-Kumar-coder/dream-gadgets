@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Like } from 'typeorm';
 import { OnlineOrder } from './entities/online-order.entity';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 
@@ -25,6 +25,11 @@ export interface CreateOnlineOrderDto {
   discountAmount?: number;
   taxAmount?: number;
   notes?: string;
+}
+
+export interface FindAllOptions {
+  search?: string;
+  status?: string;
 }
 
 @Injectable()
@@ -87,9 +92,23 @@ export class OnlineOrderService {
 
   // ─── Get orders for a client ──────────────────────────────────────────────────
 
-  async findByClientId(clientId: string, page: number = 1, limit: number = 20): Promise<{ data: OnlineOrder[]; total: number }> {
+  async findByClientId(
+    clientId: string,
+    page: number = 1,
+    limit: number = 20,
+    status?: string,
+    search?: string,
+  ): Promise<{ data: OnlineOrder[]; total: number }> {
+    const where: any = { clientId };
+    if (status) {
+      where.status = status;
+    }
+    if (search) {
+      where.orderNumber = Like(`%${search}%`);
+    }
+
     const [data, total] = await this.orderRepo.findAndCount({
-      where: { clientId },
+      where,
       relations: ['client', 'branch', 'payments'],
       order: { orderedAt: 'DESC' },
       skip: (page - 1) * limit,
@@ -101,8 +120,10 @@ export class OnlineOrderService {
 
   // ─── Update order status ──────────────────────────────────────────────────────
 
-  async updateStatus(id: string, status: OnlineOrderStatus): Promise<OnlineOrder> {
+  async updateStatus(id: string, status: string): Promise<OnlineOrder> {
     const order = await this.findById(id);
+
+    const newStatus = status as OnlineOrderStatus;
 
     // Validate status transition if needed
     const validTransitions: Record<OnlineOrderStatus, OnlineOrderStatus[]> = {
@@ -119,23 +140,29 @@ export class OnlineOrderService {
     };
 
     const allowed = validTransitions[order.status] ?? [];
-    if (!allowed.includes(status)) {
+    if (!allowed.includes(newStatus)) {
       throw new BadRequestException({
         code: 'INVALID_STATUS_TRANSITION',
-        message: `Cannot transition from ${order.status} to ${status}`,
+        message: `Cannot transition from ${order.status} to ${newStatus}`,
       });
     }
 
-    order.status = status;
+    order.status = newStatus;
 
     // Update timestamp columns based on status
-    if (status === OnlineOrderStatus.SHIPPED) {
+    if (newStatus === OnlineOrderStatus.SHIPPED) {
       order.shippedAt = new Date();
-    } else if (status === OnlineOrderStatus.DELIVERED) {
+    } else if (newStatus === OnlineOrderStatus.DELIVERED) {
       order.deliveredAt = new Date();
     }
 
     return this.orderRepo.save(order);
+  }
+
+  // ─── Cancel an order (convenience wrapper) ───────────────────────────────────
+
+  async cancelOrder(id: string): Promise<OnlineOrder> {
+    return this.updateStatus(id, OnlineOrderStatus.CANCELLED);
   }
 
   // ─── Get order with items and payment details (for public access) ────────────
@@ -179,10 +206,25 @@ export class OnlineOrderService {
     };
   }
 
-  // ─── List orders with pagination ──────────────────────────────────────────────
+  // ─── List orders with pagination and filtering ──────────────────────────────
 
-  async findAll(page: number = 1, limit: number = 20): Promise<{ data: OnlineOrder[]; total: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 20,
+    options?: FindAllOptions,
+  ): Promise<{ data: OnlineOrder[]; total: number }> {
+    const where: any = {};
+
+    if (options?.status) {
+      where.status = options.status;
+    }
+
+    if (options?.search) {
+      where.orderNumber = Like(`%${options.search}%`);
+    }
+
     const [data, total] = await this.orderRepo.findAndCount({
+      where,
       relations: ['client', 'branch', 'payments'],
       order: { orderedAt: 'DESC' },
       skip: (page - 1) * limit,

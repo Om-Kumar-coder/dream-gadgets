@@ -33,6 +33,11 @@ export class QueryPurchaseDto {
   @IsString()
   vendorName?: string;
 
+  @ApiPropertyOptional({ description: 'Search query (matches invoice number or vendor name)' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional({ description: 'Filter by purchase date (YYYY-MM-DD)' })
   @IsOptional()
   @IsString()

@@ -35,7 +35,7 @@ export class ExchangeService {
   // ─── 10.5 List exchanges ─────────────────────────────────────────────────────
 
   async findAll(query: QueryExchangeDto): Promise<{ data: ExchangeDevice[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 20, clientId, modelId, condition, addedToInventory } = query;
+    const { page = 1, limit = 20, clientId, modelId, condition, search, addedToInventory } = query;
 
     const qb = this.exchangeRepo
       .createQueryBuilder('exchange')
@@ -46,6 +46,9 @@ export class ExchangeService {
     if (clientId) qb.andWhere('exchange.clientId = :clientId', { clientId });
     if (modelId) qb.andWhere('exchange.modelId = :modelId', { modelId });
     if (condition) qb.andWhere('exchange.condition = :condition', { condition });
+    if (search) {
+      qb.andWhere('exchange.imei ILIKE :search', { search: `%${search}%` });
+    }
     if (addedToInventory !== undefined) {
       qb.andWhere('exchange.addedToInventory = :addedToInventory', { addedToInventory });
     }

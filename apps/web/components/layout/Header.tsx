@@ -38,6 +38,9 @@ export function Header() {
           <Link href="/stores" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted/50 transition-colors">
             Our Stores
           </Link>
+          <Link href="/orders" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted/50 transition-colors">
+            My Orders
+          </Link>
           <Link href="/about" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted/50 transition-colors">
             More
           </Link>
@@ -79,6 +82,7 @@ export function Header() {
             { href: '/products', label: 'Buy Phone' },
             { href: '/sell?type=recycle', label: 'Recycle Device' },
             { href: '/stores', label: 'Our Stores' },
+            { href: '/orders', label: 'My Orders' },
             { href: '/about', label: 'About' },
             { href: '/login', label: 'Login' },
           ].map(l => (

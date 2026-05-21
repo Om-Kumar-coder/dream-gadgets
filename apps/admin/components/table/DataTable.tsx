@@ -38,6 +38,7 @@ interface DataTableProps<TData, TFilter> {
   renderNoResults?: (table?: ReactTable<TData>) => React.ReactNode;
   pageSize?: number;
   className?: string;
+  queryParams?: Record<string, unknown>;
 }
 
 export function DataTable<TData, TFilter>({
@@ -55,6 +56,7 @@ export function DataTable<TData, TFilter>({
   renderNoResults,
   pageSize = 20,
   className,
+  queryParams,
 }: DataTableProps<TData, TFilter>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -75,6 +77,7 @@ export function DataTable<TData, TFilter>({
     ],
     queryFn: async () => {
       const params: Record<string, unknown> = {
+        ...queryParams,
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         search: globalFilter,

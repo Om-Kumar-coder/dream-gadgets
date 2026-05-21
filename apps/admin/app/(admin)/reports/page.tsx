@@ -1,7 +1,10 @@
 'use client';
+
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiClient } from '../../../lib/api';
+import Link from 'next/link';
+import { TrendingUp, Package, ShoppingCart, Users, Download, FileText } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
 
 const REPORT_TYPES = [
@@ -18,85 +21,203 @@ const REPORT_TYPES = [
   { value: 'branch_pl', label: 'Branch P&L' },
 ];
 
+function KpiCard({
+  title,
+  value,
+  sub,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  sub?: string;
+  icon: React.ElementType;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4">
+      <div className={`p-2.5 rounded-lg ${color}`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
+        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('daily_sales');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
-  const { data: dashboard } = useQuery({
+  const { data: dashboard, isLoading: dashboardLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => apiClient.get('/reports/dashboard').then(r => r.data),
   });
 
   const exportMutation = useMutation({
     mutationFn: (type: string) =>
-      apiClient.get(`/reports/export/${type}?format=excel&from=${fromDate}&to=${toDate}`, { responseType: 'blob' }).then(r => {
-        const url = window.URL.createObjectURL(new Blob([r.data]));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${type}-report.xlsx`;
-        a.click();
-      }),
+      apiClient
+        .get(`/reports/export/${type}`, {
+          params: { format: 'excel', from: fromDate, to: toDate },
+          responseType: 'blob',
+        })
+        .then((r) => {
+          const url = window.URL.createObjectURL(new Blob([r.data]));
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${type}-report-${fromDate}-to-${toDate}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        }),
+    onError: (error: any) => {
+      console.error('Export failed:', error);
+    },
   });
 
   const kpis = dashboard?.data;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Reports & Analytics</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900">Reports & Analytics</h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Key metrics, business insights, and report exports
+        </p>
+      </div>
 
       {/* KPI Cards */}
-      {kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Today's Sales", value: `₹${Number(kpis.todaySalesValue ?? 0).toLocaleString('en-IN')}`, sub: `${kpis.todaySalesCount ?? 0} transactions` },
-            { label: "Today's Purchases", value: `₹${Number(kpis.todayPurchasesValue ?? 0).toLocaleString('en-IN')}`, sub: `${kpis.todayPurchasesCount ?? 0} items` },
-            { label: 'Active Stock', value: `${kpis.activeStockCount ?? 0} items`, sub: `₹${Number(kpis.activeStockValue ?? 0).toLocaleString('en-IN')}` },
-            { label: 'Net Income', value: `₹${Number(kpis.netIncome ?? 0).toLocaleString('en-IN')}`, sub: 'Today' },
-          ].map(kpi => (
-            <div key={kpi.label} className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">{kpi.label}</p>
-              <p className="text-2xl font-bold mt-1">{kpi.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{kpi.sub}</p>
+      {dashboardLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+              <div className="h-10 w-10 rounded-lg bg-gray-200 mb-3" />
+              <div className="h-3 w-24 bg-gray-200 rounded mb-2" />
+              <div className="h-6 w-20 bg-gray-200 rounded" />
             </div>
           ))}
         </div>
-      )}
+      ) : kpis ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            title="Today's Sales"
+            value={`₹${Number(kpis.todaySalesValue ?? 0).toLocaleString('en-IN')}`}
+            sub={`${kpis.todaySalesCount ?? 0} transactions`}
+            icon={TrendingUp}
+            color="bg-blue-500"
+          />
+          <KpiCard
+            title="Today's Purchases"
+            value={`${kpis.todayPurchases ?? 0} items`}
+            sub={`${kpis.todayPurchases ?? 0} acquired today`}
+            icon={ShoppingCart}
+            color="bg-violet-500"
+          />
+          <KpiCard
+            title="Active Stock"
+            value={`${kpis.activeStockCount ?? 0} items`}
+            sub={`₹${Number(kpis.activeStockValue ?? 0).toLocaleString('en-IN')}`}
+            icon={Package}
+            color="bg-emerald-500"
+          />
+          <KpiCard
+            title="Net Income"
+            value={`₹${Number(kpis.netIncome ?? 0).toLocaleString('en-IN')}`}
+            sub="Today"
+            icon={Users}
+            color="bg-teal-500"
+          />
+        </div>
+      ) : null}
 
       {/* Report Export */}
-      <div className="rounded-lg border p-6">
-        <h2 className="text-lg font-semibold mb-4">Export Reports</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-gray-500" />
+          <h2 className="text-base font-semibold text-gray-900">Export Reports</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium">Report Type</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Report Type</label>
             <select
               value={reportType}
-              onChange={e => setReportType(e.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              onChange={(e) => setReportType(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {REPORT_TYPES.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+              {REPORT_TYPES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">From Date</label>
-            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">From Date</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           <div>
-            <label className="text-sm font-medium">To Date</label>
-            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">To Date</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
         </div>
-        <Button
-          onClick={() => exportMutation.mutate(reportType)}
-          disabled={exportMutation.isPending}
-          isLoading={exportMutation.isPending}
-        >
-          {exportMutation.isPending ? 'Generating...' : 'Export Excel'}
-        </Button>
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => exportMutation.mutate(reportType)}
+            disabled={exportMutation.isPending}
+            isLoading={exportMutation.isPending}
+            className="inline-flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {exportMutation.isPending ? 'Generating...' : 'Export Excel'}
+          </Button>
+          {exportMutation.isError && (
+            <span className="text-xs text-red-500">Export failed. Please try again.</span>
+          )}
+          {exportMutation.isSuccess && (
+            <span className="text-xs text-green-600">✓ Downloaded successfully</span>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <h2 className="text-base font-semibold text-gray-900">Quick Links</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Sales Dashboard', href: '/sales', desc: 'View all sales' },
+            { label: 'Inventory', href: '/inventory', desc: 'Stock overview' },
+            { label: 'Purchase Reports', href: '/purchases', desc: 'Acquisition data' },
+            { label: 'User Activity', href: '/users', desc: 'Employee performance' },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="p-4 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-colors"
+            >
+              <p className="text-sm font-medium text-gray-900">{link.label}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{link.desc}</p>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

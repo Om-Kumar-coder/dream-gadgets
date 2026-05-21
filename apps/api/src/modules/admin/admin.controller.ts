@@ -36,8 +36,11 @@ export class AdminController {
 
   @Get('users')
   @RequirePermission('users.view')
-  async listUsers(@Query('branchId') branchId?: string) {
-    const users = await this.adminService.listUsers(branchId);
+  async listUsers(
+    @Query('branchId') branchId?: string,
+    @Query('search') search?: string,
+  ) {
+    const users = await this.adminService.listUsers(branchId, search);
     return { status: 'success', data: users };
   }
 

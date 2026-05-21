@@ -16,6 +16,7 @@ export interface BuybackLeadQuery {
   page?: number;
   limit?: number;
   status?: string;
+  search?: string;
 }
 
 @Injectable()
@@ -88,22 +89,24 @@ export class BuybackService {
   }
 
   async findAll(query: BuybackLeadQuery) {
-    const { page = 1, limit = 20, status } = query;
+    const { page = 1, limit = 20, status, search } = query;
     const offset = (page - 1) * limit;
 
-    const where: any = {};
-    if (status) where.status = status;
+    const qb = this.leadRepo
+      .createQueryBuilder('lead')
+      .orderBy('lead.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit);
 
-    const [items, total] = await Promise.all([
-      this.leadRepo.find({
-        where,
-        order: { createdAt: 'DESC' },
-        skip: offset,
-        take: limit,
-      }),
-      this.leadRepo.count({ where }),
-    ]);
+    if (status) qb.andWhere('lead.status = :status', { status });
+    if (search) {
+      qb.andWhere(
+        '(lead.brand ILIKE :search OR lead.modelName ILIKE :search OR lead.phone ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
+    const [items, total] = await qb.getManyAndCount();
     return { data: items, total, page, limit };
   }
 

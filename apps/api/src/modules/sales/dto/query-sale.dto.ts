@@ -49,6 +49,11 @@ export class QuerySaleDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isVoided?: boolean;

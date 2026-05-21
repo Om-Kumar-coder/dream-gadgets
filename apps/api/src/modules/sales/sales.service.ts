@@ -260,7 +260,7 @@ export class SalesService {
   // ─── 7.6 List sales ──────────────────────────────────────────────────────────
 
   async findAll(query: QuerySaleDto): Promise<{ data: Sale[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 20, branchId, clientId, paymentStatus, saleType, fromDate, toDate, isVoided } = query;
+    const { page = 1, limit = 20, branchId, clientId, paymentStatus, saleType, fromDate, toDate, search, isVoided } = query;
 
     const qb = this.saleRepo
       .createQueryBuilder('sale')
@@ -275,6 +275,7 @@ export class SalesService {
     if (saleType) qb.andWhere('sale.saleType = :saleType', { saleType });
     if (fromDate) qb.andWhere('sale.saleDate >= :fromDate', { fromDate });
     if (toDate) qb.andWhere('sale.saleDate <= :toDate', { toDate });
+    if (search) qb.andWhere('sale.invoiceNumber ILIKE :search', { search: `%${search}%` });
     if (isVoided !== undefined) qb.andWhere('sale.is_voided = :isVoided', { isVoided });
 
     const [data, total] = await qb.getManyAndCount();

@@ -138,10 +138,22 @@ export class AdminService {
     await this.userRepo.save(user);
   }
 
-  async listUsers(branchId?: string): Promise<User[]> {
-    const where: any = {};
-    if (branchId) where.branchId = branchId;
-    return this.userRepo.find({ where, relations: ['role', 'branch'], order: { createdAt: 'DESC' } });
+  async listUsers(branchId?: string, search?: string): Promise<User[]> {
+    const qb = this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .leftJoinAndSelect('user.branch', 'branch')
+      .orderBy('user.createdAt', 'DESC');
+
+    if (branchId) qb.andWhere('user.branchId = :branchId', { branchId });
+    if (search) {
+      qb.andWhere(
+        '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.phone ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    return qb.getMany();
   }
 
   async findUserById(id: string): Promise<User> {

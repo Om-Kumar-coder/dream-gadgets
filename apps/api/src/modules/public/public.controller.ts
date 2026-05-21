@@ -20,7 +20,24 @@ import { SearchService } from '../search/search.service';
 import { OnlineOrderService, CreateOnlineOrderDto } from '../sales/online-order.service';
 import { PaymentService } from '../payment/payment.service';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
-import { IsArray, IsObject, IsOptional, IsNumber } from 'class-validator';
+import { IsArray, IsObject, IsOptional, IsNumber, IsString, MinLength } from 'class-validator';
+
+class ContactInquiryDto {
+  @IsString()
+  @MinLength(1)
+  name: string;
+
+  @IsString()
+  phone: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsString()
+  @MinLength(10)
+  message: string;
+}
 
 class CreatePublicOrderDto {
   @IsOptional()
@@ -224,9 +241,11 @@ export class PublicController {
     const userId = req.user.sub;
     const page = query.page ? Number(query.page) : 1;
     const limit = query.limit ? Number(query.limit) : 20;
+    const status = query.status as string | undefined;
+    const search = query.search as string | undefined;
 
     // Orders are stored with clientId = userId (from checkout flow)
-    const result = await this.onlineOrderService.findByClientId(userId, page, limit);
+    const result = await this.onlineOrderService.findByClientId(userId, page, limit, status, search);
 
     return {
       data: {
@@ -236,6 +255,22 @@ export class PublicController {
         limit,
       },
     };
+  }
+
+  // ─── Contact ────────────────────────────────────────────────────────────────────
+
+  @Post('contact')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Submit a contact/inquiry form' })
+  async submitContact(@Body() dto: ContactInquiryDto) {
+    const [inquiry] = await this.dataSource.query(
+      `INSERT INTO contact_inquiries (name, phone, email, message)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, created_at`,
+      [dto.name, dto.phone, dto.email ?? null, dto.message],
+    );
+
+    return { data: inquiry };
   }
 
   // ─── User Profile ─────────────────────────────────────────────────────────────

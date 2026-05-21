@@ -40,7 +40,6 @@ type Sale = {
 
 export default function SalesPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState('');
 
   const columns: ColumnDef<Sale, any>[] = [
     {
@@ -203,7 +202,7 @@ export default function SalesPage() {
 
       <DataTable<Sale, any>
         columns={columns}
-        queryKey={['sales', search]}
+        queryKey={['sales']}
         apiEndpoint="/sales"
         enableSorting={true}
         enableFilters={true}
@@ -213,12 +212,6 @@ export default function SalesPage() {
           <div className="py-12 text-center">
             <div className="text-gray-400 text-4xl mb-2">🔍</div>
             <p className="text-gray-500">No sales found</p>
-            <button
-              onClick={() => setSearch('')}
-              className="text-blue-600 hover:underline text-sm mt-2"
-            >
-              Clear search
-            </button>
           </div>
         )}
       />

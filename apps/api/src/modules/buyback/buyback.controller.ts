@@ -84,11 +84,12 @@ export class BuybackController {
   @RequirePermission('buyback.view')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List buyback leads (admin)' })
-  async findAll(@Query() query: { page?: string; limit?: string; status?: string }) {
+  async findAll(@Query() query: { page?: string; limit?: string; status?: string; search?: string }) {
     return this.buybackService.findAll({
       page: query.page ? Number(query.page) : undefined,
       limit: query.limit ? Number(query.limit) : undefined,
       status: query.status,
+      search: query.search,
     });
   }
 
