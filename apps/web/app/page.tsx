@@ -7,22 +7,22 @@ export const metadata: Metadata = {
 };
 
 const BRANDS = [
-  { name: 'Apple', emoji: '🍎', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
-  { name: 'Samsung', emoji: '📱', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'OnePlus', emoji: '🔴', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Xiaomi', emoji: '🟠', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Realme', emoji: '⚡', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Vivo', emoji: '💙', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Oppo', emoji: '🟢', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Google', emoji: '🔵', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Apple', logo: '/logos/apple.svg', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
+  { name: 'Samsung', logo: '/logos/samsung.svg', color: 'from-blue-50 to-blue-100', text: 'text-blue-700' },
+  { name: 'OnePlus', logo: '/logos/oneplus.svg', color: 'from-red-50 to-red-100', text: 'text-red-700' },
+  { name: 'Xiaomi', logo: '/logos/xiaomi.svg', color: 'from-orange-50 to-orange-100', text: 'text-orange-700' },
+  { name: 'Realme', logo: '/logos/realme.svg', color: 'from-yellow-50 to-yellow-100', text: 'text-yellow-700' },
+  { name: 'Vivo', logo: '/logos/vivo.svg', color: 'from-blue-50 to-blue-100', text: 'text-blue-700' },
+  { name: 'Oppo', logo: '/logos/oppo.svg', color: 'from-green-50 to-green-100', text: 'text-green-700' },
+  { name: 'Google', logo: '/logos/google.svg', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
 ];
 
 const SERVICES = [
-  { icon: '📱', label: 'Mobile', href: '/sell?type=mobile' },
-  { icon: '💻', label: 'Laptop', href: '/sell?type=laptop' },
-  { icon: '📟', label: 'Tablet', href: '/sell?type=tablet' },
-  { icon: '⌚', label: 'Smartwatch', href: '/sell?type=smartwatch' },
-  { icon: '🎮', label: 'Gaming Console', href: '/sell?type=gaming' },
+  { icon: '/logos/mobile.svg', label: 'Mobile', href: '/sell?type=mobile' },
+  { icon: '/logos/laptop.svg', label: 'Laptop', href: '/sell?type=laptop' },
+  { icon: '/logos/tablet.svg', label: 'Tablet', href: '/sell?type=tablet' },
+  { icon: '/logos/smartwatch.svg', label: 'Smartwatch', href: '/sell?type=smartwatch' },
+  { icon: '/logos/gaming.svg', label: 'Gaming Console', href: '/sell?type=gaming' },
 ];
 
 const QUALITY_POINTS = [
@@ -139,7 +139,7 @@ export default function HomePage() {
           {SERVICES.map(s => (
             <Link key={s.label} href={s.href}
               className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
-              <span className="text-4xl">{s.icon}</span>
+              <img src={s.icon} alt={s.label} className="w-12 h-12" />
               <span className="text-sm font-semibold text-gray-700">{s.label}</span>
             </Link>
           ))}
@@ -160,7 +160,7 @@ export default function HomePage() {
             {BRANDS.map(b => (
               <Link key={b.name} href={`/products?brand=${b.name}`}
                 className={`flex flex-col items-center p-3 rounded-2xl bg-gradient-to-br ${b.color} border border-white hover:shadow-md hover:-translate-y-0.5 transition-all`}>
-                <span className="text-3xl mb-1.5">{b.emoji}</span>
+                <img src={b.logo} alt={b.name} className="w-11 h-11 mb-1.5" />
                 <span className={`text-xs font-bold ${b.text}`}>{b.name}</span>
               </Link>
             ))}

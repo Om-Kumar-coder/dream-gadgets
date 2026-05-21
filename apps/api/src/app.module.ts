@@ -23,6 +23,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SearchModule } from './modules/search/search.module';
 import { PublicModule } from './modules/public/public.module';
 import { AccessoryModule } from './modules/inventory/accessory.module';
+import { BuybackModule } from './modules/buyback/buyback.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { AccessoryModule } from './modules/inventory/accessory.module';
     SearchModule,
     PublicModule,
     AccessoryModule,
+    BuybackModule,
   ],
 })
 export class AppModule {}

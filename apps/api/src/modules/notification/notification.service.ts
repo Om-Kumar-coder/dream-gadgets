@@ -94,6 +94,10 @@ export class NotificationService {
         subject: 'Happy Birthday from Dream Gadgets!',
         body: 'Dear {{name}}, wishing you a happy birthday! Enjoy a special offer today.',
       },
+      buyback_lead: {
+        subject: 'New Buyback Request — {{brand}} {{model}}',
+        body: '<h2>New Buyback Lead</h2><p><strong>Device:</strong> {{brand}} {{model}}</p><p><strong>Phone:</strong> {{phone}}</p><p><strong>Submitted:</strong> {{date}}</p><p><a href="{{adminUrl}}">View in Admin Panel</a></p>',
+      },
     };
 
     const tpl = defaults[templateKey] ?? { subject: templateKey, body: '' };

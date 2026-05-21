@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BuybackForm } from './BuybackForm';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
@@ -37,20 +38,7 @@ export default function SellPage() {
             Sell Your Old Phone<br /><span className="text-red-400">Get Best Price!</span>
           </h1>
           <p className="text-white/80 text-lg mb-8">Highest price guaranteed · Doorstep pickup · Instant payment</p>
-          <div className="bg-white rounded-2xl p-6 text-left max-w-lg mx-auto shadow-xl">
-            <h2 className="font-bold text-gray-900 mb-4">Get Instant Quote</h2>
-            <div className="space-y-3">
-              <select className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties}>
-                <option value="" className="text-gray-800">Select Brand</option>
-                {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-              <input type="text" placeholder="Enter Model Name (e.g. iPhone 13)" className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
-              <input type="tel" placeholder="Your Phone Number" className="w-full border border-gray-700 rounded-xl px-4 py-3 text-sm text-white bg-slate-950 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties} />
-              <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl text-sm transition-colors">
-                Get My Price →
-              </button>
-            </div>
-          </div>
+          <BuybackForm brands={BRANDS} />
         </div>
       </section>
 
