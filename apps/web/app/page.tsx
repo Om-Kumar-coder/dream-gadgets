@@ -135,11 +135,11 @@ export default function HomePage() {
           </div>
           <Link href="/sell" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
         </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-5">
           {SERVICES.map(s => (
             <Link key={s.label} href={s.href}
               className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
-              <img src={s.icon} alt={s.label} className="w-12 h-12" />
+              <img src={s.icon} alt={s.label} className="w-16 h-16 object-contain" />
               <span className="text-sm font-semibold text-gray-700">{s.label}</span>
             </Link>
           ))}
@@ -156,11 +156,11 @@ export default function HomePage() {
             </div>
             <Link href="/products" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
           </div>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
             {BRANDS.map(b => (
               <Link key={b.name} href={`/products?brand=${b.name}`}
-                className={`flex flex-col items-center p-3 rounded-2xl bg-gradient-to-br ${b.color} border border-white hover:shadow-md hover:-translate-y-0.5 transition-all`}>
-                <img src={b.logo} alt={b.name} className="w-11 h-11 mb-1.5" />
+                className={`flex flex-col items-center p-4 rounded-2xl bg-gradient-to-br ${b.color} border border-white hover:shadow-md hover:-translate-y-0.5 transition-all`}>
+                <img src={b.logo} alt={b.name} className="w-14 h-14 mb-1.5 object-contain" />
                 <span className={`text-xs font-bold ${b.text}`}>{b.name}</span>
               </Link>
             ))}
