@@ -7,8 +7,10 @@ import { ReturnService } from './return.service';
 import { Return } from './entities/return.entity';
 import { Sale } from '../sales/entities/sale.entity';
 import { SaleItem } from '../sales/entities/sale-item.entity';
+import { Payment } from '../sales/entities/payment.entity';
 import { Purchase } from '../purchase/entities/purchase.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { DataSource } from 'typeorm';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -106,6 +108,7 @@ describe('ReturnService', () => {
   let returnRepo: any;
   let saleRepo: any;
   let saleItemRepo: any;
+  let paymentRepo: any;
   let purchaseRepo: any;
   let itemRepo: any;
   let configService: any;
@@ -114,6 +117,7 @@ describe('ReturnService', () => {
     returnRepo = makeRepo();
     saleRepo = makeRepo();
     saleItemRepo = makeRepo();
+    paymentRepo = makeRepo();
     purchaseRepo = makeRepo();
     itemRepo = makeRepo();
     configService = { get: jest.fn().mockReturnValue(7) };
@@ -124,9 +128,26 @@ describe('ReturnService', () => {
         { provide: getRepositoryToken(Return), useValue: returnRepo },
         { provide: getRepositoryToken(Sale), useValue: saleRepo },
         { provide: getRepositoryToken(SaleItem), useValue: saleItemRepo },
+        { provide: getRepositoryToken(Payment), useValue: paymentRepo },
         { provide: getRepositoryToken(Purchase), useValue: purchaseRepo },
         { provide: getRepositoryToken(InventoryItem), useValue: itemRepo },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: DataSource,
+          useValue: {
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn(),
+              startTransaction: jest.fn(),
+              commitTransaction: jest.fn(),
+              rollbackTransaction: jest.fn(),
+              release: jest.fn(),
+              manager: {
+                update: jest.fn(),
+                query: jest.fn(() => Promise.resolve([])),
+              },
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -406,7 +427,7 @@ describe('ReturnService', () => {
       const savedReturn = makeReturn({ returnType: 'purchase' });
 
       (purchaseRepo.findOne as any).mockResolvedValue(purchase);
-      (itemRepo.findByIds as any).mockResolvedValue(items);
+      (itemRepo.find as any).mockResolvedValue(items);
       (itemRepo.update as any).mockResolvedValue({ affected: 1 });
       (returnRepo.create as any).mockReturnValue(savedReturn);
       (returnRepo.save as any).mockResolvedValue(savedReturn);
@@ -417,14 +438,21 @@ describe('ReturnService', () => {
         'user-1',
       );
 
-      expect(itemRepo.findByIds).toHaveBeenCalledWith(['item-2']);
+      // Verify find is called with In() operator
+      expect(itemRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: expect.any(Object),
+          }),
+        }),
+      );
       expect(itemRepo.update).toHaveBeenCalledWith('item-2', { status: 'scrapped' });
     });
 
     it('should throw NotFoundException when specified items not found', async () => {
       const purchase = makePurchase();
       (purchaseRepo.findOne as any).mockResolvedValue(purchase);
-      (itemRepo.findByIds as any).mockResolvedValue([]); // none found
+      (itemRepo.find as any).mockResolvedValue([]); // none found — length < itemIds.length
 
       await expect(
         service.createPurchaseReturn(
@@ -453,6 +481,38 @@ describe('ReturnService', () => {
       );
 
       expect(itemRepo.update).toHaveBeenCalledWith('item-1', { status: 'available' });
+    });
+
+    it('should use In() operator for itemIds lookup', async () => {
+      const purchase = makePurchase();
+      const items = [makeItem({ id: 'item-1' }), makeItem({ id: 'item-2' })];
+      const savedReturn = makeReturn({ returnType: 'purchase' });
+
+      (purchaseRepo.findOne as any).mockResolvedValue(purchase);
+      (itemRepo.find as any).mockImplementation(({ where }: any) => {
+        // Verify the In() function was used (it returns an object with _type/_value)
+        expect(where.id).toBeDefined();
+        return Promise.resolve(items.filter((i: any) => where.id._value?.includes(i.id)));
+      });
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+      (returnRepo.create as any).mockReturnValue(savedReturn);
+      (returnRepo.save as any).mockResolvedValue(savedReturn);
+
+      await service.createPurchaseReturn(
+        'purchase-uuid-1',
+        { ...baseDto, itemIds: ['item-1', 'item-2'] },
+        'user-1',
+      );
+
+      expect(itemRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: expect.any(Object),
+          }),
+        }),
+      );
+      expect(itemRepo.update).toHaveBeenCalledWith('item-1', { status: 'scrapped' });
+      expect(itemRepo.update).toHaveBeenCalledWith('item-2', { status: 'scrapped' });
     });
   });
 

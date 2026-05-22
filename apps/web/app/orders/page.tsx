@@ -58,6 +58,26 @@ const FILTER_TABS: { label: string; value: string }[] = [
   { label: 'Returned', value: OnlineOrderStatus.RETURNED },
 ];
 
+function unwrapResponse(json: any): { data: any[]; meta: any } {
+  // Handle TransformInterceptor wrapping: { status, data, meta }
+  if (json?.status === 'success' && json?.data !== undefined) {
+    return {
+      data: Array.isArray(json.data) ? json.data : json.data?.data ?? [],
+      meta: json.meta ?? json.data?.meta ?? {},
+    };
+  }
+  // Handle direct response: { data: [...], total, page, limit }
+  if (json?.data && Array.isArray(json.data)) {
+    return { data: json.data, meta: json };
+  }
+  // Handle double-wrapped: { data: { data: [...] } }
+  if (json?.data?.data && Array.isArray(json.data.data)) {
+    return { data: json.data.data, meta: json.data };
+  }
+  // Fallback
+  return { data: Array.isArray(json) ? json : [], meta: {} };
+}
+
 async function fetchOrders(page: number = 1, limit: number = 10, status?: string, search?: string): Promise<FetchResult> {
   try {
     const token = localStorage.getItem('auth-token');
@@ -74,17 +94,14 @@ async function fetchOrders(page: number = 1, limit: number = 10, status?: string
     });
     if (!res.ok) return { orders: [], total: 0, totalPages: 0, currentPage: 1 };
     const json = await res.json();
-    const unwrapped = json.data ?? json;
-    const orders = Array.isArray(unwrapped) ? unwrapped : Array.isArray(unwrapped?.data) ? unwrapped.data : [];
-    const meta = json.meta ?? unwrapped?.meta ?? {};
+    const { data, meta } = unwrapResponse(json);
     return {
-      orders,
-      total: meta.total ?? 0,
-      totalPages: meta.totalPages ?? 0,
-      currentPage: meta.page ?? page,
+      orders: Array.isArray(data) ? data : [],
+      total: meta?.total ?? 0,
+      totalPages: meta?.totalPages ?? Math.ceil((meta?.total ?? 0) / limit),
+      currentPage: meta?.page ?? page,
     };
-  } catch (err) {
-    console.error('Failed to fetch orders:', err);
+  } catch {
     return { orders: [], total: 0, totalPages: 0, currentPage: 1 };
   }
 }
@@ -98,23 +115,19 @@ function Pagination({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) {
-  // Build visible page range with ellipsis
   const getPageNumbers = (): (number | 'ellipsis')[] => {
     const pages: (number | 'ellipsis')[] = [];
-    if (totalPages <= MAX_VISIBLE_PAGES) {
+    if (totalPages <= 5) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
       return pages;
     }
-
     pages.push(1);
     const start = Math.max(2, currentPage - 2);
     const end = Math.min(totalPages - 1, currentPage + 2);
-
     if (start > 2) pages.push('ellipsis');
     for (let i = start; i <= end; i++) pages.push(i);
     if (end < totalPages - 1) pages.push('ellipsis');
     pages.push(totalPages);
-
     return pages;
   };
 
@@ -122,7 +135,6 @@ function Pagination({
 
   return (
     <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Order pagination">
-      {/* Previous */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
@@ -133,8 +145,6 @@ function Pagination({
         </svg>
         Prev
       </button>
-
-      {/* Page Numbers */}
       {pageNumbers.map((p, i) =>
         p === 'ellipsis' ? (
           <span key={`e-${i}`} className="px-2 text-gray-400 select-none">…</span>
@@ -152,8 +162,6 @@ function Pagination({
           </button>
         )
       )}
-
-      {/* Next */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
@@ -168,7 +176,7 @@ function Pagination({
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard ({ order }: { order: Order }) {
   const badge = STATUS_BADGES[order.status] ?? { label: order.status.replace(/_/g, ' '), class: 'bg-gray-100 text-gray-600' };
   const itemsCount = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
 
@@ -188,7 +196,6 @@ function OrderCard({ order }: { order: Order }) {
           {badge.label}
         </span>
       </div>
-
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs text-gray-400">{itemsCount} item{itemsCount !== 1 ? 's' : ''}</p>
@@ -198,24 +205,11 @@ function OrderCard({ order }: { order: Order }) {
           View Details →
         </div>
       </div>
-
-      {order.status === OnlineOrderStatus.SHIPPED && order.shippingAddress && (
-        <div className="mt-3 pt-3 border-t border-gray-50">
-          <p className="text-[10px] text-gray-400 flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Shipping to {order.shippingAddress.city}, {order.shippingAddress.state}
-          </p>
-        </div>
-      )}
     </Link>
   );
 }
 
 const PAGE_SIZE = 10;
-const MAX_VISIBLE_PAGES = 5;
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -229,7 +223,7 @@ export default function OrdersPage() {
   const [searchInput, setSearchInput] = useState('');
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadOrders = (page: number, filter?: string, search?: string) => {
+  const doFetch = (page: number, filter?: string, search?: string) => {
     setLoading(true);
     setError('');
     const token = localStorage.getItem('auth-token');
@@ -252,7 +246,7 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    loadOrders(1);
+    doFetch(1);
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
@@ -265,7 +259,7 @@ export default function OrdersPage() {
     setActiveFilter(value);
     setSearchInput('');
     setSearchQuery('');
-    loadOrders(1, value, '');
+    doFetch(1, value, '');
   };
 
   const handleSearchInput = (value: string) => {
@@ -274,7 +268,7 @@ export default function OrdersPage() {
     searchTimerRef.current = setTimeout(() => {
       setSearchQuery(value);
       setActiveFilter('');
-      loadOrders(1, '', value);
+      doFetch(1, '', value);
     }, 350);
   };
 
@@ -282,8 +276,17 @@ export default function OrdersPage() {
     setSearchInput('');
     setSearchQuery('');
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    loadOrders(1, activeFilter, '');
+    doFetch(1, activeFilter, '');
   };
+
+  // Auth check
+  useEffect(() => {
+    const token = localStorage.getItem('auth-token');
+    if (!token) {
+      setError('Please log in to view your orders.');
+      setLoading(false);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -291,24 +294,6 @@ export default function OrdersPage() {
         <div className="text-center py-20">
           <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500 text-sm">Loading your orders...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error && !error.includes('log in')) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <div className="text-center py-20">
-          <div className="text-4xl mb-4">😕</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Couldn&apos;t Load Orders</h1>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Try Again
-          </button>
         </div>
       </main>
     );
@@ -327,6 +312,24 @@ export default function OrdersPage() {
           >
             Sign In
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (error && !error.includes('log in')) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-12">
+        <div className="text-center py-20">
+          <div className="text-4xl mb-4">😕</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Couldn&apos;t Load Orders</h1>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <button
+            onClick={() => doFetch(1, activeFilter, searchQuery)}
+            className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </main>
     );
@@ -446,13 +449,11 @@ export default function OrdersPage() {
                 <OrderCard key={order.id} order={order} />
               ))}
             </div>
-
-            {/* Pagination */}
             {totalPages > 1 && (
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={(p) => loadOrders(p)}
+                onPageChange={(p) => doFetch(p)}
               />
             )}
           </>

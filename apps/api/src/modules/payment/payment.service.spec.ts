@@ -6,6 +6,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { PaymentService } from './payment.service';
 import { Payment } from '../sales/entities/payment.entity';
+import { OnlineOrder } from '../sales/entities/online-order.entity';
+import { NotificationService } from '../notification/notification.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -47,12 +49,19 @@ function buildSignature(payload: string, secret: string): string {
 describe('PaymentService', () => {
   let service: PaymentService;
   let paymentRepo: any;
+  let orderRepo: any;
   let configService: any;
+  let notificationService: any;
 
   const WEBHOOK_SECRET = 'test_webhook_secret';
 
   beforeEach(async () => {
     paymentRepo = makePaymentRepo();
+    orderRepo = {
+      findOne: jest.fn() as any,
+      find: jest.fn() as any,
+      save: jest.fn() as any,
+    };
     configService = {
       get: jest.fn((key: string) => {
         const config: Record<string, string> = {
@@ -65,12 +74,18 @@ describe('PaymentService', () => {
         return config[key];
       }),
     };
+    notificationService = {
+      sendEmail: (jest.fn() as any).mockResolvedValue(undefined),
+      sendSms: (jest.fn() as any).mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
         { provide: getRepositoryToken(Payment), useValue: paymentRepo },
+        { provide: getRepositoryToken(OnlineOrder), useValue: orderRepo },
         { provide: ConfigService, useValue: configService },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 

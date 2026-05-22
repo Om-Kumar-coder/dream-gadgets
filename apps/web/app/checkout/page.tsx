@@ -119,8 +119,9 @@ export default function CheckoutPage() {
         shippingAddress: address,
         totalAmount: cartTotal,
       });
-      // Unwrap TransformInterceptor: { status, data: { data: order } }
-      const order = orderRes?.data?.data ?? orderRes?.data ?? orderRes;
+      // Unwrap TransformInterceptor: axios wraps { data }, backend wraps { status, data }
+      // orderRes is response.data = { status: 'success', data: order }
+      const order = orderRes?.data ?? orderRes;
       setOrderId(order.id);
 
       // 2. Create Razorpay order
@@ -160,7 +161,9 @@ export default function CheckoutPage() {
             router.push(`/orders/${order.id}?payment=success`);
           } catch (verifyErr: any) {
             setError(
+              typeof verifyErr === 'string' ? verifyErr :
               verifyErr?.response?.data?.error?.message ??
+              verifyErr?.message ??
               'Payment was taken but verification failed. Please contact support with your order ID.'
             );
             router.push(`/orders/${order.id}?payment=pending`);

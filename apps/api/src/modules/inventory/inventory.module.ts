@@ -7,14 +7,13 @@ import { InventoryItem } from './entities/inventory-item.entity';
 import { ItemPhoto } from './entities/item-photo.entity';
 import { Brand } from './entities/brand.entity';
 import { Model } from './entities/model.entity';
-import { Branch } from './entities/branch.entity';
 import { Accessory } from './entities/accessory.entity';
 import { AccessoryModule } from './accessory.module';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([InventoryItem, ItemPhoto, Brand, Model, Branch, Accessory]),
+    TypeOrmModule.forFeature([InventoryItem, ItemPhoto, Brand, Model, Accessory]),
     AccessoryModule,
   ],
   controllers: [InventoryController],

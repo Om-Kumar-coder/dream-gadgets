@@ -454,7 +454,7 @@ describe('SalesService', () => {
 
       await service.findAll({ isVoided: false });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('sale.isVoided = :isVoided', { isVoided: false });
+      expect(qb.andWhere).toHaveBeenCalledWith('sale.is_voided = :isVoided', { isVoided: false });
     });
   });
 

@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Brand } from './brand.entity';
 import { Model } from './model.entity';
-import { Branch } from './branch.entity';
+import { Branch } from '../../auth/entities/user.entity';
 import { User } from '../../auth/entities/user.entity';
 
 @Entity('accessories')

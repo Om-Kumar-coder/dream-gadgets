@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Return } from './entities/return.entity';
 import { Sale } from '../sales/entities/sale.entity';
@@ -185,7 +185,7 @@ export class ReturnService {
     // Load linked inventory items
     let items: InventoryItem[];
     if (dto.itemIds && dto.itemIds.length > 0) {
-      items = await this.itemRepo.findByIds(dto.itemIds);
+      items = await this.itemRepo.find({ where: { id: In(dto.itemIds) } });
       if (items.length !== dto.itemIds.length) {
         throw new NotFoundException('Some inventory items not found');
       }

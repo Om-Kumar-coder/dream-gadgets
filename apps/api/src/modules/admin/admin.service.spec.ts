@@ -105,6 +105,12 @@ function makeRepo(entity?: any): any {
     save: jest.fn(async (entity: any) => entity) as any,
     update: jest.fn(async () => ({ affected: 1 })) as any,
     remove: jest.fn(async () => ({})) as any,
+    createQueryBuilder: jest.fn(() => ({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn(() => Promise.resolve([])),
+    })) as any,
   };
 }
 

@@ -22,11 +22,9 @@ async function getProducts(searchParams: Record<string, string>) {
       { next: { revalidate: 60 } },
     );
     if (!res.ok) {
-      console.error('Products API returned error', res.status, res.statusText);
       return { data: [], total: 0 };
     }
     const json = await res.json();
-    console.log('Products API Response:', json);
     return {
       data: json.data ?? json.items ?? [],
       total: json.meta?.total ?? json.total ?? 0,
