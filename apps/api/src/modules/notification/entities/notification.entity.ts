@@ -47,6 +47,12 @@ export class Notification {
   @Column({ nullable: true, type: 'jsonb' })
   metadata: object | null;
 
+  @Column({ name: 'is_read', default: false })
+  isRead: boolean;
+
+  @Column({ name: 'read_at', nullable: true, type: 'timestamptz' })
+  readAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

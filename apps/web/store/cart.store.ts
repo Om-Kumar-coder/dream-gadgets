@@ -6,6 +6,7 @@ interface CartItem {
   imei: string;
   name: string;
   price: number;
+  originalPrice?: number;
   imageUrl?: string;
   slug: string;
   quantity: number;

@@ -322,4 +322,32 @@ export class NotificationService {
   async findById(id: string): Promise<Notification | null> {
     return this.notificationRepo.findOne({ where: { id } });
   }
+
+  // ─── In-app notification queries ──────────────────────────────────────────────
+
+  async findUserNotifications(userId: string): Promise<{ notifications: Notification[]; unreadCount: number }> {
+    const notifications = await this.notificationRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      take: 20,
+    });
+    const unreadCount = await this.notificationRepo.count({
+      where: { userId, isRead: false },
+    });
+    return { notifications, unreadCount };
+  }
+
+  async markAsRead(id: string, userId: string): Promise<void> {
+    await this.notificationRepo.update(
+      { id, userId },
+      { isRead: true, readAt: new Date() },
+    );
+  }
+
+  async markAllAsRead(userId: string): Promise<void> {
+    await this.notificationRepo.update(
+      { userId, isRead: false },
+      { isRead: true, readAt: new Date() },
+    );
+  }
 }

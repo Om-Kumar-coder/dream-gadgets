@@ -90,6 +90,12 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @Column({ name: 'avatar_url', nullable: true, type: 'varchar' })
+  avatarUrl: string;
+
+  @Column({ name: 'wallet_balance', default: 0, type: 'decimal', precision: 12, scale: 2 })
+  walletBalance: number;
+
   @Column({ name: 'last_login_at', nullable: true, type: 'timestamptz' })
   lastLoginAt: Date;
 

@@ -4,153 +4,314 @@ import { ProductCard } from '../../components/product/ProductCard';
 
 export const metadata: Metadata = {
   title: 'All Phones',
-  description: 'Browse our collection of certified used smartphones.',
+  description: 'Browse our collection of certified used smartphones at the best prices.',
 };
+
+interface Props {
+  searchParams: Record<string, string>;
+}
+
+const BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme', 'Vivo', 'Oppo', 'Google'];
+
+const CONDITIONS = [
+  { value: ItemCondition.SEALED_PACK, label: 'Sealed Pack', short: 'Sealed' },
+  { value: ItemCondition.OPEN_BOX, label: 'Open Box', short: 'Open Box' },
+  { value: ItemCondition.SUPER_MINT, label: 'Super Mint', short: 'Super Mint' },
+  { value: ItemCondition.MINT, label: 'Mint', short: 'Mint' },
+  { value: ItemCondition.GOOD, label: 'Good', short: 'Good' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'popular', label: 'Popularity' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+  { value: 'newest', label: 'Newest First' },
+  { value: 'discount', label: 'Biggest Discount' },
+];
 
 async function getProducts(searchParams: Record<string, string>) {
   const params = new URLSearchParams({
     page: searchParams.page ?? '1',
-    limit: '20',
+    limit: '24',
     ...(searchParams.brand && { brand: searchParams.brand }),
     ...(searchParams.condition && { condition: searchParams.condition }),
     ...(searchParams.minPrice && { minPrice: searchParams.minPrice }),
     ...(searchParams.maxPrice && { maxPrice: searchParams.maxPrice }),
+    ...(searchParams.sort && { sort: searchParams.sort }),
+    ...(searchParams.search && { search: searchParams.search }),
   });
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1'}/public/products?${params}`,
       { next: { revalidate: 60 } },
     );
-    if (!res.ok) {
-      return { data: [], total: 0 };
-    }
+    if (!res.ok) return { data: [], total: 0, meta: {} };
     const json = await res.json();
     return {
       data: json.data ?? json.items ?? [],
       total: json.meta?.total ?? json.total ?? 0,
+      meta: json.meta ?? {},
     };
   } catch {
-    return { data: [], total: 0 };
+    return { data: [], total: 0, meta: {} };
   }
 }
 
-const CONDITIONS = [
-  { value: ItemCondition.SEALED_PACK, label: 'Sealed Pack', color: 'bg-red-100 text-red-700' },
-  { value: ItemCondition.OPEN_BOX, label: 'Open Box', color: 'bg-red-100 text-red-700' },
-  { value: ItemCondition.SUPER_MINT, label: 'Super Mint', color: 'bg-red-100 text-red-700' },
-  { value: ItemCondition.MINT, label: 'Mint', color: 'bg-red-100 text-red-700' },
-  { value: ItemCondition.GOOD, label: 'Good', color: 'bg-red-100 text-red-700' },
-];
-
-const BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme', 'Vivo', 'Oppo'];
-
-export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string> }) {
+export default async function ProductsPage({ searchParams }: Props) {
   const { data: products, total } = await getProducts(searchParams);
-
   const activeCondition = searchParams.condition;
   const activeBrand = searchParams.brand;
+  const activeSort = searchParams.sort || 'popular';
+  const activeSearch = searchParams.search || '';
+
+  const pageTitle = activeSearch
+    ? `Results for "${activeSearch}"`
+    : activeBrand
+    ? `${activeBrand} Phones`
+    : activeCondition
+    ? CONDITIONS.find(c => c.value === activeCondition)?.label ?? 'Phones'
+    : 'All Products';
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Page header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {activeBrand ? `${activeBrand} Phones` : activeCondition ? CONDITIONS.find(c => c.value === activeCondition)?.label ?? 'Phones' : 'All Phones'}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{total} phones available</p>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{pageTitle}</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {total} product{total !== 1 ? 's' : ''} available
+                {activeSearch && <> for &ldquo;{activeSearch}&rdquo;</>}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+        {/* ── Sidebar ── */}
+        <aside className="hidden md:block w-60 shrink-0">
+          <div className="sticky top-28 space-y-6">
+            {/* Search summary */}
+            {activeSearch && (
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Search</h3>
+                <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 rounded-lg">
+                  <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span className="text-xs text-primary font-medium truncate">{activeSearch}</span>
+                  <a href="/products" className="ml-auto text-gray-300 hover:text-gray-500">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            )}
 
-        {/* Sidebar */}
-        <aside className="hidden md:block w-52 shrink-0 space-y-6">
-          <div>
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Brand</h3>
-            <div className="space-y-1">
-              <a
-                href="/products"
-                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeBrand ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                All Brands
-              </a>
-              {BRANDS.map(b => (
+            {/* Brand filter */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Brand</h3>
+              <div className="space-y-0.5">
                 <a
-                  key={b}
-                  href={`/products?brand=${b}`}
-                  className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${activeBrand === b ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  href={activeSearch ? `/products?search=${encodeURIComponent(activeSearch)}` : '/products'}
+                  className={`block text-sm px-3 py-2 rounded-lg transition-colors ${!activeBrand ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  {b}
+                  All Brands
                 </a>
-              ))}
+                {BRANDS.map(b => (
+                  <a
+                    key={b}
+                    href={`/products?brand=${b}${activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''}`}
+                    className={`block text-sm px-3 py-2 rounded-lg transition-colors ${activeBrand === b ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    {b}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Condition</h3>
-            <div className="space-y-1">
+            {/* Condition filter */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Condition</h3>
+              <div className="space-y-0.5">
+                <a
+                  href={activeBrand ? `/products?brand=${activeBrand}` : '/products'}
+                  className={`block text-sm px-3 py-2 rounded-lg transition-colors ${!activeCondition ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  All Conditions
+                </a>
+                {CONDITIONS.map(c => {
+                  const params = new URLSearchParams({ condition: c.value });
+                  if (activeBrand) params.set('brand', activeBrand);
+                  return (
+                    <a
+                      key={c.value}
+                      href={`/products?${params}`}
+                      className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeCondition === c.value ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                        c.value === ItemCondition.SEALED_PACK ? 'bg-violet-50 text-violet-600 border-violet-200' :
+                        c.value === ItemCondition.OPEN_BOX ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                        c.value === ItemCondition.SUPER_MINT ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                        c.value === ItemCondition.MINT ? 'bg-teal-50 text-teal-600 border-teal-200' :
+                        'bg-amber-50 text-amber-600 border-amber-200'
+                      }`}>
+                        {c.short}
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Price range quick filters */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Price Range</h3>
+              <div className="space-y-0.5">
+                {[
+                  { label: 'Under ₹10,000', min: '', max: '10000' },
+                  { label: '₹10,000 – ₹25,000', min: '10000', max: '25000' },
+                  { label: '₹25,000 – ₹50,000', min: '25000', max: '50000' },
+                  { label: '₹50,000 – ₹1,00,000', min: '50000', max: '100000' },
+                  { label: 'Above ₹1,00,000', min: '100000', max: '' },
+                ].map(r => {
+                  const params = new URLSearchParams(r);
+                  if (activeBrand) params.set('brand', activeBrand);
+                  if (activeCondition) params.set('condition', activeCondition);
+                  const activeMin = searchParams.minPrice;
+                  const activeMax = searchParams.maxPrice;
+                  const isActive = activeMin === r.min && activeMax === r.max;
+                  return (
+                    <a
+                      key={r.label}
+                      href={`/products?${params}`}
+                      className={`block text-sm px-3 py-2 rounded-lg transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {r.label}
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Clear all */}
+            {(activeBrand || activeCondition || activeSearch || searchParams.minPrice) && (
               <a
                 href="/products"
-                className={`block text-sm px-3 py-1.5 rounded-lg transition-colors ${!activeCondition ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                className="flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors"
               >
-                All Conditions
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear All Filters
+              </a>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Main Content ── */}
+        <div className="flex-1 min-w-0">
+          {/* Mobile filter chips + Sort bar */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:hidden">
+              <a
+                href="/products"
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${!activeCondition && !activeBrand ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+              >
+                All
               </a>
               {CONDITIONS.map(c => (
                 <a
                   key={c.value}
-                  href={`/products?condition=${c.value}`}
-                  className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg transition-colors ${activeCondition === c.value ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  href={`/products?condition=${c.value}${activeBrand ? `&brand=${activeBrand}` : ''}`}
+                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${activeCondition === c.value ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
                 >
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${c.color}`}>{c.label}</span>
+                  {c.short}
                 </a>
               ))}
             </div>
-          </div>
-        </aside>
 
-        {/* Grid */}
-        <div className="flex-1 min-w-0">
-          {/* Mobile filter chips */}
-          <div className="flex gap-2 overflow-x-auto pb-3 md:hidden">
-            {CONDITIONS.map(c => (
-              <a
-                key={c.value}
-                href={`/products?condition=${c.value}`}
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${activeCondition === c.value ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
+            {/* Sort */}
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="text-xs text-gray-400 hidden sm:block">Sort by:</label>
+              <select
+                className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                defaultValue={activeSort}
+                onChange={(e) => {
+                  const params = new URLSearchParams(searchParams as Record<string, string>);
+                  params.set('sort', e.target.value);
+                  window.location.href = `/products?${params}`;
+                }}
               >
-                {c.label}
-              </a>
-            ))}
+                {SORT_OPTIONS.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
+          {/* Products grid */}
           {products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="text-6xl mb-4">📱</div>
-              <p className="text-lg font-semibold text-gray-700">No phones found</p>
-              <p className="text-sm text-gray-400 mt-1">Try adjusting your filters</p>
-              <a href="/products" className="mt-4 text-sm text-red-600 font-medium hover:underline">
-                Clear all filters
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <p className="text-lg font-semibold text-gray-700">No products found</p>
+              <p className="text-sm text-gray-400 mt-1 max-w-xs">
+                {activeSearch
+                  ? `We couldn't find any results for "${activeSearch}". Try a different search term.`
+                  : 'Try adjusting your filters or browse all products.'}
+              </p>
+              <a href="/products" className="mt-6 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 active:scale-95 transition-all">
+                Browse All Products
               </a>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.map((p: any) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  slug={p.id}
-                  name={p.itemName ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim()}
-                  condition={p.condition}
-                  price={Number(p.price ?? p.onlinePrice ?? p.sellingPrice ?? 0)}
-                  imageUrl={p.images?.[0]}
-                  storage={p.storage}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {products.map((p: any) => {
+                  const price = Number(p.price ?? p.onlinePrice ?? p.sellingPrice ?? 0);
+                  const originalPrice = p.originalPrice ? Number(p.originalPrice) : undefined;
+                  return (
+                    <ProductCard
+                      key={p.id}
+                      id={p.id}
+                      slug={p.id}
+                      name={p.itemName ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim()}
+                      condition={p.condition}
+                      price={price}
+                      originalPrice={originalPrice}
+                      imageUrl={p.images?.[0]}
+                      storage={p.storage}
+                      brand={p.brand}
+                      rating={p.rating ?? 0}
+                      reviewCount={p.reviewCount ?? 0}
+                      inStock={p.inStock ?? true}
+                      quickAdd
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {total > 24 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    Showing 1–{Math.min(24, total)} of {total}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
     </div>
   );
 }
+
+

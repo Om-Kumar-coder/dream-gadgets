@@ -73,22 +73,21 @@ export default function HomePage() {
     <main className="overflow-x-hidden">
 
       {/* ── Hero ── */}
-      <section className="relative text-white overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
-      }}>
+      <section className="relative text-white overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
         <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         {/* Red glow overlay */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'radial-gradient(circle at 30% 50%, rgba(229, 9, 20, 0.25), transparent 60%)'
-        }} />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(circle at 30% 50%, hsl(var(--primary) / 0.25), transparent 60%)' }}
+        />
         <div className="relative max-w-5xl mx-auto px-4 py-24 text-center">
           <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-6 tracking-widest uppercase">
             ✦ India's Most Transparent Mobile Platform
           </span>
           <h1 className="text-5xl md:text-7xl font-extrabold mb-4 leading-tight tracking-tight">
             Sell Your Old Phone<br />
-            <span style={{ color: '#E50914' }}>in Minutes!</span>
+            <span className="text-primary">in Minutes!</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 mb-3 max-w-xl mx-auto">
             Highest Price &nbsp;·&nbsp; Doorstep Pickups &nbsp;·&nbsp; Instant Payment
@@ -119,7 +118,7 @@ export default function HomePage() {
             { v: '100%', l: 'IMEI Verified' },
           ].map(s => (
             <div key={s.l}>
-              <p className="text-2xl font-extrabold" style={{ color: '#E50914' }}>{s.v}</p>
+              <p className="text-2xl font-extrabold text-primary">{s.v}</p>
               <p className="text-xs text-gray-500 mt-0.5">{s.l}</p>
             </div>
           ))}
@@ -133,9 +132,9 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-gray-900">Selling Services</h2>
             <p className="text-sm text-gray-500 mt-1">We buy all kinds of gadgets</p>
           </div>
-          <Link href="/sell" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
+          <Link href="/sell" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
         </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-5">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-5">
           {SERVICES.map(s => (
             <Link key={s.label} href={s.href}
               className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
@@ -154,7 +153,7 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Buy Phone by Brand</h2>
               <p className="text-sm text-gray-500 mt-1">Certified used phones from top brands</p>
             </div>
-            <Link href="/products" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
+            <Link href="/products" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
           </div>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
             {BRANDS.map(b => (
@@ -172,12 +171,7 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto section-pad">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider" style={{
-              backgroundColor: 'rgba(229, 9, 20, 0.1)',
-              color: '#E50914'
-            }}>
-              Quality Promise
-            </span>
+            <span className="badge-primary mb-4">Quality Promise</span>
             <h2 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">
               What is Verified<br />Refurbished?
             </h2>
@@ -187,7 +181,7 @@ export default function HomePage() {
             <ul className="space-y-3">
               {QUALITY_POINTS.map(p => (
                 <li key={p} className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: 'rgba(229, 9, 20, 0.15)', color: '#E50914' }}>✓</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-primary/[0.15] text-primary">✓</span>
                   {p}
                 </li>
               ))}
@@ -203,7 +197,7 @@ export default function HomePage() {
               { icon: '🛡️', title: 'Free Warranty', desc: 'Every purchase comes with warranty coverage.' },
               { icon: '↩️', title: '30-Day Returns', desc: 'Not happy? Return within 30 days, no questions.' },
             ].map(c => (
-              <div key={c.title} className="bg-slate-950 rounded-2xl p-5 border border-gray-800">
+              <div key={c.title} className="bg-surface-950 rounded-2xl p-5 border border-gray-800">
                 <span className="text-3xl mb-3 block">{c.icon}</span>
                 <h3 className="font-bold text-white text-sm mb-1">{c.title}</h3>
                 <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
@@ -214,9 +208,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="section-pad" style={{
-        backgroundColor: '#0F0F10'
-      }}>
+      <section className="section-pad bg-surface-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-white">What Our Customers Say</h2>
@@ -224,15 +216,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {TESTIMONIALS.slice(0, 3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border card-hover-red" style={{
-                backgroundColor: '#1A1A1A',
-                borderColor: 'rgba(229, 9, 20, 0.3)'
-              }}>
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border border-primary/30 card-hover-red bg-surface-900">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
-                    backgroundColor: '#E50914',
-                    boxShadow: '0 0 6px rgba(229, 9, 20, 0.4)'
-                  }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 bg-primary shadow-glow-red">
                     {t.initials}
                   </div>
                   <div>
@@ -240,22 +226,16 @@ export default function HomePage() {
                     <p className="text-xs text-gray-400">Sold {t.device}</p>
                   </div>
                 </div>
-                <div className="text-sm mb-2" style={{ color: '#E50914' }}>★★★★★</div>
+                <div className="text-sm mb-2 text-primary">★★★★★</div>
                 <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5 max-w-2xl mx-auto">
             {TESTIMONIALS.slice(3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border card-hover-red" style={{
-                backgroundColor: '#1A1A1A',
-                borderColor: 'rgba(229, 9, 20, 0.3)'
-              }}>
+              <div key={t.name} className="rounded-2xl p-6 shadow-sm border border-primary/30 card-hover-red bg-surface-900">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{
-                    backgroundColor: '#E50914',
-                    boxShadow: '0 0 6px rgba(229, 9, 20, 0.4)'
-                  }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 bg-primary shadow-glow-red">
                     {t.initials}
                   </div>
                   <div>
@@ -263,7 +243,7 @@ export default function HomePage() {
                     <p className="text-xs text-gray-400">Sold {t.device}</p>
                   </div>
                 </div>
-                <div className="text-sm mb-2" style={{ color: '#E50914' }}>★★★★★</div>
+                <div className="text-sm mb-2 text-primary">★★★★★</div>
                 <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
               </div>
             ))}
@@ -274,9 +254,7 @@ export default function HomePage() {
       {/* ── Eco Impact ── */}
       <section className="max-w-7xl mx-auto section-pad">
         <div className="text-center mb-10">
-          <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider" style={{ backgroundColor: 'rgba(229, 9, 20, 0.12)', color: '#E50914' }}>
-            🌍 Environmental Impact
-          </span>
+          <span className="badge-primary mb-4">🌍 Environmental Impact</span>
           <h2 className="text-2xl font-bold text-gray-900">Used vs. Brand New</h2>
           <p className="text-gray-500 mt-2 text-sm max-w-xl mx-auto">
             Here's what you help prevent on average by choosing a refurbished smartphone over a brand new one.
@@ -284,7 +262,7 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ECO_STATS.map(e => (
-            <div key={e.label} className="bg-slate-950 border border-gray-800 rounded-2xl p-6 text-center card-hover">
+            <div key={e.label} className="bg-surface-950 border border-gray-800 rounded-2xl p-6 text-center card-hover">
               <span className="text-4xl mb-3 block">{e.icon}</span>
               <p className="text-2xl font-extrabold text-red-400 mb-1">{e.value}</p>
               <p className="font-bold text-white text-sm mb-2">{e.label}</p>
@@ -302,22 +280,20 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-gray-900">Our Blog</h2>
               <p className="text-sm text-gray-500 mt-1">Tips, news & tech insights</p>
             </div>
-            <Link href="/blog" className="text-sm font-semibold hover:underline" style={{ color: '#E50914' }}>View All →</Link>
+            <Link href="/blog" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {BLOGS.map(b => (
               <Link key={b.slug} href={`/blog/${b.slug}`}
                 className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all card-hover-red">
-                <div className="h-40 flex items-center justify-center text-5xl" style={{
-                  background: 'linear-gradient(135deg, rgba(229, 9, 20, 0.05), rgba(255, 45, 45, 0.05))'
-                }}>
+                <div className="h-40 flex items-center justify-center text-5xl bg-primary/[0.04]">
                   📰
                 </div>
                 <div className="p-5">
                   <p className="text-xs text-gray-400 mb-2">By Dream Gadgets · {b.date}</p>
                   <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{b.title}</h3>
                   <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{b.excerpt}</p>
-                  <span className="inline-block mt-3 text-xs font-semibold" style={{ color: '#E50914' }}>Read more →</span>
+                  <span className="inline-block mt-3 text-xs font-semibold text-primary">Read more →</span>
                 </div>
               </Link>
             ))}
@@ -327,9 +303,7 @@ export default function HomePage() {
 
       {/* ── Newsletter ── */}
       <section className="max-w-7xl mx-auto section-pad">
-        <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden" style={{
-          background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 55%, #0F0F10 100%)'
-        }}>
+        <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative">
@@ -340,8 +314,7 @@ export default function HomePage() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-slate-950 border border-gray-800 focus:outline-none focus:ring-2"
-                style={{ '--tw-ring-color': '#E50914' } as React.CSSProperties}
+                className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-surface-950 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <button type="submit" className="px-6 py-3 text-white font-bold text-sm rounded-xl btn-red whitespace-nowrap transition-all">
                 Subscribe
@@ -363,7 +336,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
             {['Sell Old Apple Mobile', 'Sell Old Samsung Mobile', 'Sell Old OnePlus Mobile', 'Sell Old Xiaomi Mobile', 'Sell Old Vivo Mobile'].map(l => (
-              <Link key={l} href="/sell" className="text-xs text-red-600 hover:underline border border-red-200 px-3 py-1.5 rounded-full bg-red-50">
+              <Link key={l} href="/sell" className="text-xs text-primary border border-primary/20 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 transition-colors">
                 {l}
               </Link>
             ))}
