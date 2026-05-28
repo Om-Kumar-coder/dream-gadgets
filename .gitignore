@@ -6,4 +6,30 @@ dist
 coverage
 *.env
 *.env.local
+*.env.production
 .DS_Store
+
+# Test artifacts
+test-results/
+playwright-report/
+temp_output.txt
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build artifacts
+.next/
+dist/
+.turbo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+*.DS_Store

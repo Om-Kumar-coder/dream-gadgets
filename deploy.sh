@@ -545,6 +545,20 @@ cmd_check() {
 # --------------------------------------------------------------------------
 # ENTRYPOINT
 # --------------------------------------------------------------------------
+cmd_clear_cache() {
+ require_root
+ require_app_dir
+ info "Clearing server caches..."
+ rm -rf "$APP_DIR/apps/web/.next"
+ rm -rf "$APP_DIR/apps/admin/.next"
+ rm -rf "$APP_DIR/apps/api/.next"
+ pm2 restart dream-gadgets-web dream-gadgets-admin dream-gadgets-api
+ info "Server caches cleared."
+}
+
+# --------------------------------------------------------------------------
+# ENTRYPOINT
+# --------------------------------------------------------------------------
 case "${1:-}" in
   install)  cmd_install  ;;
   update)   cmd_update   ;;
@@ -569,13 +583,4 @@ case "${1:-}" in
     ;;
 esac
 
-cmd_clear_cache() {
- require_root
- require_app_dir
- info "Clearing server caches..."
- rm -rf "$APP_DIR/apps/web/.next"
- rm -rf "$APP_DIR/apps/admin/.next"
- rm -rf "$APP_DIR/apps/api/.next"
- pm2 restart dream-gadgets-web dream-gadgets-admin dream-gadgets-api
- info "Server caches cleared."
-}
+

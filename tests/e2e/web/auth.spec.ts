@@ -38,8 +38,9 @@ test.describe('Web - Authentication Flows', () => {
     await page.click('button:has-text("Sign In")');
 
     // Should redirect away from login page
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 8000 });
-    await expect(page).not.toHaveURL(`${WEB_BASE}/login`);
+    await page.waitForTimeout(2000);
+    const currentUrl = page.url();
+    expect(currentUrl.includes('/login')).toBeFalsy();
 
     // Auth token should be stored in cookies
     const cookies = await context.cookies();
@@ -63,16 +64,9 @@ test.describe('Web - Authentication Flows', () => {
     await expect(page.locator('.error-message, [role="alert"]')).toBeVisible();
   });
 
-  test('should register new user successfully', async ({ page }) => {
-    test.skip(true, 'Registration now requires phone OTP verification flow - needs UI test update');
-
-    await page.click('a[href="/register"]');
-    await page.waitForURL(`${WEB_BASE}/register`);
-
-    // New registration flow: Step 1 - Phone OTP verification
-    await page.fill('input[placeholder="+91XXXXXXXXXX"]', '9999999999');
-    await page.click('button:has-text("Send OTP")');
-    // OTP is sent via SMS - cannot be automated without backend bypass
+  test.skip('Registration now requires phone OTP verification flow - needs UI test update', async ({ page }) => {
+    await page.goto(`${WEB_BASE}/register`);
+    await expect(page.locator('body')).toBeVisible();
   });
 
   test('should logout successfully', async ({ page, context }) => {
@@ -98,15 +92,12 @@ test.describe('Web - Authentication Flows', () => {
 
     await page.goto(`${WEB_BASE}/`);
 
-    // Try to find and click logout button/link
+    // Find and click logout button/link
     const logoutBtn = page.locator('button:has-text("Logout"), a:has-text("Logout"), [data-testid="logout"]');
-    if (await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await logoutBtn.click();
-      await page.waitForURL(`${WEB_BASE}/login`, { timeout: 5000 });
-    }
-    // If no visible logout button, the test is still valid — user may need to open menu first
-    // Just check that the page loaded without error
-    expect(await page.locator('body').isVisible()).toBeTruthy();
+    await expect(logoutBtn).toBeVisible({ timeout: 5000 });
+    await logoutBtn.click();
+    await page.waitForURL(`${WEB_BASE}/login`, { timeout: 5000 });
+    expect(page.url()).toContain('/login');
   });
 
   test('should persist session across page reload', async ({ page }) => {
@@ -114,16 +105,16 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your email or phone"]', 'pw_auth1@test.com');
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 8000 });
+    await page.waitForTimeout(3000);
+    expect(page.url().includes('/login')).toBeFalsy();
 
     // Reload page
     await page.reload();
+    await page.waitForTimeout(3000);
 
     // Should still be logged in (not redirected to login)
-    await expect(page).not.toHaveURL(`${WEB_BASE}/login`);
+    expect(page.url().includes('/login')).toBeFalsy();
   });
 
-  test('should handle password reset flow', async ({ page }) => {
-    test.skip(true, 'Forgot password page does not exist in current UI (returns 404)');
-  });
+  test.skip('Forgot password page does not exist in current UI (returns 404)', async () => {});
 });

@@ -106,7 +106,7 @@ test.describe('Web - Shopping & Checkout Flow', () => {
     // Checkout page should show order summary or payment section
     const bodyText = await page.textContent('body');
     const hasPaymentContent = bodyText.includes('payment') || bodyText.includes('total') || bodyText.includes('summary');
-    expect(hasPaymentContent || true).toBeTruthy();
+    expect(hasPaymentContent).toBeTruthy();
   });
 
   test('should view account page', async ({ page }) => {
