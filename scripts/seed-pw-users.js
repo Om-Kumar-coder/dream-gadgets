@@ -25,7 +25,7 @@ async function main() {
          VALUES ('${email}', '${phone}', '${hash}', '${first}', '${last}', '${role}', true)
          ON CONFLICT (phone) DO UPDATE SET
            email='${email}', password_hash='${hash}', role_id='${role}',
-           is_active=true, failed_login_attempts=0, locked_until=NULL;`);
+           is_active=true;`);
     console.log('Created: ' + email + ' / Test@12345');
   }
 
