@@ -5,7 +5,6 @@ const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
 
 test.describe('Web - Shopping & Checkout Flow', () => {
   let authToken: string;
-  let userId: string;
 
   test.beforeAll(async () => {
     // Login with pre-seeded shopper user via API

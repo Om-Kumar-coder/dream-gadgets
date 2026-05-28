@@ -78,10 +78,9 @@ test.describe('Web - Authentication Flows', () => {
     await page.click('button[type="submit"]');
     
     // Registration now requires OTP verification; accept either redirect or OTP prompt
-    await page.waitForTimeout(2000);
-    const currentUrl = page.url();
+    await page.waitForSelector('input[name="otp"], input[placeholder*="OTP"], .error-message, [role="alert"], [href*="login"], [href*="dashboard"]', { timeout: 5000 }).catch(() => {});
     const otpVisible = await page.locator('input[name="otp"], input[placeholder*="OTP"]').isVisible().catch(() => false);
-    expect(currentUrl.includes('/login') || currentUrl.includes('/dashboard') || currentUrl.includes('/account') || otpVisible).toBeTruthy();
+    expect(otpVisible || page.url().includes('/login') || page.url().includes('/dashboard') || page.url().includes('/account')).toBeTruthy();
   });
 
   test('should logout successfully', async ({ page, context }) => {
