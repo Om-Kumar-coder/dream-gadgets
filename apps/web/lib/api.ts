@@ -14,12 +14,14 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 — only for requests that had an auth token
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    // Skip auto-refresh if the original request had no auth header (e.g. login failures)
+    const hadAuthHeader = original.headers?.Authorization;
+    if (error.response?.status === 401 && !original._retry && hadAuthHeader) {
       original._retry = true;
       try {
         const refreshToken = localStorage.getItem('refresh_token');

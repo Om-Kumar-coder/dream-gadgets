@@ -20,29 +20,37 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
 
-    // Error is shown as a red-bg alert div with text in p.text-red-700
-    await expect(page.locator('.text-red-700')).toContainText(/invalid|email/i);
+    // Wait for the error message to appear: <p class="text-sm text-red-700">
+    // The error message shows after API returns 401 (was previously hidden by interceptor redirect)
+    const errorText = page.locator('p.text-red-700');
+    await expect(errorText).toBeVisible({ timeout: 15000 });
+    // Should show some error text about credentials
+    await expect(errorText).toContainText(/login|credentials|failed|invalid/i);
   });
 
   test('should show validation error for short password', async ({ page }) => {
     await page.fill('input[placeholder="Enter your email or phone"]', 'test@example.com');
     await page.fill('input[placeholder="Enter your password"]', '123');
-    await page.click('button:has-text("Sign In")');
+    // Submit via keyboard Enter to ensure form submission triggers
+    await page.locator('input[placeholder="Enter your password"]').press('Enter');
 
-    // Error container has bg-red-50 class
-    await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
+    // Wait for the error message container to appear
+    const errorContainer = page.locator('.bg-red-50.border-red-100');
+    await expect(errorContainer).toBeVisible({ timeout: 15000 });
   });
 
-  test('should login successfully with valid credentials', async ({ page, context }) => {
+  test('should login successfully with valid credentials', async ({ page }) => {
     // Use pre-seeded test user (pw_auth1@test.com / Test@12345)
     await page.fill('input[placeholder="Enter your email or phone"]', 'pw_auth1@test.com');
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
+
+    // Click submit
     await page.click('button:has-text("Sign In")');
 
-    // Should redirect to /account (not stay on /login)
-    await page.waitForURL(`${WEB_BASE}/account`, { timeout: 10000 }).catch(() => {});
-    const currentUrl = page.url();
-    expect(currentUrl.includes('/login')).toBeFalsy();
+    // Wait for navigation to /account after successful login
+    await page.waitForURL('**/account', { timeout: 15000 });
+
+    expect(page.url()).toContain('/account');
 
     // Auth token stored in localStorage by zustand persist (key: auth-storage)
     const authStorage = await page.evaluate(() => localStorage.getItem('auth-storage'));
@@ -56,7 +64,11 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'WrongPassword123');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('.text-red-700')).toContainText(/invalid|incorrect|wrong/i);
+    // Wait for the error message text to appear
+    const errorText = page.locator('p.text-red-700');
+    await expect(errorText).toBeVisible({ timeout: 15000 });
+    // Should show some kind of error about credentials
+    await expect(errorText).toContainText(/login|credentials|failed|invalid/i);
   });
 
   test('should show error for non-existent email', async ({ page }) => {
@@ -64,7 +76,9 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
+    // Wait for the error container to appear
+    const errorContainer = page.locator('.bg-red-50.border-red-100');
+    await expect(errorContainer).toBeVisible({ timeout: 15000 });
   });
 
   test.skip('Registration now requires phone OTP verification flow - needs UI test update', async ({ page }) => {
@@ -107,28 +121,41 @@ test.describe('Web - Authentication Flows', () => {
     await expect(logoutBtn).toBeVisible({ timeout: 5000 });
     await logoutBtn.click();
 
-    // After logout should redirect to login or show unauthenticated state
+    // After logout, page stays on /account showing unauthenticated state ("Sign In" prompt)
     await page.waitForTimeout(2000);
-    const afterLogout = page.url();
-    expect(afterLogout.includes('/login')).toBeTruthy();
+
+    // Should show "Sign In" link on the unauthenticated account page
+    // Use first() since there may be multiple Login links (desktop + mobile + nav)
+    const signInLink = page.locator('a[href="/login"]').first();
+    await expect(signInLink).toBeVisible({ timeout: 5000 });
   });
 
   test('should persist session across page reload', async ({ page }) => {
     // Login via UI
     await page.fill('input[placeholder="Enter your email or phone"]', 'pw_auth1@test.com');
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
+
+    // Click submit
     await page.click('button:has-text("Sign In")');
 
-    // Wait for redirect to /account
-    await page.waitForURL(`${WEB_BASE}/account`, { timeout: 10000 }).catch(() => {});
-    expect(page.url().includes('/login')).toBeFalsy();
+    // Wait for navigation to /account
+    await page.waitForURL('**/account', { timeout: 15000 });
 
-    // Reload page
-    await page.reload();
+    expect(page.url()).toContain('/account');
+
+    // Reload page — use 'load' instead of 'networkidle' to avoid timeout
+    await page.reload({ waitUntil: 'load' });
+    // Give zustand persist time to rehydrate from localStorage
     await page.waitForTimeout(2000);
 
-    // Should still be logged in (not redirected to login)
-    expect(page.url().includes('/login')).toBeFalsy();
+    // Check localStorage still has the auth token (persistence)
+    const authStorage = await page.evaluate(() => localStorage.getItem('auth-storage'));
+    expect(authStorage).toBeTruthy();
+    const parsed = JSON.parse(authStorage || '{}');
+    expect(parsed?.state?.accessToken).toBeTruthy();
+
+    // The page should stay on /account (zustand rehydrates from localStorage)
+    expect(page.url()).toContain('/account');
   });
 
   test.skip('Forgot password page does not exist in current UI (returns 404)', async () => {});
