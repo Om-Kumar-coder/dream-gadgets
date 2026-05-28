@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 const bcrypt = require('bcrypt');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const ENV = { PGPASSWORD: '?ESlq-)/e8z3LSgv' };
-const DB = ['psql', '-U', 'dg_user', '-d', 'dreamgadgets', '-h', 'localhost'];
 
 function sql(query) {
-  execSync([...DB, '-c', query].join(' '), { env: ENV, stdio: 'inherit' });
+  const result = spawnSync('psql', ['-U', 'dg_user', '-d', 'dreamgadgets', '-h', 'localhost', '-c', query], { env: ENV, stdio: 'inherit' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error('psql exited with code ' + result.status);
 }
 
 async function main() {
@@ -25,10 +26,10 @@ async function main() {
          ON CONFLICT (phone) DO UPDATE SET
            email='${email}', password_hash='${hash}', role_id='${role}',
            is_active=true, failed_login_attempts=0, locked_until=NULL;`);
-    console.log(`  Created: ${email} / Test@12345`);
+    console.log('Created: ' + email + ' / Test@12345');
   }
 
-  console.log('Done! Test users seeded successfully.');
+  console.log('Done!');
 }
 
 main().catch(console.error);
