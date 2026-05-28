@@ -32,22 +32,8 @@ test.describe('Web - Authentication Flows', () => {
   });
 
   test('should login successfully with valid credentials', async ({ page, context }) => {
-    // Create test user via API
-    const registerRes = await fetch(`${API_BASE}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: `user_${Date.now()}@test.com`,
-        password: 'Test@12345',
-        phone: '9999999999',
-        firstName: 'Test',
-        lastName: 'User'
-      })
-    });
-    const user = await registerRes.json();
-    
-    // Login via UI
-    await page.fill('input[name="email"]', user.data.email);
+    // Use pre-seeded test user
+    await page.fill('input[name="email"]', 'pw_auth1@test.com');
     await page.fill('input[name="password"]', 'Test@12345');
     await page.click('button[type="submit"]');
     
@@ -58,7 +44,7 @@ test.describe('Web - Authentication Flows', () => {
     // Auth token should be stored in localStorage/cookies
     const cookies = await context.cookies();
     const hasAuthCookie = cookies.some(c => c.name.toLowerCase().includes('auth') || c.name.toLowerCase().includes('token'));
-    expect(hasAuthCookie || localStorage).toBeTruthy();
+    expect(hasAuthCookie).toBeTruthy();
   });
 
   test('should show error for wrong password', async ({ page }) => {
@@ -91,56 +77,49 @@ test.describe('Web - Authentication Flows', () => {
     
     await page.click('button[type="submit"]');
     
-    // Should redirect to login or dashboard
-    await page.waitForURL(`${WEB_BASE}/*`, { timeout: 5000 });
-    await expect(page).toHaveURL(/\/login|\/dashboard|\/account/i);
+    // Registration now requires OTP verification; accept either redirect or OTP prompt
+    await page.waitForTimeout(2000);
+    const currentUrl = page.url();
+    const otpVisible = await page.locator('input[name="otp"], input[placeholder*="OTP"]').isVisible().catch(() => false);
+    expect(currentUrl.includes('/login') || currentUrl.includes('/dashboard') || currentUrl.includes('/account') || otpVisible).toBeTruthy();
   });
 
   test('should logout successfully', async ({ page, context }) => {
-    // Login first
-    const registerRes = await fetch(`${API_BASE}/api/v1/auth/register`, {
+    // Login via API using pre-seeded user
+    const loginRes = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: `user_${Date.now()}@test.com`,
-        password: 'Test@12345',
-        phone: '9999999999',
-        firstName: 'Test',
-        lastName: 'User'
+        identifier: 'pw_auth2@test.com',
+        password: 'Test@12345'
       })
     });
-    const user = await registerRes.json();
+    const loginData = await loginRes.json();
     
-    await page.fill('input[name="email"]', user.data.email);
-    await page.fill('input[name="password"]', 'Test@12345');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(`${WEB_BASE}/*`, { timeout: 5000 });
+    // Set auth token as cookie
+    if (loginData.data?.accessToken) {
+      await context.addCookies([{
+        name: 'authToken',
+        value: loginData.data.accessToken,
+        url: WEB_BASE
+      }]);
+    }
+    
+    await page.goto(`${WEB_BASE}/`);
+    await page.waitForTimeout(1000);
     
     // Logout
     await page.click('button[aria-label="User menu"], a[href="/account"], [data-testid="user-menu"]');
     await page.click('button:has-text("Logout"), a:has-text("Logout"), [data-testid="logout"]');
     
     // Should redirect to login
-    await page.waitForURL(`${WEB_BASE}/login`);
+    await page.waitForURL(`${WEB_BASE}/login`, { timeout: 5000 });
     await expect(page).toHaveURL(`${WEB_BASE}/login`);
   });
 
-  test('should persist session across page reload', async ({ page, context }) => {
-    // Login
-    const registerRes = await fetch(`${API_BASE}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: `user_${Date.now()}@test.com`,
-        password: 'Test@12345',
-        phone: '9999999999',
-        firstName: 'Test',
-        lastName: 'User'
-      })
-    });
-    const user = await registerRes.json();
-    
-    await page.fill('input[name="email"]', user.data.email);
+  test('should persist session across page reload', async ({ page }) => {
+    // Login via UI
+    await page.fill('input[name="email"]', 'pw_auth1@test.com');
     await page.fill('input[name="password"]', 'Test@12345');
     await page.click('button[type="submit"]');
     await page.waitForURL(`${WEB_BASE}/*`, { timeout: 5000 });

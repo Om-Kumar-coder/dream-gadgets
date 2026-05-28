@@ -8,31 +8,28 @@ test.describe('Web - Shopping & Checkout Flow', () => {
   let userId: string;
 
   test.beforeAll(async () => {
-    // Create and login test user via API
-    const registerRes = await fetch(`${API_BASE}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: `shopper_${Date.now()}@test.com`,
-        password: 'Test@12345',
-        phone: '9999999999',
-        firstName: 'Shopper',
-        lastName: 'Test'
-      })
-    });
-    const registerData = await registerRes.json();
-    userId = registerData.data.id;
-
+    // Login with pre-seeded shopper user via API
     const loginRes = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        identifier: registerData.data.email,
+        identifier: 'pw_shopper@test.com',
         password: 'Test@12345'
       })
     });
     const loginData = await loginRes.json();
     authToken = loginData.data.accessToken;
+  });
+
+  test.beforeEach(async ({ page, context }) => {
+    // Set auth cookie before each test so user is logged in
+    if (authToken) {
+      await context.addCookies([{
+        name: 'authToken',
+        value: authToken,
+        url: WEB_BASE
+      }]);
+    }
   });
 
   test('should browse products and display list', async ({ page }) => {
