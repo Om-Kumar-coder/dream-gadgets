@@ -143,6 +143,12 @@ export class PublicController {
       const branches = await this.dataSource.query(`SELECT id FROM branches LIMIT 1`);
       branchId = branches?.[0]?.id;
     }
+    if (!branchId) {
+      throw new BadRequestException({
+        code: 'NO_BRANCH_CONFIGURED',
+        message: 'No default branch configured. Set DEFAULT_BRANCH_ID env or run database seeds.',
+      });
+    }
 
     // Use authenticated user's clientId if available, otherwise null (guest)
     const clientId = req.user?.sub ?? null;
