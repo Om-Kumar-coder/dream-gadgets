@@ -20,7 +20,8 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('.error-message, [role="alert"]')).toContainText(/invalid|email/i);
+    // Error is shown as a red-bg alert div with text in p.text-red-700
+    await expect(page.locator('.text-red-700')).toContainText(/invalid|email/i);
   });
 
   test('should show validation error for short password', async ({ page }) => {
@@ -28,7 +29,8 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', '123');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('.error-message, [role="alert"]')).toBeVisible();
+    // Error container has bg-red-50 class
+    await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
   });
 
   test('should login successfully with valid credentials', async ({ page, context }) => {
@@ -37,15 +39,16 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
 
-    // Should redirect away from login page
-    await page.waitForTimeout(2000);
+    // Should redirect to /account (not stay on /login)
+    await page.waitForURL(`${WEB_BASE}/account`, { timeout: 10000 }).catch(() => {});
     const currentUrl = page.url();
     expect(currentUrl.includes('/login')).toBeFalsy();
 
-    // Auth token should be stored in cookies
-    const cookies = await context.cookies();
-    const hasAuthCookie = cookies.some(c => c.name.toLowerCase().includes('auth') || c.name.toLowerCase().includes('token'));
-    expect(hasAuthCookie).toBeTruthy();
+    // Auth token stored in localStorage by zustand persist (key: auth-storage)
+    const authStorage = await page.evaluate(() => localStorage.getItem('auth-storage'));
+    expect(authStorage).toBeTruthy();
+    const parsed = JSON.parse(authStorage || '{}');
+    expect(parsed?.state?.accessToken).toBeTruthy();
   });
 
   test('should show error for wrong password', async ({ page }) => {
@@ -53,7 +56,7 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'WrongPassword123');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('.error-message, [role="alert"]')).toContainText(/invalid|incorrect|wrong/i);
+    await expect(page.locator('.text-red-700')).toContainText(/invalid|incorrect|wrong/i);
   });
 
   test('should show error for non-existent email', async ({ page }) => {
@@ -61,7 +64,7 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
 
-    await expect(page.locator('.error-message, [role="alert"]')).toBeVisible();
+    await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
   });
 
   test.skip('Registration now requires phone OTP verification flow - needs UI test update', async ({ page }) => {
@@ -80,24 +83,34 @@ test.describe('Web - Authentication Flows', () => {
       })
     });
     const loginData = await loginRes.json();
+    const accessToken = loginData.data?.accessToken;
 
-    // Set auth token as cookie and navigate
-    if (loginData.data?.accessToken) {
-      await context.addCookies([{
-        name: 'authToken',
-        value: loginData.data.accessToken,
-        url: WEB_BASE
-      }]);
-    }
+    // Set auth in localStorage (same format as zustand persist writes)
+    await page.goto(`${WEB_BASE}/login`);
+    await page.evaluate((token) => {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          accessToken: token,
+          refreshToken: token,
+          user: payload
+        }
+      }));
+    }, accessToken);
 
-    await page.goto(`${WEB_BASE}/`);
+    // Navigate to account page — store should rehydrate from localStorage on reload
+    await page.reload();
+    await page.goto(`${WEB_BASE}/account`);
 
-    // Find and click logout button/link
-    const logoutBtn = page.locator('button:has-text("Logout"), a:has-text("Logout"), [data-testid="logout"]');
+    // Find and click logout button (located on /account page)
+    const logoutBtn = page.locator('button:has-text("Logout")');
     await expect(logoutBtn).toBeVisible({ timeout: 5000 });
     await logoutBtn.click();
-    await page.waitForURL(`${WEB_BASE}/login`, { timeout: 5000 });
-    expect(page.url()).toContain('/login');
+
+    // After logout should redirect to login or show unauthenticated state
+    await page.waitForTimeout(2000);
+    const afterLogout = page.url();
+    expect(afterLogout.includes('/login')).toBeTruthy();
   });
 
   test('should persist session across page reload', async ({ page }) => {
@@ -105,12 +118,14 @@ test.describe('Web - Authentication Flows', () => {
     await page.fill('input[placeholder="Enter your email or phone"]', 'pw_auth1@test.com');
     await page.fill('input[placeholder="Enter your password"]', 'Test@12345');
     await page.click('button:has-text("Sign In")');
-    await page.waitForTimeout(3000);
+
+    // Wait for redirect to /account
+    await page.waitForURL(`${WEB_BASE}/account`, { timeout: 10000 }).catch(() => {});
     expect(page.url().includes('/login')).toBeFalsy();
 
     // Reload page
     await page.reload();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
 
     // Should still be logged in (not redirected to login)
     expect(page.url().includes('/login')).toBeFalsy();
