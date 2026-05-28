@@ -275,7 +275,7 @@
 
   /* ── Category Device Card ── */
   .device-category-card {
-    @apply relative overflow-hidden rounded-2xl bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group;
+    @apply relative overflow-hidden rounded-2xl bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer;
   }
   .device-category-card img {
     @apply transition-transform duration-500 group-hover:scale-110;

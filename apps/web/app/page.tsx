@@ -224,7 +224,7 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           {DEVICE_CATEGORIES.map(c => (
-            <Link key={c.name} href={c.href} className="device-category-card p-5 text-center">
+            <Link key={c.name} href={c.href} className="device-category-card group p-5 text-center">
               <img src={c.image} alt={c.name} className="w-16 h-16 mx-auto mb-3 object-contain" />
               <p className="font-semibold text-gray-900 text-sm">{c.name}</p>
               <p className="text-xs text-gray-400">{c.count} devices</p>
