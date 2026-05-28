@@ -137,8 +137,12 @@ export class PublicController {
       });
     }
 
-    // Use configured branch ID or default
-    const branchId = process.env.DEFAULT_BRANCH_ID ?? 'default-branch-uuid';
+    // Use configured branch ID or lookup the first active branch
+    let branchId = process.env.DEFAULT_BRANCH_ID;
+    if (!branchId) {
+      const branches = await this.dataSource.query(`SELECT id FROM branches LIMIT 1`);
+      branchId = branches?.[0]?.id;
+    }
 
     // Use authenticated user's clientId if available, otherwise null (guest)
     const clientId = req.user?.sub ?? null;
