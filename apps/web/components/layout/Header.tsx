@@ -7,7 +7,10 @@ import { useCartStore } from '../../store/cart.store';
 import { UserMenu } from './UserMenu';
 import { NotificationBell } from './NotificationBell';
 import { CategoryMegaMenu } from './CategoryMegaMenu';
+import { SearchSuggestions } from './SearchSuggestions';
 import { useWebAuthStore } from '../../store/auth.store';
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
 export function Header() {
   const count = useCartStore(s => s.items.reduce((sum, i) => sum + (i.quantity || 1), 0));
@@ -125,33 +128,12 @@ export function Header() {
             </button>
           </div>
 
-          {/* Search suggestions dropdown */}
+          {/* Search suggestions dropdown with debounced API */}
           {searchFocused && searchQuery.length >= 2 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-black/5 overflow-hidden animate-dropdown-fade-in">
-              <div className="p-2">
-                <p className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Suggestions
-                </p>
-                {['Apple iPhone 15', 'Samsung Galaxy S24', 'OnePlus 12', 'Nothing Phone'].filter(s =>
-                  s.toLowerCase().includes(searchQuery.toLowerCase())
-                ).map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => {
-                      router.push(`/products?search=${encodeURIComponent(s)}`);
-                      setSearchFocused(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                  >
-                    <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <SearchSuggestions query={searchQuery} onSelect={(q) => {
+              router.push(`/products?search=${encodeURIComponent(q)}`);
+              setSearchFocused(false);
+            }} />
           )}
         </form>
 

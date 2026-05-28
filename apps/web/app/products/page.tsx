@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ItemCondition } from '@dream-gadgets/shared-types';
 import { ProductCard } from '../../components/product/ProductCard';
+import { FilterSheetClient } from './FilterSheetClient';
 
 export const metadata: Metadata = {
   title: 'All Phones',
@@ -214,15 +215,16 @@ export default async function ProductsPage({ searchParams }: Props) {
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0">
-          {/* Mobile filter chips + Sort bar */}
+          {/* Mobile filter chips + Filter button + Sort bar */}
           <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:hidden">
-              <a
-                href="/products"
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${!activeCondition && !activeBrand ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
-              >
-                All
-              </a>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:hidden flex-1">
+              <FilterSheetClient
+                brands={BRANDS}
+                activeBrand={activeBrand}
+                activeCondition={activeCondition}
+                activeMinPrice={searchParams.minPrice}
+                activeMaxPrice={searchParams.maxPrice}
+              />
               {CONDITIONS.map(c => (
                 <a
                   key={c.value}

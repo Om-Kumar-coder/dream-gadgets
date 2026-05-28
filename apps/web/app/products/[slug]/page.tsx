@@ -7,7 +7,9 @@ import { ProductSpecs } from '../../../components/product/ProductSpecs';
 import { TrustElements } from '../../../components/product/TrustElements';
 import { AddToCartButton } from '../../../components/product/AddToCartButton';
 import { EMICalculator } from '../../../components/product/EMICalculator';
-import { ProductBuyPanel } from './ProductBuyPanel';
+import { ProductBuyPanel } from '../../../components/product/ProductBuyPanel';
+import { UrgencyBadge } from '../../../components/product/UrgencyBadge';
+import { PriceComparison } from '../../../components/product/PriceComparison';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -157,12 +159,15 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
               )}
             </div>
 
-            {/* Stock Status */}
+            {/* Stock Status + Urgency Badge */}
             <div className="flex items-center gap-2">
               <span className={`inline-block w-2 h-2 rounded-full ${product.status === 'available' ? 'bg-emerald-500' : 'bg-red-500'}`} />
               <span className={`text-sm font-medium ${product.status === 'available' ? 'text-emerald-600' : 'text-red-600'}`}>
                 {product.status === 'available' ? 'In Stock' : 'Out of Stock'}
               </span>
+              {product.status === 'available' && (
+                <UrgencyBadge stockLevel={product.stock_quantity <= 2 ? 'low' : 'high'} salesVelocity={(product.sales_count ?? 0) > 50 ? 'fast' : 'normal'} />
+              )}
               {product.imei && (
                 <span className="text-xs text-gray-400 ml-auto">SKU: {product.imei?.slice(0, 8)}*****</span>
               )}
@@ -216,6 +221,16 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
               </a>
             )}
 
+            {/* Price Comparison vs New */}
+            {originalPrice && (
+              <PriceComparison
+                refurbishedPrice={price}
+                newPrice={originalPrice}
+                brand={product.brand}
+                modelName={product.model}
+              />
+            )}
+
             <hr className="border-gray-100" />
 
             {/* Quick Specs */}
@@ -266,6 +281,42 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
             {/* EMI Calculator */}
             <EMICalculator price={price} />
 
+            {/* Delivery Timeline (only for in-stock items) */}
+            {product.status === 'available' && (
+            <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-100">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <span className="text-sm font-bold text-gray-900">Delivery Timeline</span>
+              </div>
+              <div className="timeline">
+                <div className="timeline-item timeline-item-active">
+                  <p className="text-sm font-semibold text-gray-800">Order Confirmed</p>
+                  <p className="text-xs text-gray-500">Instant</p>
+                </div>
+                <div className="timeline-item timeline-item-active">
+                  <p className="text-sm font-semibold text-gray-800">Quality Check</p>
+                  <p className="text-xs text-gray-500">Within 24 hours</p>
+                </div>
+                <div className="timeline-item">
+                  <p className="text-sm font-semibold text-gray-800">Shipped</p>
+                  <p className="text-xs text-gray-500">1–2 business days</p>
+                </div>
+                <div className="timeline-item">
+                  <p className="text-sm font-semibold text-gray-800">Delivered</p>
+                  <p className="text-xs text-gray-500">3–5 business days</p>
+                </div>
+              </div>
+              <p className="text-xs text-emerald-600 mt-3 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Free shipping on all orders
+              </p>
+            </div>
+            )}
+
             {/* Trust Elements (Desktop) */}
             <div className="hidden lg:block">
               <TrustElements
@@ -298,6 +349,29 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
               warrantyExpiry={product.warranty_expiry}
               condition={product.condition}
             />
+          </div>
+
+          {/* Why Choose Us */}
+          <div className="bg-surface-950 rounded-2xl p-6 border border-gray-800">
+            <h3 className="text-lg font-bold text-white mb-4">Why Choose Dream Gadgets?</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { icon: '🔬', title: '20-Point Inspection', desc: 'Every device is professionally tested and verified before listing.' },
+                { icon: '🛡️', title: '6-Month Warranty', desc: 'All purchases come with a comprehensive warranty for your peace of mind.' },
+                { icon: '💳', title: 'Easy EMIs', desc: 'Flexible payment options starting at ₹1,500/month. No cost EMI available.' },
+                { icon: '↩️', title: '7-Day Returns', desc: 'Not satisfied? Return within 7 days for a full refund. No questions asked.' },
+                { icon: '🔋', title: '90%+ Battery Health', desc: 'All devices have a minimum battery health of 90% or more.' },
+                { icon: '📦', title: 'Free Shipping', desc: 'Free doorstep delivery across India with secure packaging.' },
+              ].map(c => (
+                <div key={c.title} className="flex gap-3 items-start">
+                  <span className="text-xl shrink-0 mt-0.5">{c.icon}</span>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{c.title}</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Reviews */}

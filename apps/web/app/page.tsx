@@ -17,12 +17,28 @@ const BRANDS = [
   { name: 'Google', logo: '/logos/google.svg', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
 ];
 
+const DEVICE_CATEGORIES = [
+  { name: 'iPhone', image: '/logos/mobile.svg', count: '120+', href: '/products?brand=Apple' },
+  { name: 'Samsung Galaxy', image: '/logos/mobile.svg', count: '85+', href: '/products?brand=Samsung' },
+  { name: 'OnePlus', image: '/logos/mobile.svg', count: '45+', href: '/products?brand=OnePlus' },
+  { name: 'Laptops', image: '/logos/laptop.svg', count: '30+', href: '/products?category=laptop' },
+  { name: 'Tablets', image: '/logos/tablet.svg', count: '25+', href: '/products?category=tablet' },
+  { name: 'Smartwatches', image: '/logos/smartwatch.svg', count: '20+', href: '/products?category=smartwatch' },
+];
+
 const SERVICES = [
   { icon: '/logos/mobile.svg', label: 'Mobile', href: '/sell?type=mobile' },
   { icon: '/logos/laptop.svg', label: 'Laptop', href: '/sell?type=laptop' },
   { icon: '/logos/tablet.svg', label: 'Tablet', href: '/sell?type=tablet' },
   { icon: '/logos/smartwatch.svg', label: 'Smartwatch', href: '/sell?type=smartwatch' },
   { icon: '/logos/gaming.svg', label: 'Gaming Console', href: '/sell?type=gaming' },
+];
+
+const TRUST_BADGES = [
+  { icon: '🏆', label: '1M+ Customers', desc: 'Trusted by millions' },
+  { icon: '🚚', label: 'Free Pickup', desc: 'Doorstep service' },
+  { icon: '⚡', label: 'Instant Payment', desc: 'Within 24 hours' },
+  { icon: '🛡️', label: 'Data Secure', desc: '100% safe wiping' },
 ];
 
 const QUALITY_POINTS = [
@@ -33,8 +49,8 @@ const QUALITY_POINTS = [
 ];
 
 const TESTIMONIALS = [
-  { initials: 'RM', name: 'Rohit Mehra', city: 'Delhi', device: 'OnePlus Nord', review: 'I had a OnePlus phone and didn\'t want the hassle of selling it. Got an instant quote, they picked it up next day and I received payment right away.' },
-  { initials: 'NJ', name: 'Neha Joshi', city: 'Pune', device: 'Xiaomi Mi 11x', review: 'I was on a time crunch and they scheduled a pickup for the morning just how I wanted. The agent arrived, checked my phone, and I got cash on the spot.' },
+  { initials: 'RM', name: 'Rohit Mehra', city: 'Delhi', device: 'OnePlus Nord', review: "I didn't want the hassle of selling it. Got an instant quote, they picked it up next day and I received payment right away." },
+  { initials: 'NJ', name: 'Neha Joshi', city: 'Pune', device: 'Xiaomi Mi 11x', review: 'They scheduled a pickup for the morning just how I wanted. The agent arrived, checked my phone, and I got cash on the spot.' },
   { initials: 'AV', name: 'Amit Verma', city: 'Bengaluru', device: 'Apple iPhone 12', review: 'I was worried about data security. Dream Gadgets did a complete data wipe and all my past data was securely erased. Fast and secure process.' },
   { initials: 'RP', name: 'Rishikesh Patil', city: 'Mumbai', device: 'Apple iPhone 14', review: 'Great experience, no complaints. Selling my phone was fast and stress-free. Would definitely use again.' },
   { initials: 'AG', name: 'Abhi Gupta', city: 'Navi Mumbai', device: 'Samsung Note 20 Ultra', review: 'Quick and easy process. The payment was processed instantly, and the entire experience was smooth. Highly recommend!' },
@@ -44,63 +60,99 @@ const BLOGS = [
   {
     title: 'Samsung Galaxy M53 5G To Be Launched In India On April 22',
     date: '19th April 2022',
-    excerpt: 'Samsung keeps on adding to their series of smartphones each year. With multiple lines of series and aiming at low as well as high budget mobile phones, it has always been on the top of the list.',
+    excerpt: 'Samsung keeps on adding to their series of smartphones each year. With multiple lines of series and aiming at low as well as high budget mobile phones...',
     slug: 'samsung-galaxy-m53-5g-launch',
   },
   {
     title: 'Future Of Mobile Technology And Its Impact On Modern Family',
     date: '21st April 2022',
-    excerpt: 'We have come so far when it comes to mobile technology. The fast pace of growth in the technology sector is quite commendable. From heavy handsets to slim and portable smartphones.',
+    excerpt: 'We have come so far when it comes to mobile technology. The fast pace of growth in the technology sector is quite commendable...',
     slug: 'future-of-mobile-technology',
   },
   {
     title: 'How To Contribute Used Mobiles To Poor School Children',
     date: '18th March 2022',
-    excerpt: 'Smartphones have become a significant part of our life\'s functional values. However, it is unfortunate that not every individual who needs access to a smartphone has it.',
+    excerpt: 'Smartphones have become a significant part of our life\'s functional values. However, it is unfortunate that not every individual who needs access to a smartphone has it...',
     slug: 'contribute-used-mobiles-school-children',
   },
 ];
 
 const ECO_STATS = [
-  { icon: '♻️', value: '70–80%', label: 'Reduction in E-Waste', desc: 'Prevent e-waste generated from manufacturing and disposing of a new device.' },
-  { icon: '💧', value: '7,500L', label: 'Water Saved', desc: 'Save over 7,500 litres of water used during the production of a single smartphone.' },
-  { icon: '🌿', value: '60kg', label: 'CO₂ Avoided', desc: 'Avoid emitting up to 60kg of CO₂, significantly reducing environmental impact.' },
-  { icon: '💰', value: '50–65%', label: 'Cost Savings', desc: 'Make technology affordable by extending the life of devices and choosing smarter alternatives.' },
+  { icon: '♻️', value: '70–80%', label: 'Reduction in E-Waste', desc: 'Prevent e-waste generated from manufacturing a new device.' },
+  { icon: '💧', value: '7,500L', label: 'Water Saved', desc: 'Save water used during production of a single smartphone.' },
+  { icon: '🌿', value: '60kg', label: 'CO₂ Avoided', desc: 'Avoid emitting up to 60kg of CO₂ per device.' },
+  { icon: '💰', value: '50–65%', label: 'Cost Savings', desc: 'Save significantly by choosing refurbished.' },
 ];
 
 export default function HomePage() {
   return (
     <main className="overflow-x-hidden">
-
-      {/* ── Hero ── */}
+      {/* ── Hero Section (Cashify-style) ── */}
       <section className="relative text-white overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        {/* Red glow overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(circle at 30% 50%, hsl(var(--primary) / 0.25), transparent 60%)' }}
-        />
-        <div className="relative max-w-5xl mx-auto px-4 py-24 text-center">
-          <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-6 tracking-widest uppercase">
-            ✦ India's Most Transparent Mobile Platform
-          </span>
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-4 leading-tight tracking-tight">
-            Sell Your Old Phone<br />
-            <span className="text-primary">in Minutes!</span>
-          </h1>
-          <p className="text-lg md:text-xl text-white/80 mb-3 max-w-xl mx-auto">
-            Highest Price &nbsp;·&nbsp; Doorstep Pickups &nbsp;·&nbsp; Instant Payment
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center mt-8">
-            <Link href="/sell" className="px-8 py-3.5 rounded-full font-bold text-sm btn-red hover:shadow-lg transition-all">
-              Sell Now →
-            </Link>
-            <Link href="/products" className="px-8 py-3.5 bg-white/15 backdrop-blur-sm border border-white/30 text-white rounded-full font-semibold text-sm hover:bg-white/25 transition-colors">
-              Buy Phone
-            </Link>
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Left: Text */}
+            <div>
+              <span className="inline-block bg-white/10 backdrop-blur-sm text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-widest uppercase">
+                ✦ India&apos;s Most Trusted Platform
+              </span>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight tracking-tight">
+                Sell Your Old Phone<br />
+                <span className="text-primary">in 60 Seconds!</span>
+              </h1>
+              <p className="text-base md:text-lg text-white/70 mb-6 max-w-lg">
+                Get the highest price for your old phone. Free doorstep pickup, instant payment, 100% secure data wipe.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap gap-3 mb-8">
+                <Link href="/sell" className="px-8 py-3.5 rounded-full font-bold text-sm btn-red hover:shadow-lg transition-all sell-cta-glow">
+                  Sell Now →
+                </Link>
+                <Link href="/products" className="px-8 py-3.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full font-semibold text-sm hover:bg-white/20 transition-all">
+                  Browse Phones
+                </Link>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="flex flex-wrap gap-5">
+                {TRUST_BADGES.map(b => (
+                  <div key={b.label} className="flex items-center gap-2">
+                    <span className="text-lg">{b.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{b.label}</p>
+                      <p className="text-[10px] text-white/50">{b.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Quick sell / search */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
+              <p className="text-sm font-semibold text-white mb-4">📱 Sell your device</p>
+              <div className="space-y-3">
+                <select className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                  <option value="" className="text-gray-800">Select brand</option>
+                  {BRANDS.map(b => (
+                    <option key={b.name} value={b.name} className="text-gray-800">{b.name}</option>
+                  ))}
+                </select>
+                <select className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                  <option value="" className="text-gray-800">Select model</option>
+                </select>
+                <Link href="/sell" className="block w-full py-3 text-center bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all">
+                  Get Price →
+                </Link>
+                <p className="text-[10px] text-white/40 text-center">Get instant quote in seconds</p>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Wave separator */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 56L1440 56L1440 0C1200 46 960 56 720 36C480 16 240 0 0 28L0 56Z" fill="white" />
@@ -114,7 +166,7 @@ export default function HomePage() {
           {[
             { v: '10,000+', l: 'Phones Sold' },
             { v: '4.8 ★', l: 'Customer Rating' },
-            { v: '5+', l: 'City Branches' },
+            { v: '50+', l: 'Cities Covered' },
             { v: '100%', l: 'IMEI Verified' },
           ].map(s => (
             <div key={s.l}>
@@ -125,21 +177,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Selling Services ── */}
-      <section className="max-w-7xl mx-auto section-pad">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Selling Services</h2>
-            <p className="text-sm text-gray-500 mt-1">We buy all kinds of gadgets</p>
-          </div>
-          <Link href="/sell" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
+      {/* ── Quick Actions: Buy / Sell / Stores ── */}
+      <section className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link href="/sell"
+            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
+              💰
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-base">Sell Your Phone</p>
+              <p className="text-sm text-gray-500">Get the best price today</p>
+            </div>
+          </Link>
+          <Link href="/products"
+            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+            <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
+              📱
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-base">Buy Refurbished</p>
+              <p className="text-sm text-gray-500">Certified phones at great prices</p>
+            </div>
+          </Link>
+          <Link href="/stores"
+            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+            <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
+              📍
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-base">Find Stores</p>
+              <p className="text-sm text-gray-500">Visit us in your city</p>
+            </div>
+          </Link>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-5">
-          {SERVICES.map(s => (
-            <Link key={s.label} href={s.href}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
-              <img src={s.icon} alt={s.label} className="w-16 h-16 object-contain" />
-              <span className="text-sm font-semibold text-gray-700">{s.label}</span>
+      </section>
+
+      {/* ── Device Categories ── */}
+      <section className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Shop by Category</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Find your perfect device</p>
+          </div>
+          <Link href="/products" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {DEVICE_CATEGORIES.map(c => (
+            <Link key={c.name} href={c.href} className="device-category-card p-5 text-center">
+              <img src={c.image} alt={c.name} className="w-16 h-16 mx-auto mb-3 object-contain" />
+              <p className="font-semibold text-gray-900 text-sm">{c.name}</p>
+              <p className="text-xs text-gray-400">{c.count} devices</p>
             </Link>
           ))}
         </div>
@@ -150,7 +238,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Buy Phone by Brand</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Shop by Brand</h2>
               <p className="text-sm text-gray-500 mt-1">Certified used phones from top brands</p>
             </div>
             <Link href="/products" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
@@ -161,6 +249,53 @@ export default function HomePage() {
                 className={`flex flex-col items-center p-4 rounded-2xl bg-gradient-to-br ${b.color} border border-white hover:shadow-md hover:-translate-y-0.5 transition-all`}>
                 <img src={b.logo} alt={b.name} className="w-14 h-14 mb-1.5 object-contain" />
                 <span className={`text-xs font-bold ${b.text}`}>{b.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works ── */}
+      <section className="max-w-7xl mx-auto section-pad">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl font-bold text-gray-900">How It Works</h2>
+          <p className="text-gray-500 text-sm mt-2">Sell your phone in 4 simple steps</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { icon: '📋', title: 'Get Instant Quote', desc: 'Enter your device details and get the best price in seconds.', step: '01' },
+            { icon: '📅', title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.', step: '02' },
+            { icon: '🔍', title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.', step: '03' },
+            { icon: '💸', title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.', step: '04' },
+          ].map(s => (
+            <div key={s.step} className="how-it-works-step bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1">
+              <div className="how-it-works-icon bg-primary/10 text-3xl">
+                {s.icon}
+              </div>
+              <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
+              <h3 className="font-bold text-gray-900">{s.title}</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Selling Services ── */}
+      <section className="bg-gray-50 section-pad">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">We Buy All Gadgets</h2>
+              <p className="text-sm text-gray-500 mt-1">Sell any device, get instant cash</p>
+            </div>
+            <Link href="/sell" className="text-sm font-semibold text-primary hover:underline">Sell Now →</Link>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+            {SERVICES.map(s => (
+              <Link key={s.label} href={s.href}
+                className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
+                <img src={s.icon} alt={s.label} className="w-16 h-16 object-contain" />
+                <span className="text-sm font-semibold text-gray-700">{s.label}</span>
               </Link>
             ))}
           </div>
@@ -211,6 +346,7 @@ export default function HomePage() {
       <section className="section-pad bg-surface-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
+            <span className="badge-primary mb-3">★★★★★</span>
             <h2 className="text-2xl font-bold text-white">What Our Customers Say</h2>
             <p className="text-sm text-gray-400 mt-2">Real reviews from real people</p>
           </div>
@@ -248,6 +384,11 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <div className="text-center mt-8">
+            <Link href="/testimonials" className="text-sm text-primary hover:underline font-medium">
+              Read more reviews →
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -257,7 +398,7 @@ export default function HomePage() {
           <span className="badge-primary mb-4">🌍 Environmental Impact</span>
           <h2 className="text-2xl font-bold text-gray-900">Used vs. Brand New</h2>
           <p className="text-gray-500 mt-2 text-sm max-w-xl mx-auto">
-            Here's what you help prevent on average by choosing a refurbished smartphone over a brand new one.
+            Here&apos;s what you help prevent on average by choosing a refurbished smartphone over a brand new one.
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -343,7 +484,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
     </main>
   );
 }
