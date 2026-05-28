@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class AddNotificationReadColumns173000000015 implements MigrationInterface {
-  name = 'AddNotificationReadColumns173000000015';
+export class AddNotificationReadColumns1730000000015 implements MigrationInterface {
+  name = 'AddNotificationReadColumns1730000000015';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('notifications', [
