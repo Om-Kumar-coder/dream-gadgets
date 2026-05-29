@@ -25,6 +25,7 @@ import { PublicModule } from './modules/public/public.module';
 import { AccessoryModule } from './modules/inventory/accessory.module';
 import { BuybackModule } from './modules/buyback/buyback.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     AccessoryModule,
     BuybackModule,
     ReviewsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

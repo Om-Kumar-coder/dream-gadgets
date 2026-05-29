@@ -13,6 +13,9 @@ async function bootstrap() {
 
   const logger = new Logger('HTTP');
 
+  // Trust proxy — Nginx reverse proxy in production
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // Security
   app.use(helmet());
   app.use(compression());
@@ -21,7 +24,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Request logging middleware
+  // Request logging middleware (structured JSON in production)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -29,9 +32,25 @@ async function bootstrap() {
       const user = (req as any).user;
       const role = user?.role ?? 'anonymous';
       const userId = user?.sub ?? '-';
-      logger.log(
-        `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms | user=${userId} role=${role}`,
-      );
+
+      const logEntry = {
+        method: req.method,
+        url: req.originalUrl,
+        status: res.statusCode,
+        durationMs: duration,
+        userId,
+        role,
+        userAgent: req.headers['user-agent'] || '',
+        ip: req.ip,
+      };
+
+      if (process.env.NODE_ENV === 'production') {
+        logger.log(JSON.stringify(logEntry));
+      } else {
+        logger.log(
+          `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms | user=${userId} role=${role}`,
+        );
+      }
     });
     next();
   });
