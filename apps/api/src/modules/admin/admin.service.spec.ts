@@ -229,7 +229,15 @@ describe('AdminService', () => {
   describe('listUsers()', () => {
     it('should return all users', async () => {
       const users = [makeUser(), makeUser({ id: 'user-uuid-2', phone: '+919876543211' })];
-      userRepo.find.mockResolvedValue(users);
+      // listUsers() uses createQueryBuilder, not find
+      // We must use mockReturnValue because createQueryBuilder() creates a new QB each call
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn<() => Promise<User[]>>().mockResolvedValue(users),
+      };
+      userRepo.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.listUsers();
 
@@ -237,12 +245,19 @@ describe('AdminService', () => {
     });
 
     it('should filter by branchId when provided', async () => {
-      userRepo.find.mockResolvedValue([makeUser()]);
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn<() => Promise<User[]>>().mockResolvedValue([makeUser()]),
+      };
+      userRepo.createQueryBuilder.mockReturnValue(mockQb);
 
       await service.listUsers('branch-uuid-1');
 
-      expect(userRepo.find).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { branchId: 'branch-uuid-1' } }),
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        'user.branchId = :branchId',
+        { branchId: 'branch-uuid-1' },
       );
     });
   });
