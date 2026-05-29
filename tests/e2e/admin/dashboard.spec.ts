@@ -4,8 +4,8 @@ const ADMIN_BASE = process.env.ADMIN_BASE_URL || 'http://localhost:3002';
 const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
 
 test.describe('Admin - Dashboard & Management', () => {
-  test.beforeEach(async ({ page, context }) => {
-    // Login as admin via API and set cookies
+  test.beforeEach(async ({ page }) => {
+    // Login as admin via API
     const loginRes = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -15,16 +15,23 @@ test.describe('Admin - Dashboard & Management', () => {
       })
     });
     
+    // Admin app uses zustand persist with localStorage key 'admin-auth-storage'
+    // Set auth state in localStorage before navigating
     if (loginRes.ok) {
       const data = await loginRes.json();
-      await context.addCookies([{
-        name: 'authToken',
-        value: data.data.accessToken,
-        url: ADMIN_BASE
-      }]);
+      const { accessToken, refreshToken, user } = data.data;
+      
+      await page.goto(`${ADMIN_BASE}/login`);
+      await page.evaluate(({ accessToken, refreshToken, user }) => {
+        localStorage.setItem('admin-auth-storage', JSON.stringify({
+          state: { accessToken, refreshToken, user },
+          version: 0,
+        }));
+      }, { accessToken, refreshToken, user });
     }
 
-    await page.goto(`${ADMIN_BASE}/dashboard`);
+    await page.goto(`${ADMIN_BASE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(3000);
   });
 
   test('should display dashboard with KPIs', async ({ page }) => {

@@ -80,7 +80,7 @@ function unwrapResponse(json: any): { data: any[]; meta: any } {
 
 async function fetchOrders(page: number = 1, limit: number = 10, status?: string, search?: string): Promise<FetchResult> {
   try {
-    const token = localStorage.getItem('auth-token');
+    const token = localStorage.getItem('access_token');
     if (!token) return { orders: [], total: 0, totalPages: 0, currentPage: 1 };
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (status) params.set('status', status);
@@ -226,7 +226,7 @@ export default function OrdersPage() {
   const doFetch = (page: number, filter?: string, search?: string) => {
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('auth-token');
+    const token = localStorage.getItem('access_token');
     if (!token) {
       setError('Please log in to view your orders.');
       setLoading(false);
@@ -281,7 +281,7 @@ export default function OrdersPage() {
 
   // Auth check
   useEffect(() => {
-    const token = localStorage.getItem('auth-token');
+    const token = localStorage.getItem('access_token');
     if (!token) {
       setError('Please log in to view your orders.');
       setLoading(false);

@@ -6,6 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api';
 import { useWebAuthStore } from '../../store/auth.store';
+import {
+  IconUser,
+  IconPackage,
+  IconRefreshCw,
+  IconHeart,
+  IconSettings,
+  IconShield,
+  IconLogout,
+  IconWallet,
+  IconChevronDown,
+  IconCheckCircle,
+} from '../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -104,11 +116,9 @@ export function UserMenu() {
     }
   }, [dropdownOpen]);
 
-  // Handle logout
+  // Handle logout — store.logout() now syncs localStorage automatically
   const handleLogout = useCallback(() => {
     logout();
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
     setDropdownOpen(false);
     setToastVisible(true);
     setTimeout(() => {
@@ -132,9 +142,7 @@ export function UserMenu() {
           className="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
           aria-label="Login"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+          <IconUser size={20} />
         </Link>
       </>
     );
@@ -154,6 +162,7 @@ export function UserMenu() {
   return (
     <>
       <Toast message="Logged out successfully" visible={toastVisible} />
+
 
       <div ref={dropdownRef} className="relative">
         {/* Avatar Button */}
@@ -181,17 +190,12 @@ export function UserMenu() {
             </div>
           )}
 
-          {/* Chevron */}
-          <svg
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 hidden sm:block ${
+          <IconChevronDown
+            size={14}
+            className={`text-gray-400 transition-transform duration-200 hidden sm:block ${
               dropdownOpen ? 'rotate-180' : ''
             }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          />
         </button>
 
         {/* Dropdown Menu */}
@@ -220,7 +224,7 @@ export function UserMenu() {
                     ) : (
                       <>
                         <p className="text-sm font-semibold text-gray-900 truncate">
-                          {profile?.firstName ? displayName : 'Loading...'}
+                          {displayName}
                         </p>
                         <p className="text-xs text-gray-400 truncate">
                           {profile?.email || user.email}
@@ -237,9 +241,7 @@ export function UserMenu() {
                 <div className="px-4 py-2.5 border-b border-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M21 10V8a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2v-2h1a2 2 0 002-2v-2a2 2 0 000-4zM6 4h10v2H6V4zm10 16H6v-2h10v2zm3-4h-3v-4h3v4z"/>
-                      </svg>
+                      <IconWallet size={16} className="text-amber-500" />
                       <span className="text-sm font-medium text-gray-700">Wallet Balance</span>
                     </div>
                     <span className="text-sm font-extrabold text-gray-900">
@@ -250,11 +252,11 @@ export function UserMenu() {
               )}
 
               <div className="py-1.5" role="none">
-                <DropdownItem href="/account" icon="User" label="My Profile" onClick={() => setDropdownOpen(false)} />
-                <DropdownItem href="/orders" icon="Package" label="My Orders" onClick={() => setDropdownOpen(false)} />
-                <DropdownItem href="/buyback" icon="RefreshCw" label="Buyback Orders" onClick={() => setDropdownOpen(false)} disabled />
-                <DropdownItem href="/wishlist" icon="Heart" label="Wishlist" onClick={() => setDropdownOpen(false)} disabled />
-                <DropdownItem href="/account/edit" icon="Settings" label="Settings" onClick={() => setDropdownOpen(false)} />
+                <DropdownItem href="/account" icon={<IconUser size={16} />} label="My Profile" onClick={() => setDropdownOpen(false)} />
+                <DropdownItem href="/orders" icon={<IconPackage size={16} />} label="My Orders" onClick={() => setDropdownOpen(false)} />
+                <DropdownItem href="/buyback" icon={<IconRefreshCw size={16} />} label="Buyback Orders" onClick={() => setDropdownOpen(false)} disabled />
+                <DropdownItem href="/wishlist" icon={<IconHeart size={16} />} label="Wishlist" onClick={() => setDropdownOpen(false)} disabled />
+                <DropdownItem href="/account/edit" icon={<IconSettings size={16} />} label="Settings" onClick={() => setDropdownOpen(false)} />
               </div>
 
               {/* Divider + Admin + Logout */}
@@ -262,7 +264,7 @@ export function UserMenu() {
                 {isAdmin && (
                   <DropdownItem
                     href="/admin"
-                    icon="Shield"
+                    icon={<IconShield size={16} />}
                     label="Admin Panel"
                     onClick={() => setDropdownOpen(false)}
                     badge="Admin"
@@ -273,9 +275,7 @@ export function UserMenu() {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   role="menuitem"
                 >
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
+                  <IconLogout size={16} className="shrink-0" />
                   <span className="font-medium">Logout</span>
                 </button>
               </div>
@@ -287,42 +287,6 @@ export function UserMenu() {
   );
 }
 
-// ─── Dropdown Item ──────────────────────────────────────────────────────────────
-
-const ICON_MAP: Record<string, React.ReactNode> = {
-  User: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
-  Package: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-    </svg>
-  ),
-  RefreshCw: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  ),
-  Heart: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-    </svg>
-  ),
-  Settings: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
-  Shield: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  ),
-};
-
 function DropdownItem({
   href,
   icon,
@@ -332,7 +296,7 @@ function DropdownItem({
   disabled,
 }: {
   href: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   onClick: () => void;
   badge?: string;
@@ -341,7 +305,7 @@ function DropdownItem({
   if (disabled) {
     return (
       <div className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 cursor-not-allowed select-none">
-        <span className="shrink-0 text-gray-200">{ICON_MAP[icon]}</span>
+        <span className="shrink-0 text-gray-200">{icon}</span>
         <span>{label}</span>
         <span className="ml-auto text-[10px] text-gray-300 font-medium bg-gray-50 px-1.5 py-0.5 rounded-full">
           Coming soon
@@ -356,7 +320,7 @@ function DropdownItem({
       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
       role="menuitem"
     >
-      <span className="shrink-0 text-gray-400">{ICON_MAP[icon]}</span>
+      <span className="shrink-0 text-gray-400">{icon}</span>
       <span className="font-medium">{label}</span>
       {badge && (
         <span className="ml-auto text-[10px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded-full">

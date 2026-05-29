@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
+import { IconSmartphone, IconHeadphones, IconTablet, IconLaptop, IconWallet, IconSearch } from '@/components/icons';
 
 const CATEGORIES = [
   {
     name: 'Phones',
     href: '/products',
-    icon: '📱',
+    icon: IconSmartphone,
     brands: [
       { name: 'Apple iPhone', href: '/products?brand=Apple' },
       { name: 'Samsung Galaxy', href: '/products?brand=Samsung' },
@@ -22,25 +23,25 @@ const CATEGORIES = [
   {
     name: 'Accessories',
     href: '/products?category=accessories',
-    icon: '🎧',
+    icon: IconHeadphones,
     items: ['Cases & Covers', 'Screen Protectors', 'Chargers', 'Cables', 'Power Banks', 'Headphones', 'Smartwatches'],
   },
   {
     name: 'Tablets',
     href: '/products?category=tablets',
-    icon: '📟',
+    icon: IconTablet,
     items: ['iPad', 'Samsung Tab', 'Lenovo', 'Xiaomi Pad'],
   },
   {
     name: 'Laptops',
     href: '/products?category=laptops',
-    icon: '💻',
+    icon: IconLaptop,
     items: ['MacBook', 'Windows', 'Chromebook'],
   },
   {
     name: 'Sell',
     href: '/sell',
-    icon: '💰',
+    icon: IconWallet,
     sublinks: [
       { label: 'Sell Phone', href: '/sell?type=mobile' },
       { label: 'Sell Tablet', href: '/sell?type=tablet' },
@@ -128,7 +129,7 @@ export function CategoryMegaMenu() {
                         }
                       `}
                     >
-                      <span className="text-lg">{cat.icon}</span>
+                      <cat.icon size={18} />
                       <span>{cat.name}</span>
                       <svg className="w-3.5 h-3.5 ml-auto text-gray-300 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -141,7 +142,7 @@ export function CategoryMegaMenu() {
                     onClick={() => { setMobileOpen(false); setActiveCategory(null); }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-primary font-semibold hover:bg-primary/5 transition-colors mt-1"
                   >
-                    <span>🔍</span>
+                    <IconSearch size={18} />
                     <span>View All Products</span>
                   </Link>
                 </div>

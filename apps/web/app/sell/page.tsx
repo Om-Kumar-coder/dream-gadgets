@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SellWizard } from '../../components/sell/SellWizard';
+import { IconFile, IconClock, IconSearch, IconTag, IconWallet, IconTruck, IconZap, IconShield, IconAward, IconPhone, IconStar, IconMapPin } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
@@ -8,19 +9,19 @@ export const metadata: Metadata = {
 };
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: '📋', title: 'Get Instant Quote', desc: 'Select your device and condition to get the best price instantly.' },
-  { step: '02', icon: '📅', title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.' },
-  { step: '03', icon: '🔍', title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.' },
-  { step: '04', icon: '💸', title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.' },
+  { step: '01', icon: <IconFile size={24} />, title: 'Get Instant Quote', desc: 'Select your device and condition to get the best price instantly.' },
+  { step: '02', icon: <IconClock size={24} />, title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.' },
+  { step: '03', icon: <IconSearch size={24} />, title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.' },
+  { step: '04', icon: <IconTag size={24} />, title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.' },
 ];
 
 const BENEFITS = [
-  { icon: '💰', title: 'Best Price Assured', desc: 'We offer the highest market price for your device, guaranteed.' },
-  { icon: '🚗', title: 'Free Doorstep Pickup', desc: 'Free pickup from your home or office anywhere in India.' },
-  { icon: '⚡', title: 'Instant Payment', desc: 'Get paid via bank transfer or UPI within minutes of inspection.' },
-  { icon: '🔒', title: 'Secure Data Wipe', desc: 'Complete data erasure before your device is processed.' },
-  { icon: '🏆', title: '1M+ Happy Customers', desc: 'Trusted by millions across India for selling their devices.' },
-  { icon: '📞', title: 'Dedicated Support', desc: 'Our team is available 7 days a week to assist you.' },
+  { icon: <IconWallet size={24} />, title: 'Best Price Assured', desc: 'We offer the highest market price for your device, guaranteed.' },
+  { icon: <IconTruck size={24} />, title: 'Free Doorstep Pickup', desc: 'Free pickup from your home or office anywhere in India.' },
+  { icon: <IconZap size={24} />, title: 'Instant Payment', desc: 'Get paid via bank transfer or UPI within minutes of inspection.' },
+  { icon: <IconShield size={24} />, title: 'Secure Data Wipe', desc: 'Complete data erasure before your device is processed.' },
+  { icon: <IconAward size={24} />, title: '1M+ Happy Customers', desc: 'Trusted by millions across India for selling their devices.' },
+  { icon: <IconPhone size={24} />, title: 'Dedicated Support', desc: 'Our team is available 7 days a week to assist you.' },
 ];
 
 export default function SellPage() {
@@ -42,9 +43,9 @@ export default function SellPage() {
           </h1>
           <p className="text-white/70 text-base mb-2">Highest price guaranteed · Free doorstep pickup · Instant payment</p>
           <div className="flex items-center justify-center gap-6 text-xs text-white/50 mt-4">
-            <span>⭐ 4.8 Rating</span>
-            <span>🏆 1M+ Customers</span>
-            <span>📍 Pan India</span>
+            <span className="flex items-center gap-1.5"><IconStar size={14} /> 4.8 Rating</span>
+            <span className="flex items-center gap-1.5"><IconAward size={14} /> 1M+ Customers</span>
+            <span className="flex items-center gap-1.5"><IconMapPin size={14} /> Pan India</span>
           </div>
         </div>
       </section>

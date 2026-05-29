@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useRef, useEffect, useMemo } from 'react';
+
 interface BrandModelSelectorProps {
   brand: string;
   modelName: string;
@@ -8,117 +10,252 @@ interface BrandModelSelectorProps {
 }
 
 const DEVICE_TYPES = [
-  { value: 'mobile', label: '📱 Mobile Phone' },
-  { value: 'laptop', label: '💻 Laptop' },
-  { value: 'tablet', label: '📟 Tablet' },
-  { value: 'smartwatch', label: '⌚ Smartwatch' },
-  { value: 'gaming', label: '🎮 Console' },
+  { value: 'mobile', label: 'Mobile Phone' },
+  { value: 'laptop', label: 'Laptop' },
+  { value: 'tablet', label: 'Tablet' },
+  { value: 'smartwatch', label: 'Smartwatch' },
+  { value: 'gaming', label: 'Console' },
 ];
 
-const BRANDS = [
-  'Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme',
-  'Vivo', 'Oppo', 'Motorola', 'Google', 'Nokia',
-  'Nothing', 'Asus', 'LG', 'Sony', 'Huawei',
-];
-
-const POPULAR_MODELS: Record<string, string[]> = {
-  Apple: ['iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 16', 'iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15', 'iPhone 14 Pro Max', 'iPhone 14', 'iPhone 13', 'iPhone 12'],
-  Samsung: ['Galaxy S25 Ultra', 'Galaxy S25+', 'Galaxy S25', 'Galaxy S24 Ultra', 'Galaxy S24', 'Galaxy S23 Ultra', 'Galaxy S23', 'Galaxy Z Fold 6', 'Galaxy Z Flip 6', 'Galaxy A55'],
-  OnePlus: ['OnePlus 13', 'OnePlus 12', 'OnePlus 11', 'OnePlus Nord 4', 'OnePlus Nord CE 4'],
-  Xiaomi: ['Xiaomi 14 Pro', 'Xiaomi 13 Pro', 'Redmi Note 13 Pro', 'Redmi Note 12', 'Mi 11X'],
-  Realme: ['Realme 12 Pro+', 'Realme 11 Pro', 'Realme GT 6', 'Realme Narzo 60'],
-  Vivo: ['Vivo X100 Pro', 'Vivo V30', 'Vivo T3', 'Vivo Y100'],
-  Oppo: ['Oppo Find X7', 'Oppo Reno 11 Pro', 'Oppo F25'],
-  Google: ['Pixel 9 Pro', 'Pixel 9', 'Pixel 8 Pro', 'Pixel 8', 'Pixel 7a'],
+const DEVICE_TYPE_ICONS: Record<string, string> = {
+  mobile: '📱',
+  laptop: '💻',
+  tablet: '📟',
+  smartwatch: '⌚',
+  gaming: '🎮',
 };
 
+const ALL_DEVICES = [
+  { brand: 'Apple', model: 'iPhone 16 Pro Max', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 16 Pro', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 16', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 15 Pro Max', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 15 Pro', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 15', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 14 Pro Max', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 14', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 13', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'iPhone 12', deviceType: 'mobile' },
+  { brand: 'Apple', model: 'MacBook Air M3', deviceType: 'laptop' },
+  { brand: 'Apple', model: 'MacBook Pro', deviceType: 'laptop' },
+  { brand: 'Apple', model: 'iPad Pro', deviceType: 'tablet' },
+  { brand: 'Apple', model: 'iPad Air', deviceType: 'tablet' },
+  { brand: 'Apple', model: 'Apple Watch Ultra', deviceType: 'smartwatch' },
+  { brand: 'Apple', model: 'Apple Watch Series 9', deviceType: 'smartwatch' },
+  { brand: 'Samsung', model: 'Galaxy S25 Ultra', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S25+', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S25', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S24 Ultra', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S24', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S23 Ultra', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy S23', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy Z Fold 6', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy Z Flip 6', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy A55', deviceType: 'mobile' },
+  { brand: 'Samsung', model: 'Galaxy Tab S9', deviceType: 'tablet' },
+  { brand: 'Samsung', model: 'Galaxy Tab A9', deviceType: 'tablet' },
+  { brand: 'Samsung', model: 'Galaxy Watch 6', deviceType: 'smartwatch' },
+  { brand: 'OnePlus', model: 'OnePlus 13', deviceType: 'mobile' },
+  { brand: 'OnePlus', model: 'OnePlus 12', deviceType: 'mobile' },
+  { brand: 'OnePlus', model: 'OnePlus 11', deviceType: 'mobile' },
+  { brand: 'OnePlus', model: 'OnePlus Nord 4', deviceType: 'mobile' },
+  { brand: 'OnePlus', model: 'OnePlus Nord CE 4', deviceType: 'mobile' },
+  { brand: 'Xiaomi', model: 'Xiaomi 14 Pro', deviceType: 'mobile' },
+  { brand: 'Xiaomi', model: 'Xiaomi 13 Pro', deviceType: 'mobile' },
+  { brand: 'Xiaomi', model: 'Redmi Note 13 Pro', deviceType: 'mobile' },
+  { brand: 'Xiaomi', model: 'Xiaomi Pad 6', deviceType: 'tablet' },
+  { brand: 'Google', model: 'Pixel 9 Pro', deviceType: 'mobile' },
+  { brand: 'Google', model: 'Pixel 9', deviceType: 'mobile' },
+  { brand: 'Google', model: 'Pixel 8 Pro', deviceType: 'mobile' },
+  { brand: 'Google', model: 'Pixel 8', deviceType: 'mobile' },
+  { brand: 'OnePlus', model: 'OnePlus Watch 2', deviceType: 'smartwatch' },
+  { brand: 'Sony', model: 'PS5', deviceType: 'gaming' },
+  { brand: 'Microsoft', model: 'Xbox Series X', deviceType: 'gaming' },
+  { brand: 'Nintendo', model: 'Switch OLED', deviceType: 'gaming' },
+  { brand: 'Dell', model: 'XPS 15', deviceType: 'laptop' },
+  { brand: 'Dell', model: 'Inspiron 16', deviceType: 'laptop' },
+  { brand: 'HP', model: 'Spectre x360', deviceType: 'laptop' },
+  { brand: 'HP', model: 'Pavilion 15', deviceType: 'laptop' },
+  { brand: 'Lenovo', model: 'ThinkPad X1', deviceType: 'laptop' },
+  { brand: 'Lenovo', model: 'IdeaPad Slim 5', deviceType: 'laptop' },
+  { brand: 'Asus', model: 'ROG Zephyrus G14', deviceType: 'laptop' },
+  { brand: 'Asus', model: 'Vivobook 15', deviceType: 'laptop' },
+  { brand: 'Realme', model: 'Realme 12 Pro+', deviceType: 'mobile' },
+  { brand: 'Realme', model: 'Realme 11 Pro', deviceType: 'mobile' },
+  { brand: 'Vivo', model: 'Vivo X100 Pro', deviceType: 'mobile' },
+  { brand: 'Vivo', model: 'Vivo V30', deviceType: 'mobile' },
+  { brand: 'Oppo', model: 'Oppo Find X7', deviceType: 'mobile' },
+  { brand: 'Oppo', model: 'Oppo Reno 11 Pro', deviceType: 'mobile' },
+  { brand: 'Nothing', model: 'Phone 2', deviceType: 'mobile' },
+  { brand: 'Nothing', model: 'Phone 2a', deviceType: 'mobile' },
+];
+
 export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: BrandModelSelectorProps) {
-  const models = brand ? POPULAR_MODELS[brand] || [] : [];
+  const [searchValue, setSearchValue] = useState(brand && modelName ? `${brand} ${modelName}` : '');
+  const [isFocused, setIsFocused] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Update search value when brand/model changes externally
+  useEffect(() => {
+    if (brand && modelName) {
+      setSearchValue(`${brand} ${modelName}`);
+    }
+  }, [brand, modelName]);
+
+  const filtered = useMemo(() => {
+    if (!searchValue.trim()) return ALL_DEVICES.slice(0, 8);
+    const q = searchValue.toLowerCase();
+    return ALL_DEVICES.filter(
+      d =>
+        d.brand.toLowerCase().includes(q) ||
+        d.model.toLowerCase().includes(q) ||
+        `${d.brand} ${d.model}`.toLowerCase().includes(q)
+    ).slice(0, 12);
+  }, [searchValue]);
+
+  const handleSelect = (item: typeof ALL_DEVICES[0]) => {
+    onUpdate({ brand: item.brand, modelName: item.model, deviceType: item.deviceType });
+    setSearchValue(`${item.brand} ${item.model}`);
+    setIsFocused(false);
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">What do you want to sell?</h3>
-        <p className="text-sm text-gray-500">Select the type of device</p>
+        <h3 className="text-lg font-bold text-gray-900 mb-1">What device are you selling?</h3>
+        <p className="text-sm text-gray-500">Search for your device below</p>
       </div>
 
-      {/* Device type cards */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        {DEVICE_TYPES.map(dt => (
-          <button
-            key={dt.value}
-            onClick={() => onUpdate({ deviceType: dt.value })}
-            className={`p-3 rounded-xl text-center transition-all text-sm ${
-              deviceType === dt.value
-                ? 'bg-primary/10 border-2 border-primary text-primary font-semibold'
-                : 'bg-gray-50 border-2 border-transparent text-gray-600 hover:bg-gray-100'
-            }`}
+      {/* Smart Search Input */}
+      <div ref={wrapperRef} className="relative">
+        <div className="relative">
+          <svg
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
-            {dt.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Brand selection */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-3">Select Brand</label>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {BRANDS.map(b => (
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            value={searchValue}
+            onChange={e => {
+              setSearchValue(e.target.value);
+              if (!e.target.value) {
+                onUpdate({ brand: '', modelName: '' });
+              }
+            }}
+            onFocus={() => setIsFocused(true)}
+            placeholder="Enter device name (e.g. iPhone 13, HP Laptop…)"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+          />
+          {searchValue && (
             <button
-              key={b}
-              onClick={() => onUpdate({ brand: b, modelName: '' })}
-              className={`p-2.5 rounded-xl text-center text-sm font-medium transition-all ${
-                brand === b
-                  ? 'bg-primary text-white shadow-md shadow-primary/30'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+              onClick={() => { setSearchValue(''); onUpdate({ brand: '', modelName: '' }); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Suggestions dropdown */}
+        {isFocused && filtered.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-black/5 overflow-hidden z-50 animate-dropdown-fade-in max-h-80 overflow-y-auto">
+            {filtered.map((item, i) => (
+              <button
+                key={`${item.brand}-${item.model}-${i}`}
+                type="button"
+                onClick={() => handleSelect(item)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+              >
+                <span className="text-lg shrink-0">{DEVICE_TYPE_ICONS[item.deviceType] || '📱'}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium">{item.brand} </span>
+                  <span>{item.model}</span>
+                </div>
+                <span className="text-xs text-gray-400 capitalize shrink-0">{item.deviceType}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Quick device type filter chips */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {DEVICE_TYPES.map(dt => (
+            <button
+              key={dt.value}
+              type="button"
+              onClick={() => {
+                onUpdate({ deviceType: dt.value });
+                setSearchValue('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                deviceType === dt.value && !brand
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100'
               }`}
             >
-              {b}
+              <span>{DEVICE_TYPE_ICONS[dt.value]}</span>
+              {dt.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Model selection */}
-      {brand && (
-        <div className="animate-fade-in-up">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">Select Model</label>
-          {models.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-              {models.map(m => (
-                <button
-                  key={m}
-                  onClick={() => onUpdate({ modelName: m })}
-                  className={`p-2.5 rounded-xl text-center text-sm transition-all ${
-                    modelName === m
-                      ? 'bg-primary/10 border-2 border-primary text-primary font-semibold'
-                      : 'bg-gray-50 border-2 border-transparent text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          ) : (
+      {/* Selected device summary */}
+      {brand && modelName && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl animate-fade-in-up">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{DEVICE_TYPE_ICONS[deviceType] || '📱'}</span>
             <div>
-              <input
-                type="text"
-                value={modelName}
-                onChange={e => onUpdate({ modelName: e.target.value })}
-                placeholder={`Enter ${brand} model name...`}
-                className="input-field"
-              />
-              <p className="text-xs text-gray-400 mt-1">e.g. iPhone 13, Galaxy S24</p>
+              <p className="text-sm font-semibold text-gray-900">{brand} {modelName}</p>
+              <p className="text-xs text-gray-500 capitalize">{deviceType}</p>
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => { setSearchValue(''); onUpdate({ brand: '', modelName: '' }); }}
+              className="ml-auto text-gray-400 hover:text-red-500 p-1 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Selected summary */}
-      {brand && modelName && (
-        <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl text-sm animate-scale-in">
-          <span className="font-medium text-gray-700">Selected: </span>
-          <span className="text-primary font-semibold">{brand} {modelName}</span>
+      {/* Brands quick pick */}
+      {!searchValue && (
+        <div className="animate-fade-in-up">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Popular Brands</p>
+          <div className="flex flex-wrap gap-2">
+            {['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Google', 'Dell', 'HP', 'Sony'].map(b => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => {
+                  setSearchValue(b);
+                  setIsFocused(true);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-600 hover:border-primary/40 hover:text-primary transition-all"
+              >
+                {b}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

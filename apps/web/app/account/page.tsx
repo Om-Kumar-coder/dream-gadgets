@@ -6,6 +6,28 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '../../lib/api';
 import { useWebAuthStore } from '../../store/auth.store';
 import { CancelOrderButton } from '../../components/order/CancelOrderButton';
+import {
+  IconUser,
+  IconPackage,
+  IconSettings,
+  IconLogout,
+  IconMapPin,
+  IconArrowRight,
+  IconChevronRight,
+  IconSearch,
+  IconAlertCircle,
+  IconCheckCircle,
+  IconTruck,
+  IconCreditCard,
+  IconClock,
+  IconHeart,
+  IconMessageCircle,
+  IconStore,
+  IconShieldCheck,
+  IconAward,
+  IconRefreshCw,
+  IconPlus,
+} from '../../components/icons';
 
 type OrderStatus = string;
 type StatusTab = 'all' | 'active' | 'completed' | 'cancelled';
@@ -13,7 +35,6 @@ type StatusTab = 'all' | 'active' | 'completed' | 'cancelled';
 const ACTIVE_STATUSES = ['pending_payment', 'payment_confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery'];
 const COMPLETED_STATUSES = ['delivered', 'return_requested', 'returned'];
 const CANCELLED_STATUSES = ['cancelled'];
-
 const CANCELLABLE_STATUSES = ['pending_payment', 'payment_confirmed'];
 
 interface ProfileData {
@@ -94,10 +115,7 @@ function OrderCard({ order }: { order: OrderItem }) {
           </p>
           {order.shippingAddress?.city && (
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <IconMapPin size={12} className="text-gray-300" />
               {order.shippingAddress.city}, {order.shippingAddress.state}
             </p>
           )}
@@ -109,15 +127,22 @@ function OrderCard({ order }: { order: OrderItem }) {
           )}
         </div>
       </Link>
-      {cancellable && (
-        <div className="mt-3 pt-3 border-t border-gray-50">
+      <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-2">
+        {/* Track Order button for active orders */}
+        {(order.status === 'shipped' || order.status === 'out_for_delivery') && order.trackingNumber && (
+          <span className="flex items-center gap-1 text-xs font-medium text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-lg">
+            <IconTruck size={12} />
+            Track Order
+          </span>
+        )}
+        {cancellable && (
           <CancelOrderButton
             orderId={order.id}
             status={order.status}
             amount={order.totalAmount}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -131,6 +156,7 @@ export default function AccountPage() {
   const queryClient = useQueryClient();
   const { user, logout } = useWebAuthStore();
   const [tab, setTab] = useState<StatusTab>('all');
+  const [activeSection, setActiveSection] = useState<'overview' | 'orders' | 'addresses' | 'settings'>('overview');
 
   // Fetch profile + orders
   const profileQuery = useQuery({
@@ -163,7 +189,6 @@ export default function AccountPage() {
   const loading = profileQuery.isLoading || ordersQuery.isLoading;
   const error = profileQuery.error || ordersQuery.error;
 
-  // Filter orders by tab
   const filteredOrders = useMemo(() => {
     switch (tab) {
       case 'active': return allOrders.filter(o => ACTIVE_STATUSES.includes(o.status));
@@ -173,7 +198,6 @@ export default function AccountPage() {
     }
   }, [allOrders, tab]);
 
-  // Counts for tab badges
   const counts = useMemo(() => ({
     all: allOrders.length,
     active: allOrders.filter(o => ACTIVE_STATUSES.includes(o.status)).length,
@@ -181,14 +205,17 @@ export default function AccountPage() {
     cancelled: allOrders.filter(o => CANCELLED_STATUSES.includes(o.status)).length,
   }), [allOrders]);
 
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
   if (!user) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 mx-auto bg-red-50 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+            <IconUser size={40} className="text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">My Account</h1>
           <p className="text-gray-500 mb-6">Sign in to view your orders and manage your account.</p>
@@ -197,9 +224,7 @@ export default function AccountPage() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
           >
             Sign In
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
+            <IconArrowRight size={16} />
           </Link>
         </div>
       </div>
@@ -212,212 +237,361 @@ export default function AccountPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Account</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage your orders and profile</p>
+          <p className="text-sm text-gray-400 mt-0.5">Manage your profile, orders, and settings</p>
         </div>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="text-sm text-gray-400 hover:text-red-600 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+          <IconLogout size={16} />
           Logout
         </button>
       </div>
 
-      {/* ── Profile Card ── */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm mb-6">
-        {profileQuery.isLoading ? (
-          <div className="flex items-center gap-4">
-            <Skeleton className="w-14 h-14 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-3 w-32" />
-            </div>
-          </div>
-        ) : profile ? (
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">
-              {(profile.firstName?.[0] ?? 'U').toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-gray-900 truncate">
-                {profile.firstName} {profile.lastName}
-              </h2>
-              <p className="text-sm text-gray-400">{profile.email || profile.phone}</p>
-              <p className="text-xs text-gray-300 mt-0.5">
-                Member since {new Date(profile.memberSince).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/account/edit')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-[0.97]"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Edit Profile
-            </button>
-            {/* Quick Stats */}
-            <div className="hidden sm:flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-gray-900">{profile.stats.totalOrders}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Orders</p>
-              </div>
-              <div className="w-px h-8 bg-gray-100" />
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-gray-900">₹{Number(profile.stats.totalSpent).toLocaleString('en-IN')}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Spent</p>
-              </div>
-              <div className="w-px h-8 bg-gray-100" />
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-emerald-600">{profile.stats.deliveredCount}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Delivered</p>
-              </div>
-            </div>
-          </div>
-        ) : null}
+      {/* ── Section Navigation ── */}
+      <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        {[
+          { key: 'overview' as const, label: 'Overview', icon: <IconAward size={16} /> },
+          { key: 'orders' as const, label: 'Orders', icon: <IconPackage size={16} /> },
+          { key: 'addresses' as const, label: 'Addresses', icon: <IconMapPin size={16} /> },
+          { key: 'settings' as const, label: 'Settings', icon: <IconSettings size={16} /> },
+        ].map(s => (
+          <button
+            key={s.key}
+            onClick={() => setActiveSection(s.key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+              activeSection === s.key
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-gray-500 hover:bg-gray-100'
+            }`}
+          >
+            <span className={activeSection === s.key ? 'text-white' : 'text-gray-400'}>{s.icon}</span>
+            {s.label}
+          </button>
+        ))}
       </div>
 
-      {/* ── Error Banner ── */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">Could not load orders</p>
-            <p className="text-xs text-red-600 mt-0.5">Please try refreshing the page</p>
+      {/* ══════════════════ OVERVIEW ══════════════════ */}
+      {activeSection === 'overview' && (
+        <div className="space-y-6">
+          {/* ── Profile Card ── */}
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+            {profileQuery.isLoading ? (
+              <div className="flex items-center gap-4">
+                <Skeleton className="w-14 h-14 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </div>
+            ) : profile ? (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">
+                  {(profile.firstName?.[0] ?? 'U').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 truncate">
+                    {profile.firstName} {profile.lastName}
+                  </h2>
+                  <p className="text-sm text-gray-400">{profile.email || profile.phone}</p>
+                  <p className="text-xs text-gray-300 mt-0.5 flex items-center gap-1">
+                    <IconClock size={12} />
+                    Member since {new Date(profile.memberSince).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveSection('settings')}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-[0.97] border border-primary/20"
+                >
+                  <IconSettings size={14} />
+                  Edit Profile
+                </button>
+              </div>
+            ) : null}
           </div>
-          <button
-            onClick={() => { profileQuery.refetch(); ordersQuery.refetch(); }}
-            className="text-xs text-red-600 hover:text-red-800 font-medium shrink-0"
-          >
-            Retry
-          </button>
-        </div>
-      )}
 
-      {/* ── Orders Section ── */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        {/* Section Header */}
-        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-0">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Order History</h2>
-
-          {/* Status Tabs */}
-          <div className="flex gap-1 border-b border-gray-100 overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
-            {([
-              { key: 'all' as const, label: 'All', count: counts.all },
-              { key: 'active' as const, label: 'Active', count: counts.active },
-              { key: 'completed' as const, label: 'Completed', count: counts.completed },
-              { key: 'cancelled' as const, label: 'Cancelled', count: counts.cancelled },
-            ]).map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`relative pb-3 px-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                  tab === t.key
-                    ? 'text-primary'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                {t.label}
-                {t.count > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    tab === t.key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-400'
-                  }`}>
-                    {t.count}
-                  </span>
-                )}
-                {tab === t.key && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Orders List */}
-        <div className="p-5 sm:p-6">
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="border border-gray-50 rounded-xl p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-5 w-40" />
-                      <Skeleton className="h-3 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <div className="text-right space-y-2">
-                      <Skeleton className="h-5 w-20 ml-auto" />
-                      <Skeleton className="h-3 w-16 ml-auto" />
-                    </div>
+          {/* ── Stats Grid ── */}
+          {!profileQuery.isLoading && profile && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total Orders', value: profile.stats.totalOrders, icon: <IconPackage size={20} />, color: 'text-blue-600 bg-blue-50' },
+                { label: 'Total Spent', value: `₹${Number(profile.stats.totalSpent).toLocaleString('en-IN')}`, icon: <IconCreditCard size={20} />, color: 'text-emerald-600 bg-emerald-50' },
+                { label: 'Delivered', value: profile.stats.deliveredCount, icon: <IconCheckCircle size={20} />, color: 'text-green-600 bg-green-50' },
+                { label: 'Pending', value: profile.stats.pendingCount, icon: <IconClock size={20} />, color: 'text-amber-600 bg-amber-50' },
+              ].map(stat => (
+                <div key={stat.label} className="bg-white border border-gray-100 rounded-xl p-4">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${stat.color}`}>
+                    {stat.icon}
                   </div>
+                  <p className="text-lg font-extrabold text-gray-900">{stat.value}</p>
+                  <p className="text-xs text-gray-400">{stat.label}</p>
                 </div>
               ))}
             </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <h3 className="text-base font-semibold text-gray-900 mb-1">
-                {tab === 'all' ? 'No orders yet' : `No ${tab} orders`}
-              </h3>
-              <p className="text-sm text-gray-400 mb-6">
-                {tab === 'all'
-                  ? 'Start shopping to see your orders here.'
-                  : `You don't have any ${tab} orders at the moment.`
-                }
-              </p>
-              <Link
-                href="/products"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-              >
-                Browse Products
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Link>
+          )}
+
+          {/* ── Recent Orders ── */}
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
+              <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
+              <button onClick={() => setActiveSection('orders')} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                View All <IconChevronRight size={14} />
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredOrders.map(order => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                />
+            <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2].map(i => (
+                    <div key={i} className="border border-gray-50 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-5 w-40" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <div className="text-right space-y-2">
+                          <Skeleton className="h-5 w-20 ml-auto" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : allOrders.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                    <IconPackage size={28} className="text-gray-300" />
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">No orders yet</h3>
+                  <p className="text-sm text-gray-400 mb-4">Start shopping to see your orders here.</p>
+                  <Link
+                    href="/products"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                  >
+                    Browse Products
+                    <IconArrowRight size={14} />
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allOrders.slice(0, 3).map(order => (
+                    <OrderCard key={order.id} order={order} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Quick Links ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { href: '/products', label: 'Browse Products', icon: <IconSearch size={18} />, desc: 'Find your next device' },
+              { href: '/cart', label: 'View Cart', icon: <IconHeart size={18} />, desc: 'Items in your cart' },
+              { href: '/sell', label: 'Sell Device', icon: <IconPlus size={18} />, desc: 'Get instant quote' },
+              { href: '/contact', label: 'Support', icon: <IconMessageCircle size={18} />, desc: 'We are here to help' },
+            ].map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex flex-col items-start gap-1.5 p-4 bg-white border border-gray-100 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-200 active:scale-[0.98]"
+              >
+                <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center shrink-0 text-primary">
+                  {link.icon}
+                </div>
+                <span className="text-sm font-medium text-gray-900">{link.label}</span>
+                <span className="text-xs text-gray-400">{link.desc}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════ ORDERS ══════════════════ */}
+      {activeSection === 'orders' && (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          {/* Section Header */}
+          <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-0">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <IconPackage size={20} className="text-primary" />
+              Order History
+            </h2>
+
+            {/* Status Tabs */}
+            <div className="flex gap-1 border-b border-gray-100 overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
+              {([
+                { key: 'all' as const, label: 'All', count: counts.all },
+                { key: 'active' as const, label: 'Active', count: counts.active },
+                { key: 'completed' as const, label: 'Completed', count: counts.completed },
+                { key: 'cancelled' as const, label: 'Cancelled', count: counts.cancelled },
+              ]).map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`relative pb-3 px-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                    tab === t.key
+                      ? 'text-primary'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {t.label}
+                  {t.count > 0 && (
+                    <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      tab === t.key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {t.count}
+                    </span>
+                  )}
+                  {tab === t.key && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                  )}
+                </button>
               ))}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* ── Quick Links ── */}
-      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { href: '/products', label: 'Browse Products', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-          { href: '/cart', label: 'View Cart', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z' },
-          { href: '/contact', label: 'Contact Support', icon: 'M18.364 5.636a9 9 0 11-12.728 0 9 9 0 0112.728 0zm-4.95 3.536a2.5 2.5 0 11-3.536 0 2.5 2.5 0 013.536 0zM12 13c-1.5 0-3 .5-3 1.5V16h6v-1.5c0-1-1.5-1.5-3-1.5z' },
-          { href: '/faq', label: 'FAQ', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        ].map(link => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="flex items-center gap-2.5 p-3 sm:p-4 bg-white border border-gray-100 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
-              </svg>
+          {/* Orders List */}
+          <div className="p-5 sm:p-6">
+            {/* Error Banner */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                <IconAlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">Could not load orders</p>
+                  <p className="text-xs text-red-600 mt-0.5">Please try refreshing the page</p>
+                </div>
+                <button
+                  onClick={() => { profileQuery.refetch(); ordersQuery.refetch(); }}
+                  className="text-xs text-red-600 hover:text-red-800 font-medium shrink-0 flex items-center gap-1"
+                >
+                  <IconRefreshCw size={12} />
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="border border-gray-50 rounded-xl p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <div className="text-right space-y-2">
+                        <Skeleton className="h-5 w-20 ml-auto" />
+                        <Skeleton className="h-3 w-16 ml-auto" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <IconPackage size={32} className="text-gray-300" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">
+                  {tab === 'all' ? 'No orders yet' : `No ${tab} orders`}
+                </h3>
+                <p className="text-sm text-gray-400 mb-6">
+                  {tab === 'all'
+                    ? 'Start shopping to see your orders here.'
+                    : `You don't have any ${tab} orders at the moment.`
+                  }
+                </p>
+                <Link
+                  href="/products"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  Browse Products
+                  <IconArrowRight size={14} />
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredOrders.map(order => (
+                  <OrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════ ADDRESSES ══════════════════ */}
+      {activeSection === 'addresses' && (
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <IconMapPin size={20} className="text-primary" />
+            Saved Addresses
+          </h2>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <IconMapPin size={32} className="text-gray-300" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-gray-700">{link.label}</span>
-          </Link>
-        ))}
-      </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">No addresses saved</h3>
+            <p className="text-sm text-gray-400 mb-6">Add an address for faster checkout.</p>
+            <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all">
+              <IconPlus size={14} />
+              Add Address
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════ SETTINGS ══════════════════ */}
+      {activeSection === 'settings' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <IconSettings size={20} className="text-primary" />
+              Account Settings
+            </h2>
+            <div className="space-y-4">
+              {[
+                { label: 'Personal Information', desc: 'Update your name, email, and phone number', icon: <IconUser size={18} /> },
+                { label: 'Change Password', desc: 'Update your account password', icon: <IconShieldCheck size={18} /> },
+                { label: 'Notification Preferences', desc: 'Manage email and SMS notifications', icon: <IconMessageCircle size={18} /> },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center text-gray-500 shrink-0">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                    <p className="text-xs text-gray-400">{item.desc}</p>
+                  </div>
+                  <IconChevronRight size={16} className="text-gray-300 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { href: '/returns', label: 'Returns & Refunds', icon: <IconRefreshCw size={18} /> },
+              { href: '/orders', label: 'My Orders', icon: <IconPackage size={18} /> },
+              { href: '/faq', label: 'FAQ', icon: <IconMessageCircle size={18} /> },
+              { href: '/contact', label: 'Contact Support', icon: <IconMessageCircle size={18} /> },
+            ].map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-200 active:scale-[0.98]"
+              >
+                <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center shrink-0 text-primary">
+                  {link.icon}
+                </div>
+                <span className="text-sm font-medium text-gray-700">{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

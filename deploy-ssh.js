@@ -10,14 +10,20 @@ conn.on('ready', () => {
   console.log('=== SSH CONNECTED ===\n');
 
   const commands = [
-    `echo "--- PM2 Status ---" && pm2 list 2>&1 | head -15`,
+    `echo "--- Initial PM2 Status ---" && pm2 list 2>&1 | head -15`,
     `echo "--- Disk Usage ---" && df -h / 2>&1 | tail -2`,
     `echo "--- Memory ---" && free -m 2>&1 | head -3`,
+    `echo "--- Stashing local changes ---" && cd ${PROJECT_DIR} && git stash 2>&1`,
     `echo "--- Git Pull ---" && cd ${PROJECT_DIR} && git pull 2>&1`,
-    `echo "--- Docker Status ---" && cd ${PROJECT_DIR} && docker compose ps 2>&1 | head -15`,
-    `echo "--- Restart Services ---" && cd ${PROJECT_DIR} && docker compose restart 2>&1 | head -5`,
-    `echo "--- Services Status ---" && sleep 3 && docker compose ps 2>&1 | head -15`,
-    `echo "--- Final PM2 ---" && pm2 list 2>&1 | head -10`,
+    `echo "--- Installing dependencies ---" && cd ${PROJECT_DIR} && npm install 2>&1 | tail -5`,
+    `echo "--- Building all apps ---" && cd ${PROJECT_DIR} && npm run build 2>&1 | tail -10`,
+    `echo "--- Restarting PM2 ---" && cd ${PROJECT_DIR} && pm2 reload all 2>&1`,
+    `echo "--- Waiting for services to stabilize ---" && sleep 5`,
+    `echo "--- Health Check: API ---" && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health 2>/dev/null || echo "API not responding"`,
+    `echo "--- Health Check: Web ---" && curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 2>/dev/null || echo "Web not responding"`,
+    `echo "--- Health Check: Admin ---" && curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/admin/login 2>/dev/null || echo "Admin not responding"`,
+    `echo "--- Final PM2 Status ---" && pm2 list 2>&1 | head -15`,
+    `echo "--- Recent API logs (last 10 lines) ---" && pm2 logs dream-gadgets-api --lines 10 --nostream 2>&1 || true`,
   ];
 
   let cmdIndex = 0;

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { IconAward, IconTruck, IconZap, IconShield, IconWallet, IconSmartphone, IconMapPin, IconFile, IconSearch, IconTag, IconRotateCcw, IconRefreshCw, IconClock } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
@@ -35,10 +36,10 @@ const SERVICES = [
 ];
 
 const TRUST_BADGES = [
-  { icon: '🏆', label: '1M+ Customers', desc: 'Trusted by millions' },
-  { icon: '🚚', label: 'Free Pickup', desc: 'Doorstep service' },
-  { icon: '⚡', label: 'Instant Payment', desc: 'Within 24 hours' },
-  { icon: '🛡️', label: 'Data Secure', desc: '100% safe wiping' },
+  { icon: <IconAward size={18} />, label: '1M+ Customers', desc: 'Trusted by millions' },
+  { icon: <IconTruck size={18} />, label: 'Free Pickup', desc: 'Doorstep service' },
+  { icon: <IconZap size={18} />, label: 'Instant Payment', desc: 'Within 24 hours' },
+  { icon: <IconShield size={18} />, label: 'Data Secure', desc: '100% safe wiping' },
 ];
 
 const QUALITY_POINTS = [
@@ -78,10 +79,10 @@ const BLOGS = [
 ];
 
 const ECO_STATS = [
-  { icon: '♻️', value: '70–80%', label: 'Reduction in E-Waste', desc: 'Prevent e-waste generated from manufacturing a new device.' },
-  { icon: '💧', value: '7,500L', label: 'Water Saved', desc: 'Save water used during production of a single smartphone.' },
-  { icon: '🌿', value: '60kg', label: 'CO₂ Avoided', desc: 'Avoid emitting up to 60kg of CO₂ per device.' },
-  { icon: '💰', value: '50–65%', label: 'Cost Savings', desc: 'Save significantly by choosing refurbished.' },
+  { icon: <IconRefreshCw size={32} />, value: '70–80%', label: 'Reduction in E-Waste', desc: 'Prevent e-waste generated from manufacturing a new device.' },
+  { icon: <IconTruck size={32} />, value: '7,500L', label: 'Water Saved', desc: 'Save water used during production of a single smartphone.' },
+  { icon: <IconZap size={32} />, value: '60kg', label: 'CO₂ Avoided', desc: 'Avoid emitting up to 60kg of CO₂ per device.' },
+  { icon: <IconWallet size={32} />, value: '50–65%', label: 'Cost Savings', desc: 'Save significantly by choosing refurbished.' },
 ];
 
 export default function HomePage() {
@@ -120,7 +121,7 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-5">
                 {TRUST_BADGES.map(b => (
                   <div key={b.label} className="flex items-center gap-2">
-                    <span className="text-lg">{b.icon}</span>
+                    <span className="text-white/80">{b.icon}</span>
                     <div>
                       <p className="text-sm font-semibold text-white">{b.label}</p>
                       <p className="text-[10px] text-white/50">{b.desc}</p>
@@ -130,20 +131,52 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: Quick sell / search */}
+            {/* Right: Quick sell / smart search — Cashify-style */}
             <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
-              <p className="text-sm font-semibold text-white mb-4">📱 Sell your device</p>
+              <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Sell your device
+              </p>
               <div className="space-y-3">
-                <select className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="" className="text-gray-800">Select brand</option>
-                  {BRANDS.map(b => (
-                    <option key={b.name} value={b.name} className="text-gray-800">{b.name}</option>
-                  ))}
-                </select>
-                <select className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="" className="text-gray-800">Select model</option>
-                </select>
-                <Link href="/sell" className="block w-full py-3 text-center bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all">
+                <div className="relative">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Enter device name (e.g. iPhone 13, HP Laptop…)"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
+                    list="device-suggestions"
+                  />
+                  <datalist id="device-suggestions">
+                    <option value="iPhone 16 Pro Max" />
+                    <option value="iPhone 16 Pro" />
+                    <option value="iPhone 15 Pro Max" />
+                    <option value="iPhone 15" />
+                    <option value="iPhone 14" />
+                    <option value="iPhone 13" />
+                    <option value="Samsung Galaxy S25 Ultra" />
+                    <option value="Samsung Galaxy S24" />
+                    <option value="Samsung Galaxy S23" />
+                    <option value="OnePlus 13" />
+                    <option value="OnePlus 12" />
+                    <option value="Google Pixel 9 Pro" />
+                    <option value="Xiaomi 14 Pro" />
+                    <option value="HP Laptop" />
+                    <option value="Dell Laptop" />
+                    <option value="MacBook Air M3" />
+                    <option value="MacBook Pro" />
+                    <option value="iPad Pro" />
+                    <option value="iPad Air" />
+                    <option value="Samsung Galaxy Tab" />
+                    <option value="PS5" />
+                    <option value="Xbox Series X" />
+                  </datalist>
+                </div>
+                <Link href="/sell" className="block w-full py-3 text-center bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all active:scale-[0.98]">
                   Get Price →
                 </Link>
                 <p className="text-[10px] text-white/40 text-center">Get instant quote in seconds</p>
@@ -182,8 +215,8 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link href="/sell"
             className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
-              💰
+            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+              <IconWallet size={24} />
             </div>
             <div>
               <p className="font-bold text-gray-900 text-base">Sell Your Phone</p>
@@ -192,8 +225,8 @@ export default function HomePage() {
           </Link>
           <Link href="/products"
             className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
-              📱
+            <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+              <IconSmartphone size={24} />
             </div>
             <div>
               <p className="font-bold text-gray-900 text-base">Buy Refurbished</p>
@@ -202,8 +235,8 @@ export default function HomePage() {
           </Link>
           <Link href="/stores"
             className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center text-2xl text-white group-hover:scale-110 transition-transform">
-              📍
+            <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+              <IconMapPin size={24} />
             </div>
             <div>
               <p className="font-bold text-gray-900 text-base">Find Stores</p>
@@ -263,13 +296,13 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { icon: '📋', title: 'Get Instant Quote', desc: 'Enter your device details and get the best price in seconds.', step: '01' },
-            { icon: '📅', title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.', step: '02' },
-            { icon: '🔍', title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.', step: '03' },
-            { icon: '💸', title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.', step: '04' },
+            { icon: <IconFile size={28} />, title: 'Get Instant Quote', desc: 'Enter your device details and get the best price in seconds.', step: '01' },
+            { icon: <IconClock size={28} />, title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.', step: '02' },
+            { icon: <IconSearch size={28} />, title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.', step: '03' },
+            { icon: <IconTag size={28} />, title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.', step: '04' },
           ].map(s => (
             <div key={s.step} className="how-it-works-step bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1">
-              <div className="how-it-works-icon bg-primary/10 text-3xl">
+              <div className="how-it-works-icon bg-primary/10">
                 {s.icon}
               </div>
               <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
@@ -327,13 +360,13 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { icon: '🔬', title: '20-Point Check', desc: 'Battery, screen, camera, speakers — all tested.' },
-              { icon: '📋', title: 'Quality Charter', desc: 'Strict standards every device must pass.' },
-              { icon: '🛡️', title: 'Free Warranty', desc: 'Every purchase comes with warranty coverage.' },
-              { icon: '↩️', title: '30-Day Returns', desc: 'Not happy? Return within 30 days, no questions.' },
+              { icon: <IconSearch size={28} />, title: '20-Point Check', desc: 'Battery, screen, camera, speakers — all tested.' },
+              { icon: <IconFile size={28} />, title: 'Quality Charter', desc: 'Strict standards every device must pass.' },
+              { icon: <IconShield size={28} />, title: 'Free Warranty', desc: 'Every purchase comes with warranty coverage.' },
+              { icon: <IconRotateCcw size={28} />, title: '30-Day Returns', desc: 'Not happy? Return within 30 days, no questions.' },
             ].map(c => (
               <div key={c.title} className="bg-surface-950 rounded-2xl p-5 border border-gray-800">
-                <span className="text-3xl mb-3 block">{c.icon}</span>
+                <span className="mb-3 block text-white/80">{c.icon}</span>
                 <h3 className="font-bold text-white text-sm mb-1">{c.title}</h3>
                 <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
               </div>
@@ -404,7 +437,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ECO_STATS.map(e => (
             <div key={e.label} className="bg-surface-950 border border-gray-800 rounded-2xl p-6 text-center card-hover">
-              <span className="text-4xl mb-3 block">{e.icon}</span>
+              <span className="mb-3 block text-red-400 flex justify-center">{e.icon}</span>
               <p className="text-2xl font-extrabold text-red-400 mb-1">{e.value}</p>
               <p className="font-bold text-white text-sm mb-2">{e.label}</p>
               <p className="text-xs text-gray-400 leading-relaxed">{e.desc}</p>

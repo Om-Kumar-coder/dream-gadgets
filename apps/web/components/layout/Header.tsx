@@ -9,6 +9,18 @@ import { NotificationBell } from './NotificationBell';
 import { CategoryMegaMenu } from './CategoryMegaMenu';
 import { SearchSuggestions } from './SearchSuggestions';
 import { useWebAuthStore } from '../../store/auth.store';
+import {
+  IconSmartphone,
+  IconWatch,
+  IconSearch,
+  IconMapPin,
+  IconPackage,
+  IconUser,
+  IconHeart,
+  IconInfo,
+  IconMail,
+  IconLogin,
+} from '../icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -240,25 +252,25 @@ export function Header() {
             <div className="p-4 space-y-1">
               {(authUser
                 ? [
-                    { href: '/sell', label: 'Sell Phone', icon: '💰' },
-                    { href: '/sell?type=gadget', label: 'Sell Gadgets', icon: '⌚' },
-                    { href: '/products', label: 'Buy Phone', icon: '📱' },
-                    { href: '/stores', label: 'Our Stores', icon: '📍' },
-                    { href: '/orders', label: 'My Orders', icon: '📦' },
-                    { href: '/account', label: 'My Account', icon: '👤' },
-                    { href: '/wishlist', label: 'Wishlist', icon: '❤️' },
-                    { href: '/about', label: 'About', icon: 'ℹ️' },
-                    { href: '/contact', label: 'Contact', icon: '✉️' },
+                    { href: '/sell', label: 'Sell Phone', icon: IconSmartphone },
+                    { href: '/sell?type=gadget', label: 'Sell Gadgets', icon: IconWatch },
+                    { href: '/products', label: 'Buy Phone', icon: IconSearch },
+                    { href: '/stores', label: 'Our Stores', icon: IconMapPin },
+                    { href: '/orders', label: 'My Orders', icon: IconPackage },
+                    { href: '/account', label: 'My Account', icon: IconUser },
+                    { href: '/wishlist', label: 'Wishlist', icon: IconHeart },
+                    { href: '/about', label: 'About', icon: IconInfo },
+                    { href: '/contact', label: 'Contact', icon: IconMail },
                   ]
                 : [
-                    { href: '/sell', label: 'Sell Phone', icon: '💰' },
-                    { href: '/sell?type=gadget', label: 'Sell Gadgets', icon: '⌚' },
-                    { href: '/products', label: 'Buy Phone', icon: '📱' },
-                    { href: '/stores', label: 'Our Stores', icon: '📍' },
-                    { href: '/orders', label: 'My Orders', icon: '📦' },
-                    { href: '/about', label: 'About', icon: 'ℹ️' },
-                    { href: '/contact', label: 'Contact', icon: '✉️' },
-                    { href: '/login', label: 'Login', icon: '🔑' },
+                    { href: '/sell', label: 'Sell Phone', icon: IconSmartphone },
+                    { href: '/sell?type=gadget', label: 'Sell Gadgets', icon: IconWatch },
+                    { href: '/products', label: 'Buy Phone', icon: IconSearch },
+                    { href: '/stores', label: 'Our Stores', icon: IconMapPin },
+                    { href: '/orders', label: 'My Orders', icon: IconPackage },
+                    { href: '/about', label: 'About', icon: IconInfo },
+                    { href: '/contact', label: 'Contact', icon: IconMail },
+                    { href: '/login', label: 'Login', icon: IconLogin },
                   ]
               ).map(l => (
                 <Link
@@ -271,7 +283,9 @@ export function Header() {
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <span className="text-lg">{l.icon}</span>
+                  <span className="text-primary/70 w-5 flex items-center justify-center">
+                    {l.icon({ size: 20 })}
+                  </span>
                   {l.label}
                 </Link>
               ))}

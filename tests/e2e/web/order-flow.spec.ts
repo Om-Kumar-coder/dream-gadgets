@@ -246,7 +246,8 @@ test.describe.serial('Full Order Flow', () => {
     console.log(`📥 API status: ${orderRes.status()}`);
     
     // Unwrap TransformInterceptor: { status: 'success', data: { ...order } }
-    const order = orderBody.data ?? orderBody;
+    // Handle double-wrapping: { status: 'success', data: { data: { ...order } } }
+    const order = orderBody.data?.data ?? orderBody.data ?? orderBody;
     
     expect(orderRes.ok()).toBeTruthy();
     expect(order).toBeTruthy();
@@ -270,8 +271,9 @@ test.describe.serial('Full Order Flow', () => {
     const ordersBody = await ordersRes.json();
     
     // Unwrap { status, data } wrapper — data might be { data: [...], meta: {...} }
-    const unwrapped = ordersBody.data ?? ordersBody;
-    const orders = unwrapped.data ?? unwrapped.items ?? Array.isArray(unwrapped) ? unwrapped : [];
+    // Handle double-wrapping: { status: 'success', data: { data: { ... } } }
+    const unwrapped = ordersBody.data?.data ?? ordersBody.data ?? ordersBody;
+    const orders = Array.isArray(unwrapped) ? unwrapped : (unwrapped.data ?? unwrapped.items ?? []);
     
     console.log(`📋 Orders data type: ${typeof orders}, isArray: ${Array.isArray(orders)}`);
     console.log(`📋 Response structure: status=${ordersBody.status}, has data=${!!ordersBody.data}`);
