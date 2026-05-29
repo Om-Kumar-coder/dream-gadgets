@@ -83,10 +83,12 @@ export default function RegisterPage() {
           {step === 'otp' ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Phone Number
                 </label>
                 <input
+                  id="register-phone"
+                  name="phone"
                   type="tel"
                   value={form.phone}
                   onChange={e => {
@@ -130,10 +132,12 @@ export default function RegisterPage() {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-otp" className="block text-sm font-medium text-gray-700 mb-1.5">
                   OTP <span className="text-gray-400 font-normal">(sent to {form.phone})</span>
                 </label>
                 <input
+                  id="register-otp"
+                  name="otp"
                   type="text"
                   value={form.otp}
                   onChange={e => setForm(p => ({ ...p, otp: e.target.value }))}
@@ -146,10 +150,12 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="register-firstName" className="block text-sm font-medium text-gray-700 mb-1.5">
                     First Name <span className="text-red-400">*</span>
                   </label>
                   <input
+                    id="register-firstName"
+                    name="firstName"
                     type="text"
                     value={form.firstName}
                     onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))}
@@ -159,10 +165,12 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="register-lastName" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Last Name
                   </label>
                   <input
+                    id="register-lastName"
+                    name="lastName"
                     type="text"
                     value={form.lastName}
                     onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))}
@@ -173,10 +181,12 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Email <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
+                  id="register-email"
+                  name="email"
                   type="email"
                   value={form.email}
                   onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
@@ -186,10 +196,12 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Password <span className="text-red-400">*</span>
                 </label>
                 <input
+                  id="register-password"
+                  name="password"
                   type="password"
                   value={form.password}
                   onChange={e => setForm(p => ({ ...p, password: e.target.value }))}

@@ -216,6 +216,8 @@ export default function CartPage() {
                 <div className="mt-4">
                   <div className="flex gap-2">
                     <input
+                      id="cart-promo"
+                      name="promoCode"
                       type="text"
                       value={promoCode}
                       onChange={e => setPromoCode(e.target.value)}

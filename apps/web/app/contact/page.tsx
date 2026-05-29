@@ -85,8 +85,10 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">First Name <span className="text-red-400">*</span></label>
+                  <label htmlFor="contact-firstName" className="block text-xs font-semibold text-gray-700 mb-1">First Name <span className="text-red-400">*</span></label>
                   <input
+                    id="contact-firstName"
+                    name="firstName"
                     type="text"
                     value={form.firstName}
                     onChange={e => updateField('firstName', e.target.value)}
@@ -95,8 +97,10 @@ export default function ContactPage() {
                   {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Last Name</label>
+                  <label htmlFor="contact-lastName" className="block text-xs font-semibold text-gray-700 mb-1">Last Name</label>
                   <input
+                    id="contact-lastName"
+                    name="lastName"
                     type="text"
                     value={form.lastName}
                     onChange={e => updateField('lastName', e.target.value)}
@@ -105,8 +109,10 @@ export default function ContactPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-400">*</span></label>
+                <label htmlFor="contact-phone" className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-400">*</span></label>
                 <input
+                  id="contact-phone"
+                  name="phone"
                   type="tel"
                   value={form.phone}
                   onChange={e => updateField('phone', e.target.value)}
@@ -115,8 +121,10 @@ export default function ContactPage() {
                 {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+                <label htmlFor="contact-email" className="block text-xs font-semibold text-gray-700 mb-1">Email</label>
                 <input
+                  id="contact-email"
+                  name="email"
                   type="email"
                   value={form.email}
                   onChange={e => updateField('email', e.target.value)}
@@ -125,8 +133,10 @@ export default function ContactPage() {
                 {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Message <span className="text-red-400">*</span></label>
+                <label htmlFor="contact-message" className="block text-xs font-semibold text-gray-700 mb-1">Message <span className="text-red-400">*</span></label>
                 <textarea
+                  id="contact-message"
+                  name="message"
                   rows={4}
                   value={form.message}
                   onChange={e => updateField('message', e.target.value)}

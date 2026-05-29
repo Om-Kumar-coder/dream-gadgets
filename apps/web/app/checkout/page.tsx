@@ -247,8 +247,10 @@ export default function CheckoutPage() {
                     { key: 'pincode', label: 'Pincode', type: 'text', placeholder: '400001' },
                   ].map(f => (
                     <div key={f.key} className={f.colSpan || ''}>
-                      <label className={labelClass}>{f.label}</label>
+                      <label htmlFor={`checkout-${f.key}`} className={labelClass}>{f.label}</label>
                       <input
+                        id={`checkout-${f.key}`}
+                        name={f.key}
                         type={f.type}
                         value={(address as any)[f.key]}
                         onChange={e => updateField(f.key as keyof AddressForm, e.target.value)}

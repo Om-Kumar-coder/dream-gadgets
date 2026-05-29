@@ -106,6 +106,8 @@ export function Header() {
         >
           <div className="relative flex items-center">
             <input
+              id="header-search"
+              name="search"
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}

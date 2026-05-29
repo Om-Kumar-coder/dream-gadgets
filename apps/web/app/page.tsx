@@ -453,6 +453,8 @@ export default function HomePage() {
             <p className="text-white/80 text-sm mb-6">Fresh deals, cool tech drops, and zero spam. Promise!</p>
             <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
               <input
+                id="newsletter-email"
+                name="email"
                 type="email"
                 placeholder="Enter your email"
                 className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-surface-950 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30"

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ItemCondition } from '@dream-gadgets/shared-types';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FilterSheetClient } from './FilterSheetClient';
+import { SortSelect } from '../../components/product/SortSelect';
 
 export const metadata: Metadata = {
   title: 'All Phones',
@@ -20,14 +21,6 @@ const CONDITIONS = [
   { value: ItemCondition.SUPER_MINT, label: 'Super Mint', short: 'Super Mint' },
   { value: ItemCondition.MINT, label: 'Mint', short: 'Mint' },
   { value: ItemCondition.GOOD, label: 'Good', short: 'Good' },
-];
-
-const SORT_OPTIONS = [
-  { value: 'popular', label: 'Popularity' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'newest', label: 'Newest First' },
-  { value: 'discount', label: 'Biggest Discount' },
 ];
 
 async function getProducts(searchParams: Record<string, string>) {
@@ -237,22 +230,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-2 ml-auto">
-              <label className="text-xs text-gray-400 hidden sm:block">Sort by:</label>
-              <select
-                className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                defaultValue={activeSort}
-                onChange={(e) => {
-                  const params = new URLSearchParams(searchParams as Record<string, string>);
-                  params.set('sort', e.target.value);
-                  window.location.href = `/products?${params}`;
-                }}
-              >
-                {SORT_OPTIONS.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-            </div>
+            <SortSelect defaultValue={activeSort} />
           </div>
 
           {/* Products grid */}
