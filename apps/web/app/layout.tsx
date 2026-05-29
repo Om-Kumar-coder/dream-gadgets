@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: { default: 'Dream Gadgets', template: '%s | Dream Gadgets' },
   description: 'Certified used phones at the best prices.',
   manifest: '/manifest.json',
-  icons: { icon: '/Logo_Dream_Gadgets.png', apple: '/Logo_Dream_Gadgets.png' },
+  icons: { icon: '/favicon.ico', shortcut: '/icon.svg', apple: '/Logo_Dream_Gadgets.png' },
 };
 
 function HeaderFallback() {
