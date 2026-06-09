@@ -20,6 +20,7 @@ import {
   Building2,
   ShieldCheck,
   FileText,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,8 @@ const navItems = [
   { href: '/returns', label: 'Returns', icon: RotateCcw },
   { href: '/refunds', label: 'Refunds', icon: Undo2 },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
+  { href: '/gst', label: 'GST Reports', icon: Receipt },
+  { href: '/notifications', label: 'Notifications', icon: Undo2 },
   { href: '/users', label: 'Users & Roles', icon: UserCog },
   { href: '/settings?tab=Branches', label: 'Branches', icon: Building2, base: '/settings', tab: 'Branches' },
   { href: '/settings?tab=Roles', label: 'Roles', icon: ShieldCheck, base: '/settings', tab: 'Roles' },

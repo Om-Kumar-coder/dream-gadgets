@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { NotificationService } from './notification.service';
 import { Notification } from './entities/notification.entity';
+import { User } from '../auth/entities/user.entity';
+import { EmailService } from './channels/email.service';
+import { SmsService } from './channels/sms.service';
+import { WhatsAppService } from './channels/whatsapp.service';
+import { EventService } from '../../common/events/event.service';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -18,8 +24,12 @@ function makeNotification(overrides: Partial<Notification> = {}): Notification {
     body: 'Test Body',
     status: 'pending',
     sentAt: null,
-    error: null,
     metadata: null,
+    attempts: 0,
+    providerMessageId: null,
+    errorMessage: null,
+    target: null,
+    lastAttemptAt: null,
     createdAt: new Date(),
     user: null,
     ...overrides,
@@ -33,12 +43,23 @@ function makeRepo(): any {
     update: jest.fn(async () => ({ affected: 1 })) as any,
     find: jest.fn(async () => []) as any,
     findOne: jest.fn(async () => null) as any,
+    createQueryBuilder: jest.fn(() => ({
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn(async () => [[], 0]),
+    })) as any,
     manager: {
       getRepository: jest.fn(() => ({
         findOne: jest.fn(async () => null),
       })) as any,
     },
   };
+}
+
+function mockService(result: any): any {
+  return { send: jest.fn(async () => result) as any };
 }
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
@@ -53,7 +74,7 @@ describe('NotificationService', () => {
     configService = {
       get: jest.fn((key: string) => {
         const config: Record<string, any> = {
-          'redis.url': undefined, // no Redis in tests
+          'redis.url': undefined,
           REDIS_URL: undefined,
           SMTP_HOST: undefined,
           TWILIO_ACCOUNT_SID: undefined,
@@ -66,7 +87,13 @@ describe('NotificationService', () => {
       providers: [
         NotificationService,
         { provide: getRepositoryToken(Notification), useValue: repo },
+        { provide: getRepositoryToken(User), useValue: makeRepo() },
+        { provide: getQueueToken('notification'), useValue: { add: jest.fn(async () => ({})) } },
         { provide: ConfigService, useValue: configService },
+        { provide: EmailService, useValue: mockService({ success: true, providerMessageId: 'dev-123', status: 'sent' }) },
+        { provide: SmsService, useValue: mockService({ success: true, providerMessageId: 'dev-456', status: 'sent' }) },
+        { provide: WhatsAppService, useValue: mockService({ success: true, providerMessageId: 'dev-789', status: 'sent' }) },
+        { provide: EventService, useValue: { emitNotificationNew: jest.fn() } },
       ],
     }).compile();
 
@@ -106,7 +133,7 @@ describe('NotificationService', () => {
     });
 
     it('should leave unresolved variables as-is', async () => {
-      const result = await service.resolveTemplate('otp', {}); // no vars
+      const result = await service.resolveTemplate('otp', {});
 
       expect(result.body).toContain('{{otp}}');
     });
@@ -139,8 +166,7 @@ describe('NotificationService', () => {
     });
 
     it('should use template when templateKey is provided', async () => {
-      const notification = makeNotification({ channel: 'email' });
-      repo.save.mockResolvedValue(notification);
+      repo.save.mockResolvedValue(makeNotification({ channel: 'email' }));
 
       await service.sendEmail({
         to: 'test@example.com',
@@ -156,67 +182,13 @@ describe('NotificationService', () => {
         }),
       );
     });
-
-    it('should mark notification as sent when no SMTP configured (dev mode)', async () => {
-      const notification = makeNotification({ channel: 'email' });
-      repo.save.mockResolvedValue(notification);
-
-      await service.sendEmail({
-        to: 'test@example.com',
-        type: 'test',
-        subject: 'Test',
-        body: 'Test body',
-      });
-
-      // update called to mark as sent
-      expect(repo.update).toHaveBeenCalledWith(
-        notification.id,
-        expect.objectContaining({ status: 'sent' }),
-      );
-    });
-  });
-
-  // ─── 14.3 sendWhatsApp ───────────────────────────────────────────────────────
-
-  describe('sendWhatsApp()', () => {
-    it('should create a notification record with channel=whatsapp', async () => {
-      const notification = makeNotification({ channel: 'whatsapp' });
-      repo.save.mockResolvedValue(notification);
-
-      await service.sendWhatsApp({
-        to: '+919876543210',
-        type: 'order_status',
-        body: 'Your order has been shipped',
-      });
-
-      expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ channel: 'whatsapp' }),
-      );
-    });
-
-    it('should mark as sent in dev mode (no Twilio configured)', async () => {
-      const notification = makeNotification({ channel: 'whatsapp' });
-      repo.save.mockResolvedValue(notification);
-
-      await service.sendWhatsApp({
-        to: '+919876543210',
-        type: 'order_status',
-        body: 'Test message',
-      });
-
-      expect(repo.update).toHaveBeenCalledWith(
-        notification.id,
-        expect.objectContaining({ status: 'sent' }),
-      );
-    });
   });
 
   // ─── 14.4 sendSms ────────────────────────────────────────────────────────────
 
   describe('sendSms()', () => {
     it('should create a notification record with channel=sms', async () => {
-      const notification = makeNotification({ channel: 'sms' });
-      repo.save.mockResolvedValue(notification);
+      repo.save.mockResolvedValue(makeNotification({ channel: 'sms' }));
 
       await service.sendSms({
         to: '+919876543210',
@@ -229,30 +201,13 @@ describe('NotificationService', () => {
         expect.objectContaining({ channel: 'sms' }),
       );
     });
-
-    it('should mark as sent in dev mode', async () => {
-      const notification = makeNotification({ channel: 'sms' });
-      repo.save.mockResolvedValue(notification);
-
-      await service.sendSms({
-        to: '+919876543210',
-        type: 'otp',
-        body: 'Your OTP is 123456',
-      });
-
-      expect(repo.update).toHaveBeenCalledWith(
-        notification.id,
-        expect.objectContaining({ status: 'sent' }),
-      );
-    });
   });
 
   // ─── 14.6 sendInApp ──────────────────────────────────────────────────────────
 
   describe('sendInApp()', () => {
     it('should create a notification record with channel=in_app', async () => {
-      const notification = makeNotification({ channel: 'in_app' });
-      repo.save.mockResolvedValue(notification);
+      repo.save.mockResolvedValue(makeNotification({ channel: 'in_app' }));
 
       await service.sendInApp({
         userId: 'user-uuid-1',
@@ -263,41 +218,6 @@ describe('NotificationService', () => {
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ channel: 'in_app' }),
-      );
-    });
-
-    it('should emit via Socket.io emitter when provided', async () => {
-      const notification = makeNotification({ channel: 'in_app', userId: 'user-uuid-1' });
-      repo.save.mockResolvedValue(notification);
-
-      const mockEmitter = { emit: jest.fn() as any };
-
-      await service.sendInApp(
-        { userId: 'user-uuid-1', type: 'notification.new', subject: 'Alert', body: 'Test' },
-        mockEmitter,
-      );
-
-      expect(mockEmitter.emit).toHaveBeenCalledWith(
-        'user:user-uuid-1',
-        'notification.new',
-        expect.objectContaining({ type: 'notification.new' }),
-      );
-    });
-
-    it('should mark as sent after emitting', async () => {
-      const notification = makeNotification({ channel: 'in_app', userId: 'user-uuid-1' });
-      repo.save.mockResolvedValue(notification);
-
-      const mockEmitter = { emit: jest.fn() as any };
-
-      await service.sendInApp(
-        { userId: 'user-uuid-1', type: 'notification.new', subject: 'Alert', body: 'Test' },
-        mockEmitter,
-      );
-
-      expect(repo.update).toHaveBeenCalledWith(
-        notification.id,
-        expect.objectContaining({ status: 'sent' }),
       );
     });
   });

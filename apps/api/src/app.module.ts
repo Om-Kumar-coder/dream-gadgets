@@ -25,7 +25,10 @@ import { PublicModule } from './modules/public/public.module';
 import { AccessoryModule } from './modules/inventory/accessory.module';
 import { BuybackModule } from './modules/buyback/buyback.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { GstModule } from './modules/gst/gst.module';
 import { HealthModule } from './modules/health/health.module';
+import { RedisModule } from './common/redis/redis.module';
+import { EventsModule } from './common/events/events.module';
 
 @Module({
   imports: [
@@ -80,6 +83,12 @@ import { HealthModule } from './modules/health/health.module';
       },
     }),
 
+    // Redis shared connection
+    RedisModule,
+
+    // Domain events (global — provides EventService)
+    EventsModule,
+
     // Feature modules
     AuthModule,
     InventoryModule,
@@ -99,6 +108,7 @@ import { HealthModule } from './modules/health/health.module';
     AccessoryModule,
     BuybackModule,
     ReviewsModule,
+    GstModule,
     HealthModule,
   ],
 })

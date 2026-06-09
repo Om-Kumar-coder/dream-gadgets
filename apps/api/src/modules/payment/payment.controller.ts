@@ -15,6 +15,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -86,6 +87,7 @@ export class PaymentController {
   // ─── POST /payments/razorpay/order ────────────────────────────────────────────
   // PUBLIC endpoint for guest & authenticated checkout
   @Post('payments/razorpay/order')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a Razorpay order for online payment (public access for checkout)' })
   @ApiSecurity('optional')

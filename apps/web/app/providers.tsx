@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useWebAuthStore } from '../store/auth.store';
+import { RealtimeProvider } from '../components/RealtimeProvider';
 
 function AuthHydrator({ children }: { children: React.ReactNode }) {
   const hydrate = useWebAuthStore(s => s.hydrate);
@@ -27,7 +28,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthHydrator>
-        {children}
+        <RealtimeProvider>
+          {children}
+        </RealtimeProvider>
       </AuthHydrator>
     </QueryClientProvider>
   );

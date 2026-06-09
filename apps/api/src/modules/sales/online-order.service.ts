@@ -2,16 +2,19 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Like } from 'typeorm';
 import { OnlineOrder } from './entities/online-order.entity';
+import { OnlineOrderItem } from './entities/online-order-item.entity';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
+import { EventService } from '../../common/events/event.service';
 
 export interface CreateOnlineOrderDto {
   clientId?: string;
   branchId: string;
-  items: Array<{ itemId: string; unitPrice: number; quantity?: number }>;
+  items: Array<{ itemId: string; imei: string; description: string; unitPrice: number; quantity?: number; taxRate?: number; taxAmount?: number; hsnCode?: string }>;
   shippingAddress: {
     name: string;
     phone: string;
@@ -34,10 +37,15 @@ export interface FindAllOptions {
 
 @Injectable()
 export class OnlineOrderService {
+  private readonly logger = new Logger(OnlineOrderService.name);
+
   constructor(
     @InjectRepository(OnlineOrder)
     private readonly orderRepo: Repository<OnlineOrder>,
+    @InjectRepository(OnlineOrderItem)
+    private readonly orderItemRepo: Repository<OnlineOrderItem>,
     private readonly dataSource: DataSource,
+    private readonly eventService: EventService,
   ) {}
 
   // ─── Generate unique order number ─────────────────────────────────────────────
@@ -69,7 +77,53 @@ export class OnlineOrderService {
       notes: rest.notes ?? null,
     });
 
-    return this.orderRepo.save(order);
+    // Save the order first
+    const savedOrder = await this.orderRepo.save(order);
+
+    // Create order item records for each line item
+    if (items && items.length > 0) {
+      const orderItems = items.map((item) => {
+        const quantity = item.quantity ?? 1;
+        const unitPrice = Number(item.unitPrice);
+        const taxAmount = item.taxAmount ?? 0;
+        const total = (unitPrice * quantity) + taxAmount;
+
+        return this.orderItemRepo.create({
+          orderId: savedOrder.id,
+          itemId: item.itemId,
+          imei: item.imei,
+          description: item.description,
+          unitPrice,
+          taxRate: item.taxRate ?? 0,
+          taxAmount,
+          total,
+          hsnCode: item.hsnCode ?? null,
+        });
+      });
+
+      await this.orderItemRepo.save(orderItems);
+    }
+
+    // Reload with items relation (emit AFTER all persistence is complete)
+    const result = (await this.orderRepo.findOne({
+      where: { id: savedOrder.id },
+      relations: ['items', 'client', 'branch', 'payments'],
+    }))!;
+
+    // Emit realtime event — only after ALL saves succeed
+    try {
+      this.eventService.emitOrderCreated(branchId, {
+        orderId: savedOrder.id,
+        orderNumber,
+        totalAmount: Number(totalAmount),
+        branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Event] Failed to emit order.created: ${err?.message}`);
+    }
+
+    return result;
   }
 
   // ─── Get order by ID ──────────────────────────────────────────────────────────
@@ -77,7 +131,7 @@ export class OnlineOrderService {
   async findById(id: string): Promise<OnlineOrder> {
     const order = await this.orderRepo.findOne({
       where: { id },
-      relations: ['client', 'branch', 'payments'],
+      relations: ['items', 'client', 'branch', 'payments'],
     });
 
     if (!order) {
@@ -147,6 +201,7 @@ export class OnlineOrderService {
       });
     }
 
+    const previousStatus = order.status;
     order.status = newStatus;
 
     // Update timestamp columns based on status
@@ -156,7 +211,23 @@ export class OnlineOrderService {
       order.deliveredAt = new Date();
     }
 
-    return this.orderRepo.save(order);
+    const saved = await this.orderRepo.save(order);
+
+    // Emit realtime event
+    try {
+      this.eventService.emitOrderStatusChanged({
+        orderId: id,
+        orderNumber: saved.orderNumber,
+        status: newStatus,
+        previousStatus,
+        branchId: saved.branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Event] Failed to emit order.status_changed: ${err?.message}`);
+    }
+
+    return saved;
   }
 
   // ─── Cancel an order (convenience wrapper) ───────────────────────────────────

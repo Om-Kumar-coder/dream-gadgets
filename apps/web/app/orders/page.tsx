@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
+import { useRealtimeUpdates } from '../../lib/useRealtimeUpdates';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -78,9 +79,14 @@ function unwrapResponse(json: any): { data: any[]; meta: any } {
   return { data: Array.isArray(json) ? json : [], meta: {} };
 }
 
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('access_token');
+}
+
 async function fetchOrders(page: number = 1, limit: number = 10, status?: string, search?: string): Promise<FetchResult> {
   try {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) return { orders: [], total: 0, totalPages: 0, currentPage: 1 };
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (status) params.set('status', status);
@@ -223,10 +229,12 @@ export default function OrdersPage() {
   const [searchInput, setSearchInput] = useState('');
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const doFetch = (page: number, filter?: string, search?: string) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const doFetch = useCallback((page: number, filter?: string, search?: string) => {
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       setError('Please log in to view your orders.');
       setLoading(false);
@@ -243,7 +251,7 @@ export default function OrdersPage() {
       })
       .catch(() => setError('Failed to load orders.'))
       .finally(() => setLoading(false));
-  };
+  }, [activeFilter, searchQuery]);
 
   useEffect(() => {
     doFetch(1);
@@ -281,12 +289,21 @@ export default function OrdersPage() {
 
   // Auth check
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       setError('Please log in to view your orders.');
       setLoading(false);
+    } else {
+      setIsAuthenticated(true);
     }
   }, []);
+
+  // Realtime auto-refresh on order status changes or returns
+  useRealtimeUpdates({
+    enabled: isAuthenticated,
+    onOrderStatusChanged: () => doFetch(currentPage),
+    onReturnCreated: () => doFetch(currentPage),
+  });
 
   if (loading) {
     return (

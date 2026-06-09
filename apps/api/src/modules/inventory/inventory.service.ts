@@ -20,6 +20,7 @@ import {
   calculateWarrantyExpiry,
   ItemCondition,
 } from '../../common/utils/business-logic';
+import { EventService } from '../../common/events/event.service';
 
 @Injectable()
 export class InventoryService {
@@ -36,6 +37,7 @@ export class InventoryService {
     private modelRepo: Repository<Model>,
     private dataSource: DataSource,
     private configService: ConfigService,
+    private eventService: EventService,
   ) {}
 
   // Allow optional queue injection from module
@@ -180,7 +182,22 @@ export class InventoryService {
     });
 
     Object.assign(item, dto, { totalCost, warrantyExpiry });
-    return this.itemRepo.save(item);
+    const saved = await this.itemRepo.save(item);
+
+    // Emit realtime event after successful save
+    try {
+      this.eventService.emitInventoryUpdated(item.branchId, {
+        itemId: id,
+        imei: item.imei,
+        status: item.status,
+        branchId: item.branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.warn(`[Inventory] Failed to emit inventory.updated: ${err?.message}`);
+    }
+
+    return saved;
   }
 
   // ─── 5.6 Status transition (standalone) ─────────────────────────────────────

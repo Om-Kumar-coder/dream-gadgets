@@ -16,13 +16,7 @@ import { JwtPayload } from '@dream-gadgets/shared-types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
-
-// Redis key helpers
-const REFRESH_KEY = (userId: string, family: string) => `refresh:${userId}:${family}`;
-const ATTEMPTS_KEY = (identifier: string) => `login:attempts:${identifier}`;
-const LOCKOUT_KEY = (identifier: string) => `login:lockout:${identifier}`;
-const RESET_KEY = (token: string) => `reset:${token}`;
-const OTP_KEY = (phone: string) => `otp:${phone}`;
+import { RedisService } from '../../common/redis/redis.service';
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -32,26 +26,14 @@ const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
 
 @Injectable()
 export class AuthService {
-  private redisClient: any;
-
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private dataSource: DataSource,
+    private redisService: RedisService,
   ) {}
-
-  // Lazily get the Redis client from the cache manager connection
-  private async getRedis(): Promise<any> {
-    if (!this.redisClient) {
-      const { createClient } = await import('redis');
-      const client = createClient({ url: this.configService.get<string>('redis.url') });
-      await client.connect();
-      this.redisClient = client;
-    }
-    return this.redisClient;
-  }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -91,8 +73,7 @@ export class AuthService {
       },
     );
 
-    const redis = await this.getRedis();
-    await redis.set(REFRESH_KEY(user.id, family), refreshToken, { EX: REFRESH_TTL_SECONDS });
+    await this.redisService.setRefreshToken(user.id, family, refreshToken, REFRESH_TTL_SECONDS);
 
     return { accessToken, refreshToken, family };
   }
@@ -100,29 +81,18 @@ export class AuthService {
   // ─── Account lockout ────────────────────────────────────────────────────────
 
   async isLockedOut(identifier: string): Promise<boolean> {
-    const redis = await this.getRedis();
-    const locked = await redis.get(LOCKOUT_KEY(identifier));
-    return !!locked;
+    return this.redisService.isLockedOut(identifier);
   }
 
   async incrementFailedAttempts(identifier: string): Promise<void> {
-    const redis = await this.getRedis();
-    const key = ATTEMPTS_KEY(identifier);
-    const attempts = await redis.incr(key);
-    // Set TTL on first attempt
-    if (attempts === 1) {
-      await redis.expire(key, LOCKOUT_TTL_SECONDS);
-    }
+    const attempts = await this.redisService.incrementLoginAttempts(identifier, LOCKOUT_TTL_SECONDS);
     if (attempts >= LOCKOUT_THRESHOLD) {
-      await redis.set(LOCKOUT_KEY(identifier), '1', { EX: LOCKOUT_TTL_SECONDS });
-      await redis.del(key);
+      await this.redisService.setLockout(identifier, LOCKOUT_TTL_SECONDS);
     }
   }
 
   async clearFailedAttempts(identifier: string): Promise<void> {
-    const redis = await this.getRedis();
-    await redis.del(ATTEMPTS_KEY(identifier));
-    await redis.del(LOCKOUT_KEY(identifier));
+    await this.redisService.clearLoginAttempts(identifier);
   }
 
   // ─── Validate user (used by LocalStrategy) ──────────────────────────────────
@@ -185,8 +155,7 @@ export class AuthService {
     }
 
     const { sub: userId, family } = payload;
-    const redis = await this.getRedis();
-    const stored = await redis.get(REFRESH_KEY(userId, family));
+    const stored = await this.redisService.getRefreshToken(userId, family);
 
     if (!stored) {
       // Token family already used or invalidated — invalidate entire family
@@ -196,13 +165,13 @@ export class AuthService {
 
     if (stored !== refreshToken) {
       // Token was rotated but old one submitted — invalidate family
-      await redis.del(REFRESH_KEY(userId, family));
+      await this.redisService.delRefreshToken(userId, family);
       await this.invalidateAllFamilies(userId);
       throw new UnauthorizedException('Refresh token reuse detected. All sessions invalidated.');
     }
 
     // Invalidate old token
-    await redis.del(REFRESH_KEY(userId, family));
+    await this.redisService.delRefreshToken(userId, family);
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -217,12 +186,7 @@ export class AuthService {
   }
 
   private async invalidateAllFamilies(userId: string): Promise<void> {
-    const redis = await this.getRedis();
-    const pattern = `refresh:${userId}:*`;
-    const keys: string[] = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(keys);
-    }
+    await this.redisService.invalidateAllRefreshTokens(userId);
   }
 
   // ─── 3.4 Logout ─────────────────────────────────────────────────────────────
@@ -237,20 +201,18 @@ export class AuthService {
       // Token already invalid — nothing to do
       return;
     }
-    const redis = await this.getRedis();
-    await redis.del(REFRESH_KEY(payload.sub, payload.family));
+    await this.redisService.delRefreshToken(payload.sub, payload.family);
   }
 
   // ─── 3.5 Register (customer) ────────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
     // Verify OTP
-    const redis = await this.getRedis();
-    const storedOtp = await redis.get(OTP_KEY(dto.phone));
+    const storedOtp = await this.redisService.getOtp(dto.phone);
     if (!storedOtp || storedOtp !== dto.otp) {
       throw new BadRequestException('Invalid or expired OTP');
     }
-    await redis.del(OTP_KEY(dto.phone));
+    await this.redisService.delOtp(dto.phone);
 
     // Check duplicate phone
     const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
@@ -286,8 +248,7 @@ export class AuthService {
 
   async sendOtp(phone: string): Promise<void> {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const redis = await this.getRedis();
-    await redis.set(OTP_KEY(phone), otp, { EX: OTP_TTL_SECONDS });
+    await this.redisService.setOtp(phone, otp, OTP_TTL_SECONDS);
     // In production: enqueue SMS notification job
     // For now, log it (dev only)
     if (this.configService.get<string>('app.env') === 'development') {
@@ -309,8 +270,7 @@ export class AuthService {
     }
 
     const token = uuidv4();
-    const redis = await this.getRedis();
-    await redis.set(RESET_KEY(token), user.id, { EX: RESET_TTL_SECONDS });
+    await this.redisService.setResetToken(token, user.id, RESET_TTL_SECONDS);
 
     // In production: enqueue email/SMS notification with reset link
     if (this.configService.get<string>('app.env') === 'development') {
@@ -319,8 +279,7 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const redis = await this.getRedis();
-    const userId = await redis.get(RESET_KEY(token));
+    const userId = await this.redisService.getResetToken(token);
     if (!userId) {
       throw new BadRequestException('Invalid or expired reset token');
     }
@@ -330,7 +289,7 @@ export class AuthService {
 
     // Invalidate all sessions
     await this.invalidateAllFamilies(userId);
-    await redis.del(RESET_KEY(token));
+    await this.redisService.delResetToken(token);
   }
 
   // ─── 3.7 Get / Update profile ───────────────────────────────────────────────

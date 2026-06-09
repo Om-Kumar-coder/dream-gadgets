@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
+import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 
 const STATUS_COLORS: Record<string, string> = {
   processed: 'bg-green-100 text-green-700',
@@ -24,6 +25,11 @@ type Return = {
 
 export default function ReturnsPage() {
   const [returnType, setReturnType] = useState<'sale' | 'purchase'>('sale');
+
+  // Auto-refresh on return events
+  useRealtimeUpdates({
+    'return.created': [['returns']],
+  });
 
   const columns: ColumnDef<Return, any>[] = [
     {

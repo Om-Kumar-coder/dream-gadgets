@@ -192,8 +192,10 @@ describe('RealtimeGateway', () => {
     it('should emit sale.created to branch room', () => {
       realtimeService.emitSaleCreated('branch-uuid-1', {
         saleId: 'sale-uuid-1',
+        invoiceNumber: 'INV-001',
         amount: 50000,
         branchId: 'branch-uuid-1',
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('branch:branch-uuid-1');
@@ -203,8 +205,10 @@ describe('RealtimeGateway', () => {
     it('should emit inventory.updated to branch room', () => {
       realtimeService.emitInventoryUpdated('branch-uuid-1', {
         itemId: 'item-uuid-1',
+        imei: '123456789012345',
         status: 'sold',
         branchId: 'branch-uuid-1',
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('branch:branch-uuid-1');
@@ -212,7 +216,7 @@ describe('RealtimeGateway', () => {
     });
 
     it('should emit order.status_changed to admin room', () => {
-      realtimeService.emitOrderStatusChanged({ orderId: 'order-uuid-1', status: 'shipped' });
+      realtimeService.emitOrderStatusChanged({ orderId: 'order-uuid-1', orderNumber: 'ORD-001', status: 'shipped', previousStatus: 'processing', timestamp: new Date().toISOString() });
 
       expect(mockServer.to).toHaveBeenCalledWith('admin');
       expect(mockServer.emit).toHaveBeenCalledWith('order.status_changed', expect.any(Object));
@@ -221,11 +225,16 @@ describe('RealtimeGateway', () => {
     it('should emit transfer.received to destination branch room', () => {
       realtimeService.emitTransferReceived('branch-uuid-2', {
         transferId: 'transfer-uuid-1',
+        transferNumber: 'TRF-MAIN-2025-001',
+        status: 'received',
+        fromBranchId: 'branch-uuid-1',
+        toBranchId: 'branch-uuid-2',
         branchId: 'branch-uuid-2',
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('branch:branch-uuid-2');
-      expect(mockServer.emit).toHaveBeenCalledWith('transfer.received', expect.any(Object));
+      expect(mockServer.emit).toHaveBeenCalledWith('stock.transfer.received', expect.any(Object));
     });
 
     it('should emit notification.new to user room', () => {
@@ -233,6 +242,7 @@ describe('RealtimeGateway', () => {
         notificationId: 'notif-uuid-1',
         type: 'invoice_delivery',
         subject: 'Your Invoice',
+        createdAt: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('user:user-uuid-1');
@@ -244,6 +254,7 @@ describe('RealtimeGateway', () => {
         orderId: 'order-uuid-1',
         paymentId: 'pay-uuid-1',
         amount: 50000,
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('admin');
@@ -257,6 +268,8 @@ describe('RealtimeGateway', () => {
         itemId: 'item-uuid-1',
         imei: '123456789012345',
         lockedBy: 'user-uuid-1',
+        branchId: 'branch-uuid-1',
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('branch:branch-uuid-1');
@@ -267,6 +280,8 @@ describe('RealtimeGateway', () => {
       realtimeService.emitInventoryUnlocked('branch-uuid-1', {
         itemId: 'item-uuid-1',
         imei: '123456789012345',
+        branchId: 'branch-uuid-1',
+        timestamp: new Date().toISOString(),
       });
 
       expect(mockServer.to).toHaveBeenCalledWith('branch:branch-uuid-1');
@@ -279,8 +294,10 @@ describe('RealtimeGateway', () => {
       expect(() => {
         realtimeService.emitSaleCreated('branch-uuid-1', {
           saleId: 'sale-uuid-1',
+          invoiceNumber: 'INV-001',
           amount: 50000,
           branchId: 'branch-uuid-1',
+          timestamp: new Date().toISOString(),
         });
       }).not.toThrow();
     });

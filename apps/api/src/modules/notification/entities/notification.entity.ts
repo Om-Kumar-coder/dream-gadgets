@@ -41,9 +41,6 @@ export class Notification {
   @Column({ name: 'sent_at', nullable: true, type: 'timestamptz' })
   sentAt: Date | null;
 
-  @Column({ nullable: true, type: 'text' })
-  error: string | null;
-
   @Column({ nullable: true, type: 'jsonb' })
   metadata: object | null;
 
@@ -52,6 +49,21 @@ export class Notification {
 
   @Column({ name: 'read_at', nullable: true, type: 'timestamptz' })
   readAt: Date | null;
+
+  @Column({ default: 0 })
+  attempts: number;
+
+  @Column({ name: 'provider_message_id', nullable: true, type: 'varchar', length: 255 })
+  providerMessageId: string | null;
+
+  @Column({ name: 'error_message', nullable: true, type: 'text' })
+  errorMessage: string | null;
+
+  @Column({ name: 'target', nullable: true, type: 'varchar', length: 255 })
+  target: string | null;
+
+  @Column({ name: 'last_attempt_at', nullable: true, type: 'timestamptz' })
+  lastAttemptAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

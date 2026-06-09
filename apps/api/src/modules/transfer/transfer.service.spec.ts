@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { TransferService } from './transfer.service';
+import { EventService } from '../../common/events/event.service';
 import { StockTransfer } from './entities/stock-transfer.entity';
 import { StockTransferItem } from './entities/stock-transfer-item.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
@@ -117,6 +118,14 @@ describe('TransferService', () => {
         { provide: getRepositoryToken(InventoryItem), useValue: itemRepo },
         { provide: getRepositoryToken(Branch), useValue: branchRepo },
         { provide: DataSource, useValue: dataSource },
+        {
+          provide: EventService,
+          useValue: {
+            emitTransferCreated: jest.fn(),
+            emitTransferReceived: jest.fn(),
+            emitTransferUpdated: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

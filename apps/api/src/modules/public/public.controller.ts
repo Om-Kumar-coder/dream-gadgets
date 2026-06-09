@@ -12,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -44,7 +45,7 @@ class CreatePublicOrderDto {
   clientId?: string;
 
   @IsArray()
-  items: Array<{ itemId: string; unitPrice: number; quantity?: number }>;
+  items: Array<{ itemId: string; imei: string; description: string; unitPrice: number; quantity?: number }>;
 
   @IsObject()
   shippingAddress: {
@@ -270,6 +271,7 @@ export class PublicController {
   // ─── Contact ────────────────────────────────────────────────────────────────────
 
   @Post('contact')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Submit a contact/inquiry form' })
   async submitContact(@Body() dto: ContactInquiryDto) {

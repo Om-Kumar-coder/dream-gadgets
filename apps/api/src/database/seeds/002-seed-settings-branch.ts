@@ -97,26 +97,69 @@ export async function seedSettingsAndBranch(dataSource: DataSource): Promise<voi
       );
     }
 
-    // Insert sample branch
-    const branchResult = await queryRunner.query(
-      `INSERT INTO branches (name, code, address, city, state, pincode, phone, gstin)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (code) DO NOTHING
-       RETURNING id`,
-      [
-        'Dream Gadgets — Main Branch',
-        'MAIN',
-        '123 Tech Street',
-        'Mumbai',
-        'Maharashtra',
-        '400001',
-        '9800000000',
-        '27AAAAA0000A1Z5',
-      ],
-    );
+    // Insert real branches — Dream Gadgets Kolkata
+    const branches = [
+      {
+        name: 'Dream Gadgets — Chetla (Main Branch)',
+        code: 'CHETLA',
+        address: '29A, Pitambar Ghatak Lane, Chetla, Near Chetla Police Station, Opp. CIT Market',
+        city: 'Kolkata',
+        state: 'West Bengal',
+        pincode: '700027',
+        phone: '8282011193',
+        whatsapp: '8282011193',
+        email: 'dreamgadgetskolkata@gmail.com',
+        instagram: '@dream_gadgets_kolkata',
+        workingHours: '12:30 PM – 9:30 PM',
+        gstin: '27AAAAA0000A1Z5',
+        mapUrl: null,
+        sortOrder: 1,
+      },
+      {
+        name: 'Dream Gadgets 2.0 — Jadavpur',
+        code: 'JADAVPUR',
+        address: '17, Sukanta Setu, Sulekha More, Jadavpur',
+        city: 'Kolkata',
+        state: 'West Bengal',
+        pincode: '700032',
+        phone: '9038312344',
+        whatsapp: '9038312344',
+        email: 'dreamgadgetskolkata@gmail.com',
+        instagram: '@dreamgadgets_kolkata_2.0',
+        workingHours: '2:00 PM – 10:00 PM',
+        gstin: null,
+        mapUrl: null,
+        sortOrder: 2,
+      },
+      {
+        name: 'Dream Gadgets 3.0 — Champahati',
+        code: 'CHAMPAHATI',
+        address: 'Champahati Station Road, Near Nilmanikar Vidyalaya',
+        city: 'Champahati',
+        state: 'West Bengal',
+        pincode: '743330',
+        phone: '8282011194',
+        whatsapp: '8282011194',
+        email: 'dreamgadgetskolkata@gmail.com',
+        instagram: '@dreamgadgets_kolkata_3.0',
+        workingHours: '12:30 PM – 9:30 PM',
+        gstin: null,
+        mapUrl: null,
+        sortOrder: 3,
+      },
+    ];
 
-    if (branchResult.length > 0) {
-      console.log(`✓ Sample branch created: ${branchResult[0].id}`);
+    for (const b of branches) {
+      const result = await queryRunner.query(
+        `INSERT INTO branches (name, code, address, city, state, pincode, phone, whatsapp, email, instagram, working_hours, gstin, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ON CONFLICT (code) DO NOTHING
+         RETURNING id`,
+        [b.name, b.code, b.address, b.city, b.state, b.pincode, b.phone, b.whatsapp, b.email, b.instagram, b.workingHours, b.gstin, b.sortOrder],
+      );
+      if (result.length > 0) {
+        console.log(`✓ Branch "${b.name}" created: ${result[0].id}`);
+      }
     }
 
     // Insert sample brands

@@ -9,32 +9,78 @@ import * as fc from 'fast-check';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
+import { RedisService } from '../../common/redis/redis.service';
 
-// ─── Redis mock ──────────────────────────────────────────────────────────────
-const redisMock: Record<string, { value: string; ttl?: number }> = {};
+// ─── Redis mock (in-memory store) ────────────────────────────────────────────
+const redisMock: Record<string, string> = {};
 
-const redisClientMock = {
-  get: jest.fn(async (key: string) => redisMock[key]?.value ?? null),
-  set: jest.fn(async (key: string, value: string, opts?: { EX?: number }) => {
-    redisMock[key] = { value, ttl: opts?.EX };
-  }),
-  del: jest.fn(async (...keys: string[]) => {
-    const flat = keys.flat();
-    flat.forEach((k) => delete redisMock[k]);
-  }),
-  incr: jest.fn(async (key: string) => {
-    const cur = parseInt(redisMock[key]?.value ?? '0', 10);
+function makeRedisServiceMock(): any {
+  const get = jest.fn(async (key: string) => redisMock[key] ?? null);
+  const set = jest.fn(async (key: string, value: string, opts?: { EX?: number }) => {
+    redisMock[key] = value;
+  });
+  const del = jest.fn(async (key: string | string[]) => {
+    const keys = Array.isArray(key) ? key : [key];
+    keys.forEach((k) => delete redisMock[k]);
+  });
+  const incr = jest.fn(async (key: string) => {
+    const cur = parseInt(redisMock[key] ?? '0', 10);
     const next = cur + 1;
-    redisMock[key] = { value: String(next) };
+    redisMock[key] = String(next);
     return next;
-  }),
-  expire: jest.fn(async () => {}),
-  keys: jest.fn(async (pattern: string) => {
+  });
+  const exists = jest.fn(async (key: string) => key in redisMock);
+  const expire = jest.fn(async (_key: string, _seconds: number) => {});
+  const keys = jest.fn(async (pattern: string) => {
     const prefix = pattern.replace('*', '');
     return Object.keys(redisMock).filter((k) => k.startsWith(prefix));
-  }),
-  connect: jest.fn(async () => {}),
-};
+  });
+
+  return {
+    get,
+    set,
+    del,
+    incr,
+    exists,
+    expire,
+    keys,
+    // Auth-specific helpers — delegate to the underlying primitives above
+    setRefreshToken: jest.fn(async (userId: string, family: string, token: string, ttlSeconds: number) => {
+      await set(`refresh:${userId}:${family}`, token, { EX: ttlSeconds });
+    }),
+    getRefreshToken: jest.fn(async (userId: string, family: string) => get(`refresh:${userId}:${family}`)),
+    delRefreshToken: jest.fn(async (userId: string, family: string) => del(`refresh:${userId}:${family}`)),
+    invalidateAllRefreshTokens: jest.fn(async (userId: string) => {
+      const pattern = `refresh:${userId}:*`;
+      const found = await keys(pattern);
+      if (found.length > 0) await del(found);
+    }),
+    isLockedOut: jest.fn(async (identifier: string) => exists(`login:lockout:${identifier}`)),
+    incrementLoginAttempts: jest.fn(async (identifier: string, lockoutTtlSeconds: number) => {
+      const attKey = `login:attempts:${identifier}`;
+      const attempts = await incr(attKey);
+      if (attempts === 1) await expire(attKey, lockoutTtlSeconds);
+      return attempts;
+    }),
+    setLockout: jest.fn(async (identifier: string, ttlSeconds: number) => {
+      await set(`login:lockout:${identifier}`, '1', { EX: ttlSeconds });
+      await del(`login:attempts:${identifier}`);
+    }),
+    clearLoginAttempts: jest.fn(async (identifier: string) => {
+      await del([`login:attempts:${identifier}`, `login:lockout:${identifier}`]);
+    }),
+    setOtp: jest.fn(async (phone: string, otp: string, ttlSeconds: number) => {
+      await set(`otp:${phone}`, otp, { EX: ttlSeconds });
+    }),
+    getOtp: jest.fn(async (phone: string) => get(`otp:${phone}`)),
+    delOtp: jest.fn(async (phone: string) => del(`otp:${phone}`)),
+    setResetToken: jest.fn(async (token: string, userId: string, ttlSeconds: number) => {
+      await set(`reset:${token}`, userId, { EX: ttlSeconds });
+    }),
+    getResetToken: jest.fn(async (token: string) => get(`reset:${token}`)),
+    delResetToken: jest.fn(async (token: string) => del(`reset:${token}`)),
+  };
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -119,14 +165,12 @@ describe('AuthService', () => {
           },
         },
         { provide: DataSource, useValue: dataSource },
+        { provide: RedisService, useValue: makeRedisServiceMock() },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
-
-    // Inject redis mock
-    (service as any).redisClient = redisClientMock;
   });
 
   // ─── Login ────────────────────────────────────────────────────────────────
@@ -163,7 +207,7 @@ describe('AuthService', () => {
 
     it('should throw ForbiddenException when account is locked', async () => {
       // Pre-set lockout key
-      redisMock['login:lockout:test@example.com'] = { value: '1' };
+      redisMock['login:lockout:test@example.com'] = '1';
 
       await expect(
         service.login({ identifier: 'test@example.com', password: 'password123' }),
@@ -202,7 +246,7 @@ describe('AuthService', () => {
       dataSource.query.mockResolvedValue([]);
 
       // Set some failed attempts
-      redisMock['login:attempts:test@example.com'] = { value: '3' };
+      redisMock['login:attempts:test@example.com'] = '3';
 
       await service.login({ identifier: 'test@example.com', password: 'password123' });
 
@@ -218,7 +262,7 @@ describe('AuthService', () => {
       const family = 'test-family-uuid';
       const refreshToken = `fake.jwt.${JSON.stringify({ sub: user.id, family })}`;
 
-      redisMock[`refresh:${user.id}:${family}`] = { value: refreshToken };
+      redisMock[`refresh:${user.id}:${family}`] = refreshToken;
       userRepo.findOne.mockResolvedValue(user);
       dataSource.query.mockResolvedValue([]);
 
@@ -237,7 +281,7 @@ describe('AuthService', () => {
 
       // Token NOT in Redis (already used)
       // But another family exists
-      redisMock[`refresh:${userId}:other-family`] = { value: 'some-token' };
+      redisMock[`refresh:${userId}:other-family`] = 'some-token';
 
       await expect(service.refresh(refreshToken)).rejects.toThrow(UnauthorizedException);
 
@@ -259,7 +303,7 @@ describe('AuthService', () => {
       const family = 'logout-family';
       const refreshToken = `fake.jwt.${JSON.stringify({ sub: userId, family })}`;
 
-      redisMock[`refresh:${userId}:${family}`] = { value: refreshToken };
+      redisMock[`refresh:${userId}:${family}`] = refreshToken;
 
       await service.logout(refreshToken);
 
@@ -276,7 +320,7 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should create customer and return tokens when OTP is valid', async () => {
       const phone = '+919876543210';
-      redisMock[`otp:${phone}`] = { value: '123456' };
+      redisMock[`otp:${phone}`] = '123456';
       userRepo.findOne.mockResolvedValueOnce(null); // no existing user
       userRepo.create.mockReturnValue(makeUser());
       userRepo.save.mockResolvedValue(makeUser());
@@ -297,7 +341,7 @@ describe('AuthService', () => {
     });
 
     it('should throw BadRequestException for invalid OTP', async () => {
-      redisMock['otp:+919876543210'] = { value: '999999' };
+      redisMock['otp:+919876543210'] = '999999';
 
       await expect(
         service.register({
@@ -333,8 +377,8 @@ describe('AuthService', () => {
     it('should update password and invalidate sessions', async () => {
       const userId = 'user-uuid-1';
       const token = 'valid-reset-token';
-      redisMock[`reset:${token}`] = { value: userId };
-      redisMock[`refresh:${userId}:family1`] = { value: 'some-token' };
+      redisMock[`reset:${token}`] = userId;
+      redisMock[`refresh:${userId}:family1`] = 'some-token';
       userRepo.update.mockResolvedValue({});
 
       await service.resetPassword(token, 'newPassword123');

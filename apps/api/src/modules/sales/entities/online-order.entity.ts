@@ -12,6 +12,7 @@ import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 import { Client } from '../../client/entities/client.entity';
 import { Branch, User } from '../../auth/entities/user.entity';
 import { Payment } from './payment.entity';
+import { OnlineOrderItem } from './online-order-item.entity';
 
 @Entity('online_orders')
 export class OnlineOrder {
@@ -92,6 +93,9 @@ export class OnlineOrder {
 
   @Column({ name: 'delivered_at', nullable: true, type: 'timestamptz' })
   deliveredAt: Date | null;
+
+  @OneToMany(() => OnlineOrderItem, (i) => i.order, { cascade: ['insert'] })
+  items: OnlineOrderItem[];
 
   @OneToMany(() => Payment, (p) => p.onlineOrder)
   payments: Payment[];

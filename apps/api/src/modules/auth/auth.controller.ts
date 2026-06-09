@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -26,6 +27,7 @@ export class AuthController {
 
   // 3.2 Login
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email/phone + password' })
   async login(@Body() dto: LoginDto) {
@@ -50,6 +52,7 @@ export class AuthController {
 
   // 3.5 Register (customer)
   @Post('register')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Customer self-registration with phone OTP' })
   async register(@Body() dto: RegisterDto) {
@@ -58,6 +61,7 @@ export class AuthController {
 
   // 3.5 Send OTP
   @Post('send-otp')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Send OTP to phone for registration' })
   async sendOtp(@Body() body: { phone: string }) {
@@ -66,6 +70,7 @@ export class AuthController {
 
   // 3.6 Forgot password
   @Post('forgot-password')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Request password reset link' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -74,6 +79,7 @@ export class AuthController {
 
   // 3.6 Reset password
   @Post('reset-password')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reset password with token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {

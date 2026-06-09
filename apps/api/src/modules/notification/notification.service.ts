@@ -2,7 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bull';
 import { Notification } from './entities/notification.entity';
+import { EmailService } from './channels/email.service';
+import { SmsService } from './channels/sms.service';
+import { WhatsAppService } from './channels/whatsapp.service';
+import { EventService } from '../../common/events/event.service';
+import { User } from '../auth/entities/user.entity';
 
 export interface NotificationPayload {
   userId?: string;
@@ -15,39 +22,32 @@ export interface NotificationPayload {
   metadata?: Record<string, any>;
 }
 
+export interface DeliveryResult {
+  success: boolean;
+  providerMessageId: string | null;
+  status: 'sent' | 'failed';
+  error?: string;
+}
+
+const MAX_RETRY_ATTEMPTS = 5;
+
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
-  private queue: any = null;
 
   constructor(
     @InjectRepository(Notification)
     private notificationRepo: Repository<Notification>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     private configService: ConfigService,
-  ) {
-    this.initQueue();
-  }
-
-  // ─── Queue init (graceful fallback) ──────────────────────────────────────────
-
-  private initQueue(): void {
-    try {
-      const { Queue } = require('bullmq');
-      const redisUrl = this.configService.get<string>('redis.url') ?? this.configService.get<string>('REDIS_URL');
-      if (redisUrl) {
-        this.queue = new Queue('notification', {
-          connection: { url: redisUrl },
-          defaultJobOptions: {
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 2000 },
-          },
-        });
-        this.logger.log('Notification BullMQ queue initialized');
-      }
-    } catch {
-      this.logger.warn('BullMQ not available — notifications will be processed synchronously');
-    }
-  }
+    @InjectQueue('notification')
+    private notificationQueue: Queue,
+    private emailService: EmailService,
+    private smsService: SmsService,
+    private whatsAppService: WhatsAppService,
+    private eventService: EventService,
+  ) {}
 
   // ─── Template resolution ──────────────────────────────────────────────────────
 
@@ -55,8 +55,7 @@ export class NotificationService {
     templateKey: string,
     vars: Record<string, string> = {},
   ): Promise<{ subject: string; body: string }> {
-    // In production, load from settings table by key
-    // For MVP: return a simple default template
+    // Load from settings table by key (if available)
     try {
       const settingsRepo = (this.notificationRepo.manager as any).getRepository
         ? this.notificationRepo.manager.getRepository('settings' as any)
@@ -76,23 +75,27 @@ export class NotificationService {
       // fallback to default
     }
 
-    // Default templates
-    const defaults: Record<string, { subject: string; body: string }> = {
+    // Default templates with channel-appropriate formatting
+    const defaults: Record<string, { subject: string; body: string; smsBody?: string }> = {
       invoice_delivery: {
         subject: 'Your Invoice from Dream Gadgets',
-        body: 'Dear {{name}}, your invoice {{invoiceNumber}} for ₹{{amount}} is ready.',
+        body: '<h2>Invoice Ready</h2><p>Dear {{name}},</p><p>Your invoice <strong>{{invoiceNumber}}</strong> for <strong>₹{{amount}}</strong> is ready.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
       },
       order_status: {
         subject: 'Order Update - {{orderNumber}}',
-        body: 'Your order {{orderNumber}} status has been updated to {{status}}.',
+        body: '<h2>Order Update</h2><p>Your order <strong>{{orderNumber}}</strong> status has been updated to <strong>{{status}}</strong>.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Order {{orderNumber}}: {{status}}. - Dream Gadgets',
       },
       otp: {
-        subject: 'Your OTP',
-        body: 'Your OTP is {{otp}}. Valid for 10 minutes.',
+        subject: 'Your OTP for Dream Gadgets',
+        body: '<p>Your OTP is <strong>{{otp}}</strong>. Valid for 10 minutes.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
       },
       birthday_offer: {
-        subject: 'Happy Birthday from Dream Gadgets!',
-        body: 'Dear {{name}}, wishing you a happy birthday! Enjoy a special offer today.',
+        subject: 'Happy Birthday from Dream Gadgets! 🎂',
+        body: '<h2>Happy Birthday! 🎂</h2><p>Dear {{name}},</p><p>Wishing you a wonderful birthday! Enjoy a special offer just for you.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
       },
       buyback_lead: {
         subject: 'New Buyback Request — {{brand}} {{model}}',
@@ -100,7 +103,8 @@ export class NotificationService {
       },
       refund_processed: {
         subject: 'Refund Initiated — {{orderNumber}}',
-        body: '<h2>Refund Initiated</h2><p>Dear {{name}},</p><p>A refund of <strong>₹{{amount}}</strong> for your order <strong>{{orderNumber}}</strong> has been initiated.</p><p>The refund will be credited to your original payment method within <strong>2–5 business days</strong>.</p><p>Refund ID: {{refundId}}</p><p>If you have any questions, please contact our support team.</p><p>— Dream Gadgets</p>',
+        body: '<h2>Refund Initiated</h2><p>Dear {{name}},</p><p>A refund of <strong>₹{{amount}}</strong> for your order <strong>{{orderNumber}}</strong> has been initiated.</p><p>The refund will be credited to your original payment method within <strong>2–5 business days</strong>.</p><p>Refund ID: {{refundId}}</p><p>— Dream Gadgets</p>',
+        smsBody: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. Will credit within 2-5 business days. - Dream Gadgets',
       },
     };
 
@@ -115,170 +119,267 @@ export class NotificationService {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
   }
 
+  // ─── Channel-appropriate content formatting ───────────────────────────────────
+
+  private formatForChannel(
+    channel: 'email' | 'sms' | 'whatsapp' | 'in_app',
+    subject: string,
+    htmlBody: string,
+    templateKey?: string,
+    vars?: Record<string, string>,
+  ): { subject: string; body: string } {
+    if (channel === 'sms' && templateKey) {
+      // Use SMS-specific templates for SMS
+      const defaults: Record<string, string> = {
+        invoice_delivery: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
+        order_status: 'Order {{orderNumber}}: {{status}}. - Dream Gadgets',
+        otp: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
+        birthday_offer: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
+        refund_processed: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. - Dream Gadgets',
+      };
+
+      const shortBody = defaults[templateKey] ?? htmlBody.replace(/<[^>]*>/g, '');
+      const finalBody = vars ? this.substituteVars(shortBody, vars) : shortBody;
+      return { subject: '', body: finalBody.substring(0, 160) }; // SMS: 160 char limit
+    }
+
+    if (channel === 'whatsapp') {
+      // WhatsApp: plain text, no HTML
+      const plainBody = htmlBody.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      return { subject: '', body: plainBody.substring(0, 4096) }; // WhatsApp limit
+    }
+
+    // Email: rich HTML
+    return { subject, body: htmlBody };
+  }
+
   // ─── 14.2 Email ───────────────────────────────────────────────────────────────
 
   async sendEmail(payload: NotificationPayload & { to: string }): Promise<Notification> {
-    const { subject, body } = await this.buildContent(payload);
-    const notification = await this.createRecord({ ...payload, channel: 'email', subject, body });
-
-    if (this.queue) {
-      await this.queue.add('send-email', { notificationId: notification.id, to: payload.to, subject, body }).catch((err: any) => {
-        this.logger.warn(`Failed to enqueue email job: ${err?.message}`);
-      });
-    } else {
-      await this.deliverEmail(notification, payload.to, subject, body);
+    // Respect user opt-out
+    if (!(await this.isChannelEnabled(payload.userId, 'email'))) {
+      this.logger.log(`[Email] Skipped — user ${payload.userId} has email disabled`);
+      return this.createRecord({ ...payload, channel: 'email', status: 'skipped', target: payload.to });
     }
+
+    const { subject, body } = await this.buildContent(payload);
+    const { body: formatted } = this.formatForChannel('email', subject, body, payload.templateKey, payload.templateVars);
+    const notification = await this.createRecord({ ...payload, channel: 'email', subject, body: formatted, target: payload.to });
+
+    await this.enqueueDelivery('email', notification.id, payload.to, subject, formatted);
+
+    // Emit realtime event
+    this.emitNotificationCreated(notification);
 
     return notification;
-  }
-
-  private async deliverEmail(notification: Notification, to: string, subject: string, body: string): Promise<void> {
-    try {
-      const smtpHost = this.configService.get<string>('SMTP_HOST');
-      if (!smtpHost) {
-        this.logger.log(`[DEV] Email to ${to}: ${subject}`);
-        await this.markSent(notification.id);
-        return;
-      }
-
-      const nodemailer = require('nodemailer');
-
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: this.configService.get<number>('SMTP_PORT') ?? 587,
-        secure: false,
-        auth: {
-          user: this.configService.get<string>('SMTP_USER'),
-          pass: this.configService.get<string>('SMTP_PASS'),
-        },
-      });
-
-      await transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM') ?? 'noreply@dreamgadgets.in',
-        to,
-        subject,
-        html: body,
-      });
-
-      await this.markSent(notification.id);
-    } catch (err: any) {
-      await this.markFailed(notification.id, err?.message);
-    }
   }
 
   // ─── 14.3 WhatsApp ────────────────────────────────────────────────────────────
 
   async sendWhatsApp(payload: NotificationPayload & { to: string }): Promise<Notification> {
-    const { subject, body } = await this.buildContent(payload);
-    const notification = await this.createRecord({ ...payload, channel: 'whatsapp', subject, body });
-
-    if (this.queue) {
-      await this.queue.add('send-whatsapp', { notificationId: notification.id, to: payload.to, body }).catch((err: any) => {
-        this.logger.warn(`Failed to enqueue WhatsApp job: ${err?.message}`);
-      });
-    } else {
-      await this.deliverWhatsApp(notification, payload.to, body);
+    // Respect user opt-out
+    if (!(await this.isChannelEnabled(payload.userId, 'whatsapp'))) {
+      this.logger.log(`[WhatsApp] Skipped — user ${payload.userId} has whatsapp disabled`);
+      return this.createRecord({ ...payload, channel: 'whatsapp', status: 'skipped', target: payload.to });
     }
+
+    const { subject, body } = await this.buildContent(payload);
+    const { body: formatted } = this.formatForChannel('whatsapp', subject, body, payload.templateKey, payload.templateVars);
+    const notification = await this.createRecord({ ...payload, channel: 'whatsapp', subject, body: formatted, target: payload.to });
+
+    await this.enqueueDelivery('whatsapp', notification.id, payload.to, subject, formatted);
+
+    // Emit realtime event
+    this.emitNotificationCreated(notification);
 
     return notification;
-  }
-
-  private async deliverWhatsApp(notification: Notification, to: string, body: string): Promise<void> {
-    try {
-      const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
-      const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-      const from = this.configService.get<string>('TWILIO_WHATSAPP_FROM');
-
-      if (!accountSid || !authToken) {
-        this.logger.log(`[DEV] WhatsApp to ${to}: ${body}`);
-        await this.markSent(notification.id);
-        return;
-      }
-
-      const twilio = require('twilio');
-      const client = twilio(accountSid, authToken);
-      await client.messages.create({
-        from: `whatsapp:${from}`,
-        to: `whatsapp:${to}`,
-        body,
-      });
-
-      await this.markSent(notification.id);
-    } catch (err: any) {
-      await this.markFailed(notification.id, err?.message);
-    }
   }
 
   // ─── 14.4 SMS ─────────────────────────────────────────────────────────────────
 
   async sendSms(payload: NotificationPayload & { to: string }): Promise<Notification> {
-    const { body } = await this.buildContent(payload);
-    const notification = await this.createRecord({ ...payload, channel: 'sms', body });
-
-    if (this.queue) {
-      await this.queue.add('send-sms', { notificationId: notification.id, to: payload.to, body }).catch((err: any) => {
-        this.logger.warn(`Failed to enqueue SMS job: ${err?.message}`);
-      });
-    } else {
-      await this.deliverSms(notification, payload.to, body);
+    // Respect user opt-out
+    if (!(await this.isChannelEnabled(payload.userId, 'sms'))) {
+      this.logger.log(`[SMS] Skipped — user ${payload.userId} has sms disabled`);
+      return this.createRecord({ ...payload, channel: 'sms', status: 'skipped', target: payload.to });
     }
+
+    const { body } = await this.buildContent(payload);
+    const { body: formatted } = this.formatForChannel('sms', '', body, payload.templateKey, payload.templateVars);
+    const notification = await this.createRecord({ ...payload, channel: 'sms', body: formatted, target: payload.to });
+
+    await this.enqueueDelivery('sms', notification.id, payload.to, undefined, formatted);
+
+    // Emit realtime event
+    this.emitNotificationCreated(notification);
 
     return notification;
   }
 
-  private async deliverSms(notification: Notification, to: string, body: string): Promise<void> {
-    try {
-      const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
-      const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-      const from = this.configService.get<string>('TWILIO_SMS_FROM');
+  // ─── 14.6 In-app (Socket.io + EventService) ─────────────────────────────────
 
-      if (!accountSid || !authToken) {
-        this.logger.log(`[DEV] SMS to ${to}: ${body}`);
-        await this.markSent(notification.id);
-        return;
-      }
-
-      const twilio = require('twilio');
-      const client = twilio(accountSid, authToken);
-      await client.messages.create({ from, to, body });
-
-      await this.markSent(notification.id);
-    } catch (err: any) {
-      await this.markFailed(notification.id, err?.message);
-    }
-  }
-
-  // ─── 14.6 In-app (Socket.io) ─────────────────────────────────────────────────
-
-  async sendInApp(
-    payload: NotificationPayload,
-    emitter?: { emit: (room: string, event: string, data: any) => void },
-  ): Promise<Notification> {
+  async sendInApp(payload: NotificationPayload): Promise<Notification> {
     const { subject, body } = await this.buildContent(payload);
     const notification = await this.createRecord({ ...payload, channel: 'in_app', subject, body });
 
-    if (emitter && payload.userId) {
+    // Use EventService for realtime delivery instead of direct socket emitter
+    if (payload.userId) {
       try {
-        emitter.emit(`user:${payload.userId}`, 'notification.new', {
-          id: notification.id,
+        this.eventService.emitNotificationNew(payload.userId, {
+          notificationId: notification.id,
           type: payload.type,
-          subject,
-          body,
-          createdAt: notification.createdAt,
+          subject: subject ?? '',
+          body: body ?? undefined,
+          createdAt: notification.createdAt.toISOString(),
         });
-        await this.markSent(notification.id);
+        await this.markDelivered(notification.id, 'sent', `inapp-${notification.id}`);
       } catch (err: any) {
-        await this.markFailed(notification.id, err?.message);
+        await this.markFailed(notification.id, err?.message ?? 'In-app delivery failed');
       }
     } else {
-      this.logger.log(`[DEV] In-app notification for user ${payload.userId}: ${subject}`);
-      await this.markSent(notification.id);
+      this.logger.log(`[DEV] In-app notification: ${subject}`);
+      await this.markDelivered(notification.id, 'sent', `inapp-dev-${notification.id}`);
     }
 
     return notification;
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────────
+  // ─── Queue delivery ─────────────────────────────────────────────────────────
+
+  private async enqueueDelivery(
+    channel: 'email' | 'sms' | 'whatsapp',
+    notificationId: string,
+    to: string,
+    subject?: string,
+    body?: string,
+  ): Promise<void> {
+    try {
+      await this.notificationQueue.add(
+        `send-${channel}`,
+        { notificationId, channel, to, subject, body },
+        {
+          attempts: MAX_RETRY_ATTEMPTS,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: false,
+          removeOnFail: false,
+        },
+      );
+    } catch (err: any) {
+      this.logger.warn(`[Queue] Failed to enqueue ${channel} for ${notificationId}: ${err?.message}`);
+      // Fallback: deliver synchronously
+      const result = await this.deliverDirect(channel, to, subject, body);
+      await this.updateDeliveryResult(notificationId, result);
+    }
+  }
+
+  // ─── Direct delivery (used by processor and as fallback) ──────────────────────
+
+  async processDelivery(
+    notificationId: string,
+    channel: 'email' | 'sms' | 'whatsapp',
+    to: string,
+    subject?: string,
+    body?: string,
+  ): Promise<DeliveryResult> {
+    // Track attempt
+    await this.notificationRepo.update(notificationId, {
+      attempts: () => 'attempts + 1',
+      lastAttemptAt: new Date(),
+    });
+
+    const result = await this.deliverDirect(channel, to, subject, body);
+    await this.updateDeliveryResult(notificationId, result);
+    return result;
+  }
+
+  private async deliverDirect(
+    channel: 'email' | 'sms' | 'whatsapp',
+    to: string,
+    subject?: string,
+    body?: string,
+  ): Promise<DeliveryResult> {
+    switch (channel) {
+      case 'email':
+        return this.emailService.send(to, subject ?? '', body ?? '');
+      case 'sms':
+        return this.smsService.send(to, body ?? '');
+      case 'whatsapp':
+        return this.whatsAppService.send(to, body ?? '');
+      default:
+        return { success: false, providerMessageId: null, status: 'failed', error: `Unknown channel: ${channel}` };
+    }
+  }
+
+  // ─── DB tracking helpers ─────────────────────────────────────────────────────
+
+  private async updateDeliveryResult(id: string, result: DeliveryResult): Promise<void> {
+    if (result.success) {
+      await this.markDelivered(id, 'sent', result.providerMessageId);
+    } else {
+      await this.markFailed(id, result.error);
+    }
+  }
+
+  private async markDelivered(id: string, status: string, providerMessageId: string | null): Promise<void> {
+    await this.notificationRepo.update(id, {
+      status,
+      providerMessageId,
+      sentAt: new Date(),
+      errorMessage: null,
+    });
+  }
+
+  private async markFailed(id: string, error?: string): Promise<void> {
+    await this.notificationRepo.update(id, {
+      status: 'failed',
+      errorMessage: error ?? null,
+    });
+  }
+
+  // ─── Emit realtime event ─────────────────────────────────────────────────────
+
+  private emitNotificationCreated(notification: Notification): void {
+    try {
+      if (notification.userId) {
+        this.eventService.emitNotificationNew(notification.userId, {
+          notificationId: notification.id,
+          type: notification.type,
+          subject: notification.subject ?? '',
+          body: notification.body ?? undefined,
+          createdAt: notification.createdAt.toISOString(),
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn(`[Event] Failed to emit notification.created: ${err?.message}`);
+    }
+  }
+
+  // ─── User preference checking ───────────────────────────────────────────────
+
+  /**
+   * Check if a user has enabled the given notification channel.
+   * If the user is not found or has no preferences, defaults to enabled.
+   */
+  private async isChannelEnabled(userId: string | undefined, channel: string): Promise<boolean> {
+    if (!userId) return true;
+    try {
+      const user = await this.userRepo.findOne({
+        where: { id: userId },
+        select: ['emailEnabled', 'smsEnabled', 'whatsappEnabled'],
+      });
+      if (!user) return true;
+      switch (channel) {
+        case 'email':   return user.emailEnabled;
+        case 'sms':     return user.smsEnabled;
+        case 'whatsapp': return user.whatsappEnabled;
+        default:        return true;
+      }
+    } catch {
+      return true;
+    }
+  }
+
+  // ─── Content helpers ──────────────────────────────────────────────────────────
 
   private async buildContent(payload: NotificationPayload): Promise<{ subject: string; body: string }> {
     if (payload.templateKey) {
@@ -295,18 +396,12 @@ export class NotificationService {
       channel: data.channel,
       subject: data.subject,
       body: data.body,
-      status: 'pending',
+      target: data.target,
+      status: data.status ?? 'pending',
+      attempts: 0,
       metadata: data.metadata,
     });
     return this.notificationRepo.save(notification);
-  }
-
-  private async markSent(id: string): Promise<void> {
-    await this.notificationRepo.update(id, { status: 'sent', sentAt: new Date() });
-  }
-
-  private async markFailed(id: string, error?: string): Promise<void> {
-    await this.notificationRepo.update(id, { status: 'failed', error });
   }
 
   // ─── Query helpers ────────────────────────────────────────────────────────────
@@ -321,6 +416,85 @@ export class NotificationService {
 
   async findById(id: string): Promise<Notification | null> {
     return this.notificationRepo.findOne({ where: { id } });
+  }
+
+  // ─── Admin query helpers ──────────────────────────────────────────────────────
+
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    channel?: string;
+    userId?: string;
+  }): Promise<{ data: Notification[]; total: number; page: number; limit: number }> {
+    const { page = 1, limit = 20, status, channel, userId } = query;
+
+    const qb = this.notificationRepo
+      .createQueryBuilder('n')
+      .orderBy('n.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (status) qb.andWhere('n.status = :status', { status });
+    if (channel) qb.andWhere('n.channel = :channel', { channel });
+    if (userId) qb.andWhere('n.userId = :userId', { userId });
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page, limit };
+  }
+
+  async getFailedNotifications(): Promise<Notification[]> {
+    return this.notificationRepo.find({
+      where: { status: 'failed' },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+  }
+
+  async retryFailed(notificationId: string): Promise<Notification> {
+    const notification = await this.findById(notificationId);
+    if (!notification) {
+      throw new Error(`Notification ${notificationId} not found`);
+    }
+    if (notification.status !== 'failed') {
+      throw new Error(`Notification ${notificationId} is not in failed status`);
+    }
+
+    // Reset status to pending and re-enqueue
+    await this.notificationRepo.update(notificationId, {
+      status: 'pending',
+      errorMessage: null,
+      attempts: 0,
+    });
+
+    const target = notification.target;
+    if (!target) {
+      throw new Error(`Notification ${notificationId} has no target address`);
+    }
+
+    await this.enqueueDelivery(
+      notification.channel as 'email' | 'sms' | 'whatsapp',
+      notificationId,
+      target,
+      notification.subject ?? undefined,
+      notification.body ?? undefined,
+    );
+
+    return (await this.findById(notificationId))!;
+  }
+
+  async retryAllFailed(): Promise<{ retried: number }> {
+    const failed = await this.getFailedNotifications();
+    let retried = 0;
+    for (const n of failed) {
+      try {
+        await this.retryFailed(n.id);
+        retried++;
+      } catch (err: any) {
+        this.logger.warn(`[Retry] Failed to retry ${n.id}: ${err?.message}`);
+      }
+    }
+    return { retried };
   }
 
   // ─── In-app notification queries ──────────────────────────────────────────────

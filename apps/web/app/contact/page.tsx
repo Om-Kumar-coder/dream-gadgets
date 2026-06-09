@@ -173,10 +173,10 @@ export default function ContactPage() {
           <div className="space-y-6">
             <h2 className="text-xl font-bold text-gray-900">Get in touch</h2>
             {[
-              { icon: '📍', title: 'Address', detail: '123 Tech Street, Andheri West, Mumbai — 400053' },
-              { icon: '📞', title: 'Phone', detail: '+91 98000 00000' },
-              { icon: '✉️', title: 'Email', detail: 'support@dreamgadgets.in' },
-              { icon: '🕐', title: 'Working Hours', detail: 'Monday – Saturday: 10am to 8pm' },
+              { icon: '📍', title: 'Main Branch', detail: '29A, Pitambar Ghatak Lane, Chetla, Kolkata — 700027' },
+              { icon: '📞', title: 'Phone', detail: '+91 82820 11193 (Chetla) / +91 90383 12344 (Jadavpur)' },
+              { icon: '✉️', title: 'Email', detail: 'dreamgadgetskolkata@gmail.com' },
+              { icon: '🕐', title: 'Hours', detail: '12:30–9:30 PM (Chetla & Champahati) / 2–10 PM (Jadavpur)' },
             ].map(i => (
               <div key={i.title} className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <span className="text-2xl shrink-0">{i.icon}</span>
@@ -189,9 +189,8 @@ export default function ContactPage() {
 
             <div className="rounded-2xl p-5 border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.15)' }}>
               <p className="font-semibold text-white text-sm mb-1">💬 WhatsApp Support</p>
-              <p className="text-xs text-gray-400 mb-3">Chat with us directly on WhatsApp for quick help.</p>
-              <a
-                href="https://wa.me/919800000000"
+              <p className="text-xs text-gray-400 mb-3">Chat with us directly on WhatsApp for quick help.</p>                <a
+                href="https://wa.me/918282011193"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-4 py-2 btn-red text-xs font-bold rounded-lg transition-all"

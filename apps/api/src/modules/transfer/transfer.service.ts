@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
@@ -11,9 +12,12 @@ import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { Branch } from '../auth/entities/user.entity';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { QueryTransferDto } from './dto/query-transfer.dto';
+import { EventService } from '../../common/events/event.service';
 
 @Injectable()
 export class TransferService {
+  private readonly logger = new Logger(TransferService.name);
+
   constructor(
     @InjectRepository(StockTransfer)
     private transferRepo: Repository<StockTransfer>,
@@ -24,6 +28,7 @@ export class TransferService {
     @InjectRepository(Branch)
     private branchRepo: Repository<Branch>,
     private dataSource: DataSource,
+    private eventService: EventService,
   ) {}
 
   // ─── Transfer number generation ──────────────────────────────────────────────
@@ -106,6 +111,22 @@ export class TransferService {
       }
 
       await queryRunner.commitTransaction();
+
+      // Emit realtime event after successful commit
+      try {
+        this.eventService.emitTransferCreated(fromBranchId, {
+          transferId: savedTransfer.id,
+          transferNumber,
+          status: 'initiated',
+          fromBranchId,
+          toBranchId,
+          branchId: fromBranchId,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        this.logger.warn(`[Transfer] Failed to emit stock.transfer.created: ${err?.message}`);
+      }
+
       return this.findById(savedTransfer.id);
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -190,6 +211,33 @@ export class TransferService {
       });
 
       await queryRunner.commitTransaction();
+
+      // Emit realtime event after successful commit
+      try {
+        this.eventService.emitTransferReceived(transfer.toBranchId, {
+          transferId: id,
+          transferNumber: transfer.transferNumber,
+          status: 'received',
+          fromBranchId: transfer.fromBranchId,
+          toBranchId: transfer.toBranchId,
+          branchId: transfer.toBranchId,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Also notify source branch that transfer was received
+        this.eventService.emitTransferUpdated(transfer.fromBranchId, {
+          transferId: id,
+          transferNumber: transfer.transferNumber,
+          status: 'received',
+          fromBranchId: transfer.fromBranchId,
+          toBranchId: transfer.toBranchId,
+          branchId: transfer.fromBranchId,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        this.logger.warn(`[Transfer] Failed to emit transfer events: ${err?.message}`);
+      }
+
       return this.findById(id);
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -232,6 +280,22 @@ export class TransferService {
       });
 
       await queryRunner.commitTransaction();
+
+      // Emit realtime event after successful commit
+      try {
+        this.eventService.emitTransferUpdated(transfer.fromBranchId, {
+          transferId: id,
+          transferNumber: transfer.transferNumber,
+          status: 'rejected',
+          fromBranchId: transfer.fromBranchId,
+          toBranchId: transfer.toBranchId,
+          branchId: transfer.fromBranchId,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        this.logger.warn(`[Transfer] Failed to emit transfer.rejected: ${err?.message}`);
+      }
+
       return this.findById(id);
     } catch (err) {
       await queryRunner.rollbackTransaction();

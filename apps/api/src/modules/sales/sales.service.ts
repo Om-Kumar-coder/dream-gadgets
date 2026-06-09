@@ -19,10 +19,9 @@ import {
   calculateGST,
   getRequiredDiscountRole,
 } from '../../common/utils/business-logic';
+import { RedisService } from '../../common/redis/redis.service';
+import { EventService } from '../../common/events/event.service';
 
-// Redis key helpers
-const INVOICE_SEQ_KEY = (branchId: string, year: number) => `invoice:seq:${branchId}:${year}`;
-const POS_LOCK_KEY = (itemId: string) => `pos:lock:${itemId}`;
 const POS_LOCK_TTL = 15 * 60; // 15 minutes in seconds
 
 // Role hierarchy for discount authorization
@@ -38,8 +37,6 @@ function getUserRoleLevel(roleName: string): number {
 
 @Injectable()
 export class SalesService {
-  private redisClient: any;
-
   constructor(
     @InjectRepository(Sale)
     private saleRepo: Repository<Sale>,
@@ -53,19 +50,9 @@ export class SalesService {
     private branchRepo: Repository<Branch>,
     private dataSource: DataSource,
     private configService: ConfigService,
+    private redisService: RedisService,
+    private eventService: EventService,
   ) {}
-
-  // ─── Redis lazy init ─────────────────────────────────────────────────────────
-
-  private async getRedis(): Promise<any> {
-    if (!this.redisClient) {
-      const { createClient } = await import('redis');
-      const client = createClient({ url: this.configService.get<string>('redis.url') });
-      await client.connect();
-      this.redisClient = client;
-    }
-    return this.redisClient;
-  }
 
   // ─── 7.2 Invoice number generation ──────────────────────────────────────────
   // Format: DG-{BRANCH_CODE}-{YEAR}-{padded_seq}
@@ -75,13 +62,7 @@ export class SalesService {
     const branchCode = branch?.code ?? branchId.slice(0, 4).toUpperCase();
     const year = new Date().getFullYear();
 
-    const redis = await this.getRedis();
-    const key = INVOICE_SEQ_KEY(branchId, year);
-    const seq: number = await redis.incr(key);
-    // Set expiry to end of year + buffer (400 days) on first increment
-    if (seq === 1) {
-      await redis.expire(key, 400 * 24 * 60 * 60);
-    }
+    const seq: number = await this.redisService.getNextInvoiceSequence(branchId, year);
 
     const paddedSeq = String(seq).padStart(5, '0');
     return `DG-${branchCode}-${year}-${paddedSeq}`;
@@ -240,12 +221,34 @@ export class SalesService {
 
       // Release any POS locks
       try {
-        const redis = await this.getRedis();
         for (const id of itemIds) {
-          await redis.del(POS_LOCK_KEY(id));
+          await this.redisService.posUnlockItem(id);
         }
       } catch {
         // Non-critical — log and continue
+      }
+
+      // Emit realtime events after successful commit
+      try {
+        this.eventService.emitSaleCreated(dto.branchId, {
+          saleId: savedSale.id,
+          invoiceNumber: savedSale.invoiceNumber,
+          amount: Number(totalAmount),
+          branchId: dto.branchId,
+          timestamp: new Date().toISOString(),
+        });
+
+        for (const inv of inventoryItems) {
+          this.eventService.emitInventoryUpdated(dto.branchId, {
+            itemId: inv.id,
+            imei: inv.imei,
+            status: 'sold',
+            branchId: dto.branchId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (err: any) {
+        console.warn(`[Sales] Failed to emit realtime events: ${err?.message}`);
       }
 
       return this.findById(savedSale.id);
@@ -462,6 +465,19 @@ ${itemRows}
       });
 
       await queryRunner.commitTransaction();
+
+      // Emit realtime event after successful commit
+      try {
+        this.eventService.emitSaleVoided(sale.branchId, {
+          saleId: id,
+          invoiceNumber: sale.invoiceNumber,
+          branchId: sale.branchId,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        console.warn(`[Sales] Failed to emit sale.voided: ${err?.message}`);
+      }
+
       return this.findById(id);
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -486,8 +502,16 @@ ${itemRows}
 
     await this.itemRepo.update(itemId, { status: 'in_cart' });
 
-    const redis = await this.getRedis();
-    await redis.set(POS_LOCK_KEY(itemId), '1', { EX: POS_LOCK_TTL });
+    await this.redisService.posLockItem(itemId, POS_LOCK_TTL);
+
+    // Broadcast lock event to branch
+    this.eventService.emitInventoryLocked(item.branchId, {
+      itemId,
+      imei: item.imei,
+      lockedBy: 'pos-user',
+      branchId: item.branchId,
+      timestamp: new Date().toISOString(),
+    });
 
     return { message: `Item ${itemId} locked in cart` };
   }
@@ -500,8 +524,15 @@ ${itemRows}
       await this.itemRepo.update(itemId, { status: 'available' });
     }
 
-    const redis = await this.getRedis();
-    await redis.del(POS_LOCK_KEY(itemId));
+    await this.redisService.posUnlockItem(itemId);
+
+    // Broadcast unlock event to branch
+    this.eventService.emitInventoryUnlocked(item.branchId, {
+      itemId,
+      imei: item.imei,
+      branchId: item.branchId,
+      timestamp: new Date().toISOString(),
+    });
 
     return { message: `Item ${itemId} unlocked` };
   }

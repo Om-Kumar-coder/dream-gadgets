@@ -10,6 +10,7 @@ import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
+import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -40,6 +41,12 @@ type Sale = {
 
 export default function SalesPage() {
   const qc = useQueryClient();
+
+  // Auto-refresh on sale events
+  useRealtimeUpdates({
+    'sale.created': [['sales']],
+    'sale.voided': [['sales']],
+  });
 
   const columns: ColumnDef<Sale, any>[] = [
     {

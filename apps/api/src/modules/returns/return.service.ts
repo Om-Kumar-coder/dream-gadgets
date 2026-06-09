@@ -16,6 +16,8 @@ import { Purchase } from '../purchase/entities/purchase.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { CreateSaleReturnDto, CreatePurchaseReturnDto } from './dto/create-return.dto';
 import { getRequiredReturnRole } from '../../common/utils/business-logic';
+import { RedisService } from '../../common/redis/redis.service';
+import { EventService } from '../../common/events/event.service';
 
 // Role hierarchy for return approval
 const ROLE_LEVEL: Record<string, number> = { any: 0, manager: 1, owner: 2 };
@@ -37,7 +39,6 @@ function generateReturnNumber(): string {
 @Injectable()
 export class ReturnService {
   private readonly logger = new Logger(ReturnService.name);
-  private redisClient: any;
 
   constructor(
     @InjectRepository(Return)
@@ -54,19 +55,9 @@ export class ReturnService {
     private itemRepo: Repository<InventoryItem>,
     private configService: ConfigService,
     private dataSource: DataSource,
+    private redisService: RedisService,
+    private eventService: EventService,
   ) {}
-
-  // ─── Redis lazy init ─────────────────────────────────────────────────────────
-
-  private async getRedis(): Promise<any> {
-    if (!this.redisClient) {
-      const { createClient } = await import('redis');
-      const client = createClient({ url: this.configService.get<string>('redis.url') });
-      await client.connect();
-      this.redisClient = client;
-    }
-    return this.redisClient;
-  }
 
   // ─── 11.2 / 11.3 Create sale return ─────────────────────────────────────────
 
@@ -169,7 +160,24 @@ export class ReturnService {
       createdById: userId,
     });
 
-    return this.returnRepo.save(returnRecord);
+    const saved = await this.returnRepo.save(returnRecord);
+
+    // Emit realtime event
+    try {
+      this.eventService.emitReturnCreated(sale.branchId, {
+        returnId: saved.id,
+        returnNumber: saved.returnNumber,
+        returnType: 'sale',
+        originalId: saleId,
+        refundAmount: Number(refundAmount),
+        branchId: sale.branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Returns] Failed to emit return.created: ${err?.message}`);
+    }
+
+    return saved;
   }
 
   // ─── 12.1 Create purchase return ─────────────────────────────────────────────
@@ -212,7 +220,24 @@ export class ReturnService {
       createdById: userId,
     });
 
-    return this.returnRepo.save(returnRecord);
+    const saved = await this.returnRepo.save(returnRecord);
+
+    // Emit realtime event
+    try {
+      this.eventService.emitReturnCreated(purchase.branchId ?? '', {
+        returnId: saved.id,
+        returnNumber: saved.returnNumber,
+        returnType: 'purchase',
+        originalId: purchaseId,
+        refundAmount: Number(purchase.totalAmount),
+        branchId: purchase.branchId ?? '',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Returns] Failed to emit return.created: ${err?.message}`);
+    }
+
+    return saved;
   }
 
   // ─── List returns ────────────────────────────────────────────────────────────

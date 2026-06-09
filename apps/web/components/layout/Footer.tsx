@@ -19,10 +19,15 @@ export function Footer() {
             <p className="text-sm leading-relaxed mb-4">
               India's most transparent mobile selling platform. Certified used phones, doorstep pickup, instant payment.
             </p>
-            <p className="text-xs text-gray-500">Mumbai, Maharashtra</p>
+            <p className="text-xs text-gray-500">Kolkata, West Bengal</p>
             <p className="text-xs text-gray-500 mt-1">
-              <a href="mailto:support@dreamgadgets.in" className="hover:text-white transition-colors">
-                support@dreamgadgets.in
+              <a href="mailto:dreamgadgetskolkata@gmail.com" className="hover:text-white transition-colors">
+                dreamgadgetskolkata@gmail.com
+              </a>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              <a href="https://instagram.com/dream_gadgets_kolkata" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                @dream_gadgets_kolkata
               </a>
             </p>
           </div>

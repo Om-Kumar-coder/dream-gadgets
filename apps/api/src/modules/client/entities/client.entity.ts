@@ -50,6 +50,9 @@ export class Client {
   @Column({ nullable: true, type: 'varchar' })
   pincode: string | null;
 
+  @Column({ name: 'gstin', nullable: true, type: 'varchar', length: 20 })
+  gstin: string | null;
+
   @Column({ name: 'id_proof_type', nullable: true, type: 'varchar' })
   idProofType: string | null;
 

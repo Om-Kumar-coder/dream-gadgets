@@ -49,6 +49,14 @@ export interface CreateBranchDto {
   address?: string;
   city?: string;
   state?: string;
+  pincode?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  instagram?: string;
+  workingHours?: string;
+  mapUrl?: string;
+  sortOrder?: number;
   gstin?: string;
   isActive?: boolean;
 }
@@ -58,6 +66,14 @@ export interface UpdateBranchDto {
   address?: string;
   city?: string;
   state?: string;
+  pincode?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  instagram?: string;
+  workingHours?: string;
+  mapUrl?: string;
+  sortOrder?: number;
   gstin?: string;
   isActive?: boolean;
 }

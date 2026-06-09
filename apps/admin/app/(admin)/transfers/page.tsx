@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { Modal } from '@dream-gadgets/ui';
 import { Button } from '@dream-gadgets/ui';
 import { Form, FormField, FormActions } from '@dream-gadgets/ui';
+import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -42,6 +43,13 @@ export default function TransfersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showView, setShowView] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
+
+  // Auto-refresh on transfer events
+  useRealtimeUpdates({
+    'stock.transfer.created': [['transfers']],
+    'stock.transfer.received': [['transfers']],
+    'stock.transfer.updated': [['transfers']],
+  });
 
   const columns: ColumnDef<Transfer, any>[] = [
     {

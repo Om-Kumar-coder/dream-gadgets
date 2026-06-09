@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ReturnService } from './return.service';
+import { EventService } from '../../common/events/event.service';
 import { Return } from './entities/return.entity';
 import { Sale } from '../sales/entities/sale.entity';
 import { SaleItem } from '../sales/entities/sale-item.entity';
@@ -146,6 +147,12 @@ describe('ReturnService', () => {
                 query: jest.fn(() => Promise.resolve([])),
               },
             }),
+          },
+        },
+        {
+          provide: EventService,
+          useValue: {
+            emitReturnCreated: jest.fn(),
           },
         },
       ],

@@ -46,11 +46,38 @@ export class Branch {
   @Column({ nullable: true, type: 'varchar' })
   state: string;
 
+  @Column({ nullable: true, type: 'varchar', length: 10 })
+  pincode: string | null;
+
+  @Column({ nullable: true, type: 'varchar', length: 15 })
+  phone: string | null;
+
   @Column({ nullable: true, type: 'varchar' })
-  gstin: string;
+  whatsapp: string | null;
+
+  @Column({ nullable: true, type: 'varchar' })
+  email: string | null;
+
+  @Column({ nullable: true, type: 'varchar', length: 200 })
+  instagram: string | null;
+
+  @Column({ nullable: true, type: 'varchar', length: 100 })
+  workingHours: string | null;
+
+  @Column({ nullable: true, type: 'varchar' })
+  mapUrl: string | null;
+
+  @Column({ nullable: true, type: 'int', default: 0 })
+  sortOrder: number | null;
+
+  @Column({ nullable: true, type: 'varchar' })
+  gstin: string | null;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 }
 
 @Entity('users')
@@ -95,6 +122,15 @@ export class User {
 
   @Column({ name: 'wallet_balance', default: 0, type: 'decimal', precision: 12, scale: 2 })
   walletBalance: number;
+
+  @Column({ name: 'email_enabled', default: true })
+  emailEnabled: boolean;
+
+  @Column({ name: 'sms_enabled', default: true })
+  smsEnabled: boolean;
+
+  @Column({ name: 'whatsapp_enabled', default: true })
+  whatsappEnabled: boolean;
 
   @Column({ name: 'last_login_at', nullable: true, type: 'timestamptz' })
   lastLoginAt: Date;

@@ -7,11 +7,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac } from 'crypto';
 import { Payment } from '../sales/entities/payment.entity';
 import { OnlineOrder } from '../sales/entities/online-order.entity';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 import { NotificationService } from '../notification/notification.service';
+import { RedisService } from '../../common/redis/redis.service';
+import { EventService } from '../../common/events/event.service';
 
 // Redis key for idempotency
 const WEBHOOK_IDEMPOTENCY_KEY = (webhookId: string) => `webhook:processed:${webhookId}`;
@@ -20,7 +22,6 @@ const WEBHOOK_TTL = 24 * 60 * 60; // 24 hours
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
-  private redisClient: any;
 
   constructor(
     @InjectRepository(Payment)
@@ -29,19 +30,9 @@ export class PaymentService {
     private orderRepo: Repository<OnlineOrder>,
     private configService: ConfigService,
     private notificationService: NotificationService,
+    private redisService: RedisService,
+    private eventService: EventService,
   ) {}
-
-  // ─── Redis lazy init ─────────────────────────────────────────────────────────
-
-  private async getRedis(): Promise<any> {
-    if (!this.redisClient) {
-      const { createClient } = await import('redis');
-      const client = createClient({ url: this.configService.get<string>('redis.url') ?? this.configService.get<string>('REDIS_URL') });
-      await client.connect();
-      this.redisClient = client;
-    }
-    return this.redisClient;
-  }
 
   // ─── 13.2 Create Razorpay order ──────────────────────────────────────────────
 
@@ -81,12 +72,6 @@ export class PaymentService {
         receipt: order.receipt,
       };
     } catch (err: any) {
-      if (err?.code === 'MODULE_NOT_FOUND' || err?.message?.includes('Cannot find module')) {
-        // Razorpay not installed — return mock for development
-        console.warn('[Payment] Razorpay package not available, returning mock order');
-        const mockOrderId = `order_mock_${Date.now()}`;
-        return { orderId: mockOrderId, amount, currency, receipt };
-      }
       throw new BadRequestException({
         code: 'RAZORPAY_ORDER_FAILED',
         message: err?.message ?? 'Failed to create Razorpay order',
@@ -124,11 +109,8 @@ export class PaymentService {
       ?? event?.payload?.order?.entity?.id
       ?? `${event?.event}:${Date.now()}`;
 
-    const idempotencyKey = WEBHOOK_IDEMPOTENCY_KEY(webhookId);
-
     try {
-      const redis = await this.getRedis();
-      const alreadyProcessed = await redis.get(idempotencyKey);
+      const alreadyProcessed = await this.redisService.isWebhookProcessed(webhookId);
       if (alreadyProcessed) {
         return { processed: false, message: 'Webhook already processed (idempotent)' };
       }
@@ -137,7 +119,7 @@ export class PaymentService {
       await this.processWebhookEvent(event);
 
       // Mark as processed with TTL
-      await redis.set(idempotencyKey, '1', { EX: WEBHOOK_TTL });
+      await this.redisService.setWebhookIdempotency(webhookId, WEBHOOK_TTL);
     } catch (err: any) {
       // If Redis is unavailable, still process but log warning
       if (err?.code === 'WEBHOOK_SIGNATURE_INVALID') throw err;
@@ -238,33 +220,6 @@ export class PaymentService {
 
       return result;
     } catch (err: any) {
-      if (err?.code === 'MODULE_NOT_FOUND' || err?.message?.includes('Cannot find module')) {
-        // Razorpay not installed — return mock for development
-        console.warn('[Payment] Razorpay package not available, returning mock refund');
-        const mockResult = {
-          refundId: `rfnd_mock_${Date.now()}`,
-          amount: amount ?? 0,
-          status: 'processed',
-        };
-
-        // Persist mock refund too
-        if (dbPaymentId) {
-          const refundAmountRupees = amount ? amount / 100 : null;
-          await this.paymentRepo.update(dbPaymentId, {
-            razorpayRefundId: mockResult.refundId,
-            refundAmount: refundAmountRupees,
-            refundStatus: mockResult.status,
-            refundedAt: new Date(),
-          }).catch(() => {});
-
-          // Send customer notifications (mock)
-          await this.sendRefundNotifications(dbPaymentId, mockResult.refundId, refundAmountRupees).catch((err) =>
-            this.logger.warn(`Failed to send refund notifications for payment ${dbPaymentId}: ${err?.message}`),
-          );
-        }
-
-        return mockResult;
-      }
       throw new BadRequestException({
         code: 'RAZORPAY_REFUND_FAILED',
         message: err?.message ?? 'Failed to create Razorpay refund',
@@ -321,6 +276,18 @@ export class PaymentService {
     if (order.status === OnlineOrderStatus.PENDING_PAYMENT) {
       order.status = OnlineOrderStatus.PAYMENT_CONFIRMED;
       await this.orderRepo.save(order);
+    }
+
+    // Emit realtime event
+    try {
+      this.eventService.emitPaymentConfirmed({
+        orderId: params.orderId,
+        paymentId: payment.id,
+        amount: Number(order.totalAmount),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Event] Failed to emit payment.confirmed: ${err?.message}`);
     }
 
     return { verified: true, payment, order };

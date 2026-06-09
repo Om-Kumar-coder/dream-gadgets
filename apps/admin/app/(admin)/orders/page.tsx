@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'react-hot-toast';
+import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: 'bg-yellow-100 text-yellow-700',
@@ -54,6 +55,13 @@ type OnlineOrder = {
 export default function OnlineOrdersPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
+
+  // Auto-refresh on order events
+  useRealtimeUpdates({
+    'order.created': [['orders']],
+    'order.status_changed': [['orders']],
+    'payment.confirmed': [['orders']],
+  });
 
   const cancelOrder = useMutation({
     mutationFn: async (id: string) => {

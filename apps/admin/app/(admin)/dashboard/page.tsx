@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AreaChart,
   Area,
@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { io } from 'socket.io-client';
+import { useSocket } from '@/lib/useSocket';
 
 interface KPI {
   todaySalesCount: number;
@@ -112,23 +112,53 @@ export default function DashboardPage() {
   const stockChartData = stockByConditionData ?? [];
 
   // WebSocket live updates
+  const qc = useQueryClient();
+  const socket = useSocket();
+
   useEffect(() => {
-    const token = localStorage.getItem('admin_access_token');
-    if (!token) return;
+    const unsubs: Array<() => void> = [];
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000', {
-      auth: { token },
-    });
+    unsubs.push(socket.on('dashboard.refresh', (data: KPI) => setLiveKpi(data)));
 
-    socket.on('dashboard.refresh', (data: KPI) => setLiveKpi(data));
-    socket.on('sale.created', () => {
+    unsubs.push(socket.on('sale.created', () => {
       setLiveKpi((prev) =>
         prev ? { ...prev, todaySalesCount: prev.todaySalesCount + 1 } : null,
       );
-    });
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-weekly-sales'] });
+    }));
 
-    return () => { socket.disconnect(); };
-  }, []);
+    unsubs.push(socket.on('sale.voided', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    unsubs.push(socket.on('inventory.updated', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stock-condition'] });
+    }));
+
+    unsubs.push(socket.on('return.created', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    unsubs.push(socket.on('order.created', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    unsubs.push(socket.on('order.status_changed', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    unsubs.push(socket.on('stock.transfer.created', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    unsubs.push(socket.on('stock.transfer.received', () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+    }));
+
+    return () => { unsubs.forEach((fn) => fn()); };
+  }, [socket, qc]);
 
   const fmt = (n: number) =>
     n >= 100000

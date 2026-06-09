@@ -9,6 +9,7 @@ import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
+import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 
 const CONDITIONS = ['sealed_pack', 'open_box', 'super_mint', 'mint', 'good'];
 const STATUSES = ['available', 'sold', 'transferred', 'returned', 'booked', 'in_cart', 'scrapped'];
@@ -54,6 +55,16 @@ type InventoryItem = {
 
 export default function InventoryPage() {
   const qc = useQueryClient();
+
+  // Auto-refresh on inventory events
+  useRealtimeUpdates({
+    'inventory.updated': [['inventory']],
+    'sale.created': [['inventory']], // items become 'sold'
+    'sale.voided': [['inventory']],  // items restored
+    'stock.transfer.created': [['inventory']],
+    'stock.transfer.received': [['inventory']],
+    'stock.transfer.updated': [['inventory']],
+  });
 
   const columns: ColumnDef<InventoryItem, any>[] = [
     {
