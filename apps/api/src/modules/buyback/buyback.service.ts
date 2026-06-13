@@ -34,6 +34,7 @@ export class BuybackService {
   constructor(
     @InjectRepository(BuybackLead)
     private leadRepo: Repository<BuybackLead>,
+    @InjectRepository(BuybackPhoto)
     private photoRepo: Repository<BuybackPhoto>,
     private notificationService: NotificationService,
     private configService: ConfigService,
