@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { BuybackLead } from './entities/buyback-lead.entity';
+import { BuybackPhoto } from './entities/buyback-photo.entity';
 import { NotificationService } from '../notification/notification.service';
 
 export interface CreateBuybackLeadDto {
@@ -10,6 +11,10 @@ export interface CreateBuybackLeadDto {
   modelName: string;
   phone: string;
   deviceType?: string;
+  screenCondition?: string;
+  bodyCondition?: string;
+  batteryHealth?: string;
+  functionalIssues?: string;
 }
 
 export interface BuybackLeadQuery {
@@ -29,6 +34,7 @@ export class BuybackService {
   constructor(
     @InjectRepository(BuybackLead)
     private leadRepo: Repository<BuybackLead>,
+    private photoRepo: Repository<BuybackPhoto>,
     private notificationService: NotificationService,
     private configService: ConfigService,
   ) {
@@ -44,6 +50,10 @@ export class BuybackService {
       modelName: dto.modelName,
       phone: dto.phone,
       deviceType: dto.deviceType ?? 'mobile',
+      screenCondition: dto.screenCondition ?? null,
+      bodyCondition: dto.bodyCondition ?? null,
+      batteryHealth: dto.batteryHealth ?? null,
+      functionalIssues: dto.functionalIssues ?? null,
     });
 
     const saved = await this.leadRepo.save(lead);
@@ -110,8 +120,83 @@ export class BuybackService {
     return { data: items, total, page, limit };
   }
 
+  async getStats(): Promise<{
+    total: number;
+    byStatus: { status: string; count: number }[];
+    byScreenCondition: { value: string; count: number }[];
+    byBodyCondition: { value: string; count: number }[];
+    byBatteryHealth: { value: string; count: number }[];
+    weeklyTrend: { date: string; count: number }[];
+  }> {
+    const total = await this.leadRepo.count();
+
+    const byStatus = await this.leadRepo
+      .createQueryBuilder('lead')
+      .select('lead.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('lead.status')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    const byScreenCondition = await this.leadRepo
+      .createQueryBuilder('lead')
+      .select('lead.screenCondition', 'value')
+      .addSelect('COUNT(*)', 'count')
+      .where('lead.screenCondition IS NOT NULL')
+      .groupBy('lead.screenCondition')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    const byBodyCondition = await this.leadRepo
+      .createQueryBuilder('lead')
+      .select('lead.bodyCondition', 'value')
+      .addSelect('COUNT(*)', 'count')
+      .where('lead.bodyCondition IS NOT NULL')
+      .groupBy('lead.bodyCondition')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    const byBatteryHealth = await this.leadRepo
+      .createQueryBuilder('lead')
+      .select('lead.batteryHealth', 'value')
+      .addSelect('COUNT(*)', 'count')
+      .where('lead.batteryHealth IS NOT NULL')
+      .groupBy('lead.batteryHealth')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    const weeklyTrend = await this.leadRepo
+      .createQueryBuilder('lead')
+      .select("TO_CHAR(lead.createdAt, 'Dy')", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('lead.createdAt >= NOW() - INTERVAL \'7 days\'')
+      .groupBy('date')
+      .addGroupBy("DATE_TRUNC('day', lead.createdAt)")
+      .orderBy("DATE_TRUNC('day', lead.createdAt)")
+      .getRawMany();
+
+    return { total, byStatus, byScreenCondition, byBodyCondition, byBatteryHealth, weeklyTrend };
+  }
+
+  // ─── Photo upload ───────────────────────────────────────────────────────────
+
+  async addPhoto(leadId: string, url: string, sortOrder = 0): Promise<BuybackPhoto> {
+    const lead = await this.leadRepo.findOne({ where: { id: leadId } });
+    if (!lead) throw new NotFoundException(`Buyback lead ${leadId} not found`);
+
+    const photo = this.photoRepo.create({ leadId, url, sortOrder });
+    return this.photoRepo.save(photo);
+  }
+
+  async getPhotos(leadId: string): Promise<BuybackPhoto[]> {
+    return this.photoRepo.find({
+      where: { leadId },
+      order: { sortOrder: 'ASC', createdAt: 'ASC' },
+    });
+  }
+
   async findById(id: string): Promise<BuybackLead | null> {
-    return this.leadRepo.findOne({ where: { id } });
+    return this.leadRepo.findOne({ where: { id }, relations: ['photos'] });
   }
 
   async updateStatus(id: string, status: string, notes?: string): Promise<BuybackLead | null> {

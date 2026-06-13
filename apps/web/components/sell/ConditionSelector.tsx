@@ -1,8 +1,25 @@
 'use client';
 
+const FUNCTIONAL_ISSUES = [
+  'Won\'t charge',
+  'Dead pixels',
+  'Touch not working',
+  'Face ID / Touch ID broken',
+  'No network / WiFi',
+  'Battery draining fast',
+  'Speaker not working',
+  'Camera not working',
+  'Buttons not working',
+  'Vibrator not working',
+];
+
 interface ConditionSelectorProps {
   condition: string;
-  onUpdate: (data: Partial<{ condition: string }>) => void;
+  screenCondition?: string;
+  bodyCondition?: string;
+  batteryHealth?: string;
+  functionalIssues?: string;
+  onUpdate: (data: Partial<{ condition: string; screenCondition?: string; bodyCondition?: string; batteryHealth?: string; functionalIssues?: string }>) => void;
 }
 
 const CONDITIONS = [
@@ -75,7 +92,7 @@ const CONDITION_QUESTIONS = [
   },
 ];
 
-export function ConditionSelector({ condition, onUpdate }: ConditionSelectorProps) {
+export function ConditionSelector({ condition, screenCondition, bodyCondition, batteryHealth, functionalIssues, onUpdate }: ConditionSelectorProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -117,21 +134,81 @@ export function ConditionSelector({ condition, onUpdate }: ConditionSelectorProp
       {condition && (
         <div className="space-y-4 p-4 bg-gray-50 rounded-2xl animate-fade-in-up">
           <p className="text-sm font-semibold text-gray-700">Quick Assessment</p>
-          {CONDITION_QUESTIONS.map(q => (
-            <div key={q.id}>
-              <p className="text-xs text-gray-500 mb-2">{q.label}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {q.options.map(o => (
-                  <button
-                    key={o}
-                    className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition-colors"
-                  >
-                    {o}
-                  </button>
-                ))}
+          {CONDITION_QUESTIONS.map(q => {
+            const currentValue =
+              q.id === 'screen' ? screenCondition :
+              q.id === 'body' ? bodyCondition :
+              batteryHealth;
+
+            return (
+              <div key={q.id}>
+                <p className="text-xs text-gray-500 mb-2">{q.label}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {q.options.map(o => {
+                    const isSelected = currentValue === o;
+                    const fieldKey =
+                      q.id === 'screen' ? 'screenCondition' :
+                      q.id === 'body' ? 'bodyCondition' :
+                      'batteryHealth';
+
+                    return (
+                      <button
+                        key={o}
+                        onClick={() => onUpdate({ [fieldKey]: isSelected ? '' : o })}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                          isSelected
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                        }`}
+                      >
+                        {o}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Functional Issues (shown when condition selected) */}
+      {condition && (
+        <div className="space-y-3 p-4 bg-white rounded-2xl border border-red-100">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">⚠️</span>
+            <p className="text-sm font-semibold text-gray-700">Functional Issues</p>
+            <span className="text-[10px] text-gray-400 font-normal">(select all that apply)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {FUNCTIONAL_ISSUES.map(issue => {
+              const selectedIssues = functionalIssues
+                ? functionalIssues.split(',').map(s => s.trim())
+                : [];
+              const isSelected = selectedIssues.includes(issue);
+
+              return (
+                <button
+                  key={issue}
+                  onClick={() => {
+                    const current = selectedIssues;
+                    const next = isSelected
+                      ? current.filter(i => i !== issue)
+                      : [...current, issue];
+                    onUpdate({ functionalIssues: next.length > 0 ? next.join(', ') : '' });
+                  }}
+                  className={`text-xs px-3 py-2 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'bg-red-50 text-red-700 border-red-300 shadow-sm'
+                      : 'border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600'
+                  }`}
+                >
+                  {isSelected && <span className="mr-1">✓</span>}
+                  {issue}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

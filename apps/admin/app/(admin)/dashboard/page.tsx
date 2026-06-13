@@ -12,8 +12,9 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-} from 'recharts';
-import { TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock } from 'lucide-react';
+} from 'recharts';import {
+  TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock, MessageSquare
+} from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useSocket } from '@/lib/useSocket';
 
@@ -104,6 +105,21 @@ export default function DashboardPage() {
     queryFn: async () => {
       const { data } = await apiClient.get('/reports/stock-by-condition');
       return data.data as StockChartPoint[];
+    },
+  });
+
+  const { data: buybackStats } = useQuery({
+    queryKey: ['dashboard-buyback-stats'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/buyback/stats');
+      return data.data as {
+        total: number;
+        byStatus: { status: string; count: number }[];
+        byScreenCondition: { value: string; count: number }[];
+        byBodyCondition: { value: string; count: number }[];
+        byBatteryHealth: { value: string; count: number }[];
+        weeklyTrend: { date: string; count: number }[];
+      };
     },
   });
 
@@ -285,6 +301,91 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           )}
         </div>
+      </div>
+
+      {/* Buyback Leads Section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-gray-500" />
+            <h2 className="text-sm font-semibold text-gray-700">Buyback Leads</h2>
+          </div>
+          <span className="text-xs text-gray-400">
+            {buybackStats?.total ?? '…'} total
+          </span>
+        </div>
+
+        {!buybackStats ? (
+          <div className="h-[120px] flex items-center justify-center text-sm text-gray-400">
+            Loading…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Screen Condition */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">Screen Condition</p>
+              {buybackStats.byScreenCondition.length === 0 ? (
+                <p className="text-xs text-gray-400">No data</p>
+              ) : (
+                <div className="space-y-1">
+                  {buybackStats.byScreenCondition.map((item) => (
+                    <div key={item.value} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600 truncate">{item.value}</span>
+                      <span className="font-semibold ml-2">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Body Condition */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">Body Condition</p>
+              {buybackStats.byBodyCondition.length === 0 ? (
+                <p className="text-xs text-gray-400">No data</p>
+              ) : (
+                <div className="space-y-1">
+                  {buybackStats.byBodyCondition.map((item) => (
+                    <div key={item.value} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600 truncate">{item.value}</span>
+                      <span className="font-semibold ml-2">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Battery Health */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">Battery Health</p>
+              {buybackStats.byBatteryHealth.length === 0 ? (
+                <p className="text-xs text-gray-400">No data</p>
+              ) : (
+                <div className="space-y-1">
+                  {buybackStats.byBatteryHealth.map((item) => (
+                    <div key={item.value} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600 truncate">{item.value}</span>
+                      <span className="font-semibold ml-2">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Status Breakdown */}
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">By Status</p>
+              <div className="space-y-1">
+                {buybackStats.byStatus.map((item) => (
+                  <div key={item.status} className="flex items-center justify-between text-xs">
+                    <span className="capitalize text-gray-600">{item.status}</span>
+                    <span className="font-semibold ml-2">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

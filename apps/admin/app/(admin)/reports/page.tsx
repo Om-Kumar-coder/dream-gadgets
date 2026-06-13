@@ -65,8 +65,8 @@ export default function ReportsPage() {
   const exportMutation = useMutation({
     mutationFn: (type: string) =>
       apiClient
-        .get(`/reports/export/${type}`, {
-          params: { format: 'excel', from: fromDate, to: toDate },
+        .get(`/reports/${type}/excel`, {
+          params: { startDate: fromDate, endDate: toDate },
           responseType: 'blob',
         })
         .then((r) => {

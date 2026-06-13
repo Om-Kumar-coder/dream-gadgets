@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { StepIndicator } from './StepIndicator';
 import { BrandModelSelector } from './BrandModelSelector';
 import { ConditionSelector } from './ConditionSelector';
+import { PhotoUpload } from './PhotoUpload';
 import { PriceEstimateCard } from './PriceEstimateCard';
 import { CustomerDetails } from './CustomerDetails';
 import { PickupScheduler } from './PickupScheduler';
@@ -11,6 +12,7 @@ import { PickupScheduler } from './PickupScheduler';
 const STEPS = [
   'Select Device',
   'Condition',
+  'Photos',
   'Price Quote',
   'Your Details',
   'Schedule Pickup',
@@ -22,6 +24,11 @@ interface WizardData {
   modelName: string;
   deviceType: string;
   condition: string;
+  screenCondition?: string;
+  bodyCondition?: string;
+  batteryHealth?: string;
+  functionalIssues?: string;
+  photos: string[];
   estimatedPrice: number | null;
   customerName: string;
   phone: string;
@@ -38,6 +45,7 @@ const INITIAL_DATA: WizardData = {
   modelName: '',
   deviceType: 'mobile',
   condition: '',
+  photos: [],
   estimatedPrice: null,
   customerName: '',
   phone: '',
@@ -66,9 +74,10 @@ export function SellWizard() {
     switch (step) {
       case 0: return !!data.brand && !!data.modelName;
       case 1: return !!data.condition;
-      case 2: return data.estimatedPrice !== null;
-      case 3: return !!data.customerName && !!data.phone;
-      case 4: return !!data.pickupDate && !!data.pickupTime;
+      case 2: return true; // Photos are optional
+      case 3: return data.estimatedPrice !== null;
+      case 4: return !!data.customerName && !!data.phone;
+      case 5: return !!data.pickupDate && !!data.pickupTime;
       default: return false;
     }
   }, [step, data]);
@@ -89,6 +98,7 @@ export function SellWizard() {
     setSubmitting(true);
     setError('');
     try {
+      // Phase 1: Create the lead
       const res = await fetch(`${API}/public/buyback/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,8 +107,11 @@ export function SellWizard() {
           modelName: data.modelName,
           phone: data.phone,
           deviceType: data.deviceType,
-          // Additional data the backend may not process yet, but we include for completeness
           condition: data.condition,
+          screenCondition: data.screenCondition || undefined,
+          bodyCondition: data.bodyCondition || undefined,
+          batteryHealth: data.batteryHealth || undefined,
+          functionalIssues: data.functionalIssues || undefined,
           estimatedPrice: data.estimatedPrice,
           customerName: data.customerName,
           email: data.email || undefined,
@@ -113,6 +126,32 @@ export function SellWizard() {
         const err = await res.json();
         throw new Error(err.message || 'Failed to submit');
       }
+      const result = await res.json();
+      const leadId = result.data?.id;
+
+      // Phase 2: Upload photos if any and we have a lead ID
+      if (leadId && data.photos.length > 0) {
+        const uploadPromises = data.photos.map(async (base64Photo, i) => {
+          // Convert base64 to Blob
+          const blob = await (await fetch(base64Photo)).blob();
+          const fileExt = blob.type === 'image/webp' ? 'webp' : 'jpeg';
+          const formData = new FormData();
+          formData.append('photo', blob, `photo-${i + 1}.${fileExt}`);
+
+          const uploadRes = await fetch(`${API}/public/buyback/leads/${leadId}/photos`, {
+            method: 'POST',
+            body: formData,
+          });
+          if (!uploadRes.ok) {
+            // Log but don't block submission — photos are optional
+            console.warn(`Failed to upload photo ${i + 1}:`, await uploadRes.text());
+          }
+        });
+
+        // Upload photos in parallel (max 3, so no rate limit concern)
+        await Promise.allSettled(uploadPromises);
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -180,10 +219,20 @@ export function SellWizard() {
           {step === 1 && (
             <ConditionSelector
               condition={data.condition}
+              screenCondition={data.screenCondition}
+              bodyCondition={data.bodyCondition}
+              batteryHealth={data.batteryHealth}
+              functionalIssues={data.functionalIssues}
               onUpdate={update}
             />
           )}
           {step === 2 && (
+            <PhotoUpload
+              photos={data.photos}
+              onUpdate={update}
+            />
+          )}
+          {step === 3 && (
             <PriceEstimateCard
               brand={data.brand}
               modelName={data.modelName}
@@ -192,19 +241,19 @@ export function SellWizard() {
               onUpdate={update}
             />
           )}
-          {step === 3 && (
+          {step === 4 && (
             <CustomerDetails
               data={data}
               onUpdate={update}
             />
           )}
-          {step === 4 && (
+          {step === 5 && (
             <PickupScheduler
               data={data}
               onUpdate={update}
             />
           )}
-          {step === 5 && (
+          {step === 6 && (
             <div className="text-center py-8 animate-fade-in-up">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,6 +265,7 @@ export function SellWizard() {
               <div className="text-left space-y-2 bg-gray-50 rounded-xl p-4 mb-6 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Device:</span><span className="font-medium">{data.brand} {data.modelName}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Condition:</span><span className="font-medium capitalize">{data.condition.replace(/_/g, ' ')}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Photos:</span><span className="font-medium">{data.photos.length > 0 ? `${data.photos.length} uploaded` : 'None'}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Est. Price:</span><span className="font-bold text-primary">₹{data.estimatedPrice?.toLocaleString('en-IN')}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Name:</span><span className="font-medium">{data.customerName}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Phone:</span><span className="font-medium">{data.phone}</span></div>
@@ -238,13 +288,13 @@ export function SellWizard() {
             <span className="text-xs text-gray-400">
               Step {step + 1} of {STEPS.length - 1}
             </span>
-            {step < 5 ? (
+            {step < 6 ? (
               <button
                 onClick={handleNext}
                 disabled={!canNext()}
                 className="btn-primary disabled:opacity-50"
               >
-                {step === 4 ? 'Review Order →' : 'Continue →'}
+                {step === 5 ? 'Review Order →' : 'Continue →'}
               </button>
             ) : (
               <button

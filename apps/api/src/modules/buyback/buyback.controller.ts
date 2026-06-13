@@ -8,11 +8,18 @@ import {
   Body,
   ParseUUIDPipe,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import * as fs from 'fs';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -39,7 +46,28 @@ class CreateBuybackLeadDto {
   @IsString()
   @MaxLength(50)
   deviceType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  screenCondition?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bodyCondition?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  batteryHealth?: string;
+
+  @IsOptional()
+  @IsString()
+  functionalIssues?: string;
 }
+
+const UPLOAD_DIR = join(__dirname, '..', '..', '..', '..', 'uploads', 'buyback');
 
 class UpdateBuybackLeadDto {
   @IsString()
@@ -75,6 +103,51 @@ export class BuybackController {
         message: 'Your request has been submitted. Our team will contact you shortly.',
       },
     };
+  }
+
+  // ─── Public: Upload photos for a lead ─────────────────────────────────────────
+
+  @Post('public/buyback/leads/:id/photos')
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      storage: diskStorage({
+        destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+          fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+          cb(null, UPLOAD_DIR);
+        },
+        filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+          const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per photo
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload a photo for a buyback lead (public)' })
+  @HttpCode(HttpStatus.CREATED)
+  async uploadPhoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: { filename: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException({ code: 'PHOTO_REQUIRED', message: 'Photo file is required' });
+    }
+    const photoUrl = `/uploads/buyback/${file.filename}`;
+    const photo = await this.buybackService.addPhoto(id, photoUrl);
+    return { status: 'success', data: { id: photo.id, url: photo.url } };
+  }
+
+  // ─── Admin: Stats ─────────────────────────────────────────────────────────
+
+  @Get('buyback/stats')
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('buyback.view')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Buyback lead statistics (by status, condition, trend)' })
+  async getStats() {
+    const stats = await this.buybackService.getStats();
+    return { status: 'success', data: stats };
   }
 
   // ─── Admin: List leads ────────────────────────────────────────────────────────

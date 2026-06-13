@@ -25,21 +25,56 @@ type BuybackLead = {
   phone: string;
   deviceType: string;
   status: string;
+  screenCondition: string | null;
+  bodyCondition: string | null;
+  batteryHealth: string | null;
+  functionalIssues: string | null;
+  photos?: Array<{ id: string; url: string }>;
   notes: string | null;
   createdAt: string;
 };
 
 function LeadDetailModal({
-  lead,
+  leadId,
   onClose,
 }: {
-  lead: BuybackLead;
+  leadId: string;
   onClose: () => void;
 }) {
+  const { data: leadData, isLoading } = useQuery({
+    queryKey: ['buyback-lead', leadId],
+    queryFn: () => apiClient.get(`/buyback/leads/${leadId}`).then((r) => r.data?.data ?? r.data),
+  });
+  const lead: BuybackLead | null = leadData ?? null;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-8 text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-500 mt-3">Loading details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!lead) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-8 text-center">
+          <p className="text-sm text-gray-500">Lead not found</p>
+          <button onClick={onClose} className="mt-4 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h3 className="font-semibold text-gray-900">Lead Details</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
@@ -80,6 +115,72 @@ function LeadDetailModal({
               </p>
             </div>
           </div>
+
+          {lead.screenCondition || lead.bodyCondition || lead.batteryHealth ? (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Quick Assessment
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Screen</p>
+                  <p className="text-sm font-medium">{lead.screenCondition || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Body</p>
+                  <p className="text-sm font-medium">{lead.bodyCondition || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Battery</p>
+                  <p className="text-sm font-medium">{lead.batteryHealth || '—'}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {lead.functionalIssues ? (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Functional Issues
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {lead.functionalIssues.split(',').map((issue, i) => (
+                  <span
+                    key={i}
+                    className="text-[11px] px-2 py-1 rounded-lg bg-red-50 text-red-700 font-medium"
+                  >
+                    {issue.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {lead.photos && lead.photos.length > 0 ? (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Device Photos ({lead.photos.length})
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {lead.photos.map((photo) => (
+                  <a
+                    key={photo.id}
+                    href={photo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:opacity-90 transition-opacity"
+                  >
+                    <img
+                      src={photo.url}
+                      alt="Device photo"
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div>
             <p className="text-xs text-gray-400 mb-1">Notes</p>
             <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
@@ -140,7 +241,7 @@ function StatusUpdateMenu({
 export default function BuybackLeadsPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [selectedLead, setSelectedLead] = useState<BuybackLead | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -182,6 +283,35 @@ export default function BuybackLeadsPage() {
       ),
     },
     {
+      accessorKey: 'assessment',
+      header: 'Condition',
+      cell: ({ row }) => {
+        const { screenCondition, bodyCondition, batteryHealth } = row.original;
+        if (!screenCondition && !bodyCondition && !batteryHealth) {
+          return <span className="text-xs text-gray-400">—</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[200px]">
+            {screenCondition && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium whitespace-nowrap" title="Screen">
+                {screenCondition}
+              </span>
+            )}
+            {bodyCondition && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium whitespace-nowrap" title="Body">
+                {bodyCondition}
+              </span>
+            )}
+            {batteryHealth && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium whitespace-nowrap" title="Battery">
+                {batteryHealth}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => (
@@ -211,7 +341,7 @@ export default function BuybackLeadsPage() {
         return (
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setSelectedLead(row.original)}
+              onClick={() => setSelectedLeadId(row.original.id)}
               className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-gray-100"
               title="View details"
             >
@@ -292,8 +422,8 @@ export default function BuybackLeadsPage() {
       />
 
       {/* Detail Modal */}
-      {selectedLead && (
-        <LeadDetailModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      {selectedLeadId && (
+        <LeadDetailModal leadId={selectedLeadId} onClose={() => setSelectedLeadId(null)} />
       )}
     </div>
   );

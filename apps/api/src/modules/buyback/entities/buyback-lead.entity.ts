@@ -3,10 +3,14 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { BuybackPhoto } from './buyback-photo.entity';
 
 @Entity('buyback_leads')
 export class BuybackLead {
+  @OneToMany(() => BuybackPhoto, (photo) => photo.lead, { cascade: true })
+  photos: BuybackPhoto[];
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -24,6 +28,18 @@ export class BuybackLead {
 
   @Column({ length: 30, default: 'pending' })
   status: string;
+
+  @Column({ name: 'screen_condition', nullable: true, type: 'varchar', length: 50 })
+  screenCondition: string | null;
+
+  @Column({ name: 'body_condition', nullable: true, type: 'varchar', length: 50 })
+  bodyCondition: string | null;
+
+  @Column({ name: 'battery_health', nullable: true, type: 'varchar', length: 20 })
+  batteryHealth: string | null;
+
+  @Column({ name: 'functional_issues', nullable: true, type: 'text' })
+  functionalIssues: string | null;
 
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
