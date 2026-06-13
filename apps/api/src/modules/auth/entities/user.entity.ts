@@ -61,13 +61,13 @@ export class Branch {
   @Column({ nullable: true, type: 'varchar', length: 200 })
   instagram: string | null;
 
-  @Column({ nullable: true, type: 'varchar', length: 100 })
+  @Column({ name: 'working_hours', nullable: true, type: 'varchar', length: 100 })
   workingHours: string | null;
 
-  @Column({ nullable: true, type: 'varchar' })
+  @Column({ name: 'map_url', nullable: true, type: 'varchar' })
   mapUrl: string | null;
 
-  @Column({ nullable: true, type: 'int', default: 0 })
+  @Column({ name: 'sort_order', nullable: true, type: 'int', default: 0 })
   sortOrder: number | null;
 
   @Column({ nullable: true, type: 'varchar' })
