@@ -99,11 +99,11 @@ export default function UsersPage() {
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Users & Employees</h1>
-          <p className="text-sm text-gray-500">Manage admin users</p>
+          <h1 className="heading-sm text-surface-900">Users & Employees</h1>
+          <p className="text-sm text-surface-500">Manage admin users</p>
         </div>
         <Button variant="default" size="md">
           <Plus className="w-4 h-4" />

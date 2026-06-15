@@ -12,12 +12,10 @@ async function getOrder(id: string) {
     );
     if (!res.ok) return null;
     const json = await res.json();
-    // Unwrap TransformInterceptor: { status, data: { data: order } } or { status, data: order }
     return json?.data?.data ?? json?.data ?? json;
   } catch { return null; }
 }
 
-// Use shared enum for status progression
 const STATUS_STEPS = [
   OnlineOrderStatus.PENDING_PAYMENT,
   OnlineOrderStatus.PAYMENT_CONFIRMED,
@@ -45,20 +43,19 @@ function StatusTimeline({ currentStatus }: { currentStatus: OnlineOrderStatus })
                     ? 'bg-primary border-primary text-white shadow-sm'
                     : isCurrent
                       ? 'border-primary text-primary bg-primary/10'
-                      : 'border-gray-200 text-gray-300 bg-white'
+                      : 'border-surface-200 text-surface-300 bg-white'
                 }`}
               >
                 {isActive ? '✓' : i + 2}
               </div>
               <span className={`text-[10px] mt-1.5 text-center capitalize leading-tight max-w-[64px] ${
-                isActive ? 'text-gray-900 font-medium' : 'text-gray-400'
+                isActive ? 'text-surface-900 font-medium' : 'text-surface-400'
               }`}>
                 {step.replace(/_/g, ' ')}
               </span>
-              {/* Connector line */}
               {i < STATUS_STEPS.length - 2 && (
                 <div className={`absolute top-3.5 left-[calc(50%+14px)] w-[calc(100%-28px)] h-px ${
-                  isActive ? 'bg-primary' : 'bg-gray-100'
+                  isActive ? 'bg-primary' : 'bg-surface-100'
                 }`} />
               )}
             </div>
@@ -81,16 +78,14 @@ export default async function OrderPage({
   if (!order) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-6">
-          <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-20 h-20 mx-auto bg-surface-50 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-2 text-gray-900">Order Not Found</h1>
-        <p className="text-gray-500 mb-6">This order may not exist or you may not have access.</p>
-        <a href="/" className="inline-flex px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-all">
-          Go Home
-        </a>
+        <h1 className="heading-md text-surface-900 mb-2">Order Not Found</h1>
+        <p className="text-surface-500 mb-6">This order may not exist or you may not have access.</p>
+        <a href="/" className="btn-primary btn-lg">Go Home</a>
       </div>
     );
   }
@@ -100,8 +95,8 @@ export default async function OrderPage({
   const currentStep = STATUS_STEPS.indexOf(order.status);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      {/* ── Payment Success Banner ── */}
+    <div className="max-w-2xl mx-auto px-4 py-8 animate-fade-in">
+      {/* Payment Success Banner */}
       {paymentSuccess && (
         <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3">
           <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
@@ -116,7 +111,7 @@ export default async function OrderPage({
         </div>
       )}
 
-      {/* ── Payment Pending Banner ── */}
+      {/* Payment Pending Banner */}
       {paymentPending && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
           <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
@@ -131,7 +126,7 @@ export default async function OrderPage({
         </div>
       )}
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="text-center mb-8">
         <div className="text-5xl mb-4">
           {order.status === OnlineOrderStatus.DELIVERED
@@ -142,39 +137,39 @@ export default async function OrderPage({
                 ? '⏳'
                 : '📦'}
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+        <h1 className="heading-md text-surface-900">
           {order.status === OnlineOrderStatus.DELIVERED && 'Delivered!'}
           {order.status === OnlineOrderStatus.PAYMENT_CONFIRMED && 'Order Confirmed'}
           {order.status === OnlineOrderStatus.PENDING_PAYMENT && 'Order Created'}
           {![OnlineOrderStatus.DELIVERED, OnlineOrderStatus.PAYMENT_CONFIRMED, OnlineOrderStatus.PENDING_PAYMENT].includes(order.status) && 'Order Updated'}
         </h1>
-        <p className="text-gray-500 mt-1.5 text-sm">
+        <p className="text-surface-500 mt-1.5 text-sm">
           Order #{order.orderNumber}
         </p>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <p className="text-xs text-surface-400 mt-0.5">
           Placed on {new Date(order.orderedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
       </div>
 
-      {/* ── Status Timeline ── */}
+      {/* Status Timeline */}
       {currentStep >= 0 && <StatusTimeline currentStatus={order.status} />}
 
-      {/* ── Order Details ── */}
-      <div className="border border-gray-100 rounded-2xl p-6 space-y-4 bg-white shadow-sm">
-        <h2 className="font-bold text-gray-900 text-sm">Order Details</h2>
+      {/* Order Details */}
+      <div className="card p-6 space-y-4">
+        <h2 className="font-bold text-surface-900 text-sm">Order Details</h2>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Status</p>
-            <p className="font-medium capitalize text-gray-900">{order.status.replace(/_/g, ' ')}</p>
+            <p className="text-xs text-surface-400 mb-0.5">Status</p>
+            <p className="font-medium capitalize text-surface-900">{order.status.replace(/_/g, ' ')}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Total</p>
-            <p className="font-bold text-lg text-gray-900">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
+            <p className="text-xs text-surface-400 mb-0.5">Total</p>
+            <p className="font-bold text-lg text-surface-900">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
           </div>
           {order.payments?.length > 0 && (
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Payment</p>
+              <p className="text-xs text-surface-400 mb-0.5">Payment</p>
               <p className="font-medium text-emerald-600 text-xs capitalize">
                 {order.payments[0].status} via {order.payments[0].method}
               </p>
@@ -182,17 +177,17 @@ export default async function OrderPage({
           )}
           {order.trackingNumber && (
             <div className="col-span-2">
-              <p className="text-xs text-gray-400 mb-0.5">Tracking</p>
+              <p className="text-xs text-surface-400 mb-0.5">Tracking</p>
               <p className="font-medium text-sm">{order.trackingNumber} {order.courier ? `(${order.courier})` : ''}</p>
             </div>
           )}
         </div>
 
         {order.shippingAddress && (
-          <div className="border-t border-gray-100 pt-4 mt-2">
-            <p className="text-xs text-gray-400 mb-1.5">Shipping Address</p>
-            <div className="text-sm text-gray-700 space-y-0.5">
-              <p className="font-medium text-gray-900">{order.shippingAddress.name}</p>
+          <div className="divider pt-4 mt-2">
+            <p className="text-xs text-surface-400 mb-1.5">Shipping Address</p>
+            <div className="text-sm text-surface-700 space-y-0.5">
+              <p className="font-medium text-surface-900">{order.shippingAddress.name}</p>
               <p>{order.shippingAddress.phone}</p>
               <p>{order.shippingAddress.street}</p>
               <p>{order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</p>
@@ -200,9 +195,9 @@ export default async function OrderPage({
           </div>
         )}
 
-        {/* Cancel Action — only show for cancellable orders */}
+        {/* Cancel Action */}
         {(order.status === 'pending_payment' || order.status === 'payment_confirmed') && (
-          <div className="border-t border-gray-100 pt-4 mt-2">
+          <div className="divider pt-4 mt-2">
             <CancelOrderButton
               orderId={order.id}
               status={order.status}
@@ -212,18 +207,15 @@ export default async function OrderPage({
         )}
       </div>
 
-      {/* ── CTA ── */}
+      {/* CTA */}
       <div className="mt-8 text-center space-y-3">
-        <a
-          href="/products"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-        >
+        <a href="/products" className="btn-primary btn-lg">
           Continue Shopping
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </a>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-surface-400">
           Questions about your order? <a href="/contact" className="text-primary hover:underline">Contact Us</a>
         </p>
       </div>

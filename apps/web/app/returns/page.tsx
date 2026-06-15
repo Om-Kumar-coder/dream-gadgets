@@ -27,7 +27,7 @@ const SECTIONS = [
       { icon: '✅', title: 'Complete Package', desc: 'All original accessories must be included: charger, cable, SIM ejector tool, and packaging box (if provided).' },
       { icon: '✅', title: 'No Tampering', desc: 'The device must not show signs of tampering, unauthorized repairs, or attempted disassembly.' },
       { icon: '✅', title: 'Accounts Removed', desc: 'All accounts (iCloud, Google, etc.) and personal data must be removed from the device.' },
-      { icon: '✅', title: 'Find My iPhone Off', desc: 'Apple devices must have "Find My iPhone" disabled. Android devices must have FRP (Factory Reset Protection) disabled.' },
+      { icon: '✅', title: 'Find My iPhone Off', desc: 'Apple devices must have "Find My iPhone" disabled. Android devices must have FRP disabled.' },
     ],
   },
   {
@@ -86,46 +86,37 @@ const SECTIONS = [
 
 export default function ReturnsPage() {
   return (
-    <main>
+    <main className="animate-fade-in">
       {/* Hero */}
-      <section className="text-white py-16 px-4 text-center relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)',
-      }}>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
           <h1 className="text-4xl font-extrabold mb-3">Return & Refund Policy</h1>
           <p className="text-white/60 text-sm">Last updated: January 2025</p>
         </div>
       </section>
 
-      {/* Content */}
       <section className="max-w-3xl mx-auto px-4 py-12">
         <div className="space-y-10">
           {SECTIONS.map((section) => {
             if (section.highlight) {
               return (
                 <div key={section.id} className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                  <p className="text-gray-800 leading-relaxed text-sm">{section.content}</p>
+                  <p className="text-surface-800 leading-relaxed text-sm">{section.content}</p>
                 </div>
               );
             }
 
             if (section.contact) {
               return (
-                <div key={section.id} id={section.id} className="bg-gray-50 rounded-2xl p-6 text-center">
+                <div key={section.id} id={section.id} className="card p-6 text-center">
                   <div className="text-4xl mb-3">💬</div>
-                  <h2 className="text-lg font-bold text-gray-900 mb-2">{section.title}</h2>
-                  <p className="text-sm text-gray-600 mb-4">{section.content}</p>
+                  <h2 className="heading-sm text-surface-900 mb-2">{section.title}</h2>
+                  <p className="text-sm text-surface-600 mb-4">{section.content}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="tel:+919876543210" className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
-                      Call +91 98765 43210
-                    </a>
-                    <a href="mailto:support@dreamgadgets.in" className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                      Email Support
-                    </a>
-                    <a href="/contact" className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                      Contact Form
-                    </a>
+                    <a href="tel:+919876543210" className="btn-secondary btn-md">Call +91 98765 43210</a>
+                    <a href="mailto:support@dreamgadgets.in" className="btn-outline btn-md">Email Support</a>
+                    <a href="/contact" className="btn-outline btn-md">Contact Form</a>
                   </div>
                 </div>
               );
@@ -133,21 +124,20 @@ export default function ReturnsPage() {
 
             return (
               <div key={section.id} id={section.id}>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{section.title}</h2>
-
+                <h2 className="heading-sm text-surface-900 mb-4">{section.title}</h2>
                 {section.content && (
-                  <p className="text-gray-600 leading-relaxed text-sm mb-4">{section.content}</p>
+                  <p className="text-surface-600 leading-relaxed text-sm mb-4">{section.content}</p>
                 )}
 
                 {section.list && (
                   <div className="space-y-3">
                     {section.list.map((item, i) => (
-                      <div key={i} className="bg-gray-50 rounded-xl p-4">
+                      <div key={i} className="card p-4 hover:shadow-card-hover transition-all">
                         <div className="flex items-start gap-3">
                           <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
                           <div>
-                            <h3 className="font-semibold text-gray-900 text-sm">{item.title}</h3>
-                            <p className="text-sm text-gray-600 mt-0.5">{item.desc}</p>
+                            <h3 className="font-semibold text-surface-900 text-sm">{item.title}</h3>
+                            <p className="text-sm text-surface-600 mt-0.5">{item.desc}</p>
                           </div>
                         </div>
                       </div>
@@ -158,13 +148,13 @@ export default function ReturnsPage() {
                 {section.steps && (
                   <div className="space-y-3">
                     {section.steps.map((step, i) => (
-                      <div key={i} className="flex items-start gap-4">
+                      <div key={i} className="flex items-start gap-4 card p-4 hover:shadow-card-hover transition-all">
                         <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0">
                           {step.step}
                         </div>
-                        <div className="flex-1 pt-1">
-                          <h3 className="font-semibold text-gray-900 text-sm">{step.title}</h3>
-                          <p className="text-sm text-gray-600">{step.desc}</p>
+                        <div className="flex-1 pt-0.5">
+                          <h3 className="font-semibold text-surface-900 text-sm">{step.title}</h3>
+                          <p className="text-sm text-surface-600">{step.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -172,7 +162,7 @@ export default function ReturnsPage() {
                 )}
 
                 {'note' in section && section.note && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                     <p className="text-xs text-amber-700 leading-relaxed">{section.note}</p>
                   </div>
                 )}
@@ -181,17 +171,11 @@ export default function ReturnsPage() {
           })}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-100">
+        <div className="divider mt-12 pt-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">
-              Terms & Conditions →
-            </Link>
-            <Link href="/privacy" className="text-sm text-primary hover:underline font-medium">
-              Privacy Policy →
-            </Link>
-            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">
-              Contact Us →
-            </Link>
+            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">Terms & Conditions →</Link>
+            <Link href="/privacy" className="text-sm text-primary hover:underline font-medium">Privacy Policy →</Link>
+            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">Contact Us →</Link>
           </div>
         </div>
       </section>

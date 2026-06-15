@@ -335,11 +335,11 @@ export default function TransfersPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Stock Transfers</h1>
-          <p className="text-sm text-gray-500">Move inventory between branches</p>
+          <h1 className="heading-sm text-surface-900">Stock Transfers</h1>
+          <p className="text-sm text-surface-500">Move inventory between branches</p>
         </div>
         <Button variant="default" size="md">
           <Plus className="w-4 h-4 mr-2" />

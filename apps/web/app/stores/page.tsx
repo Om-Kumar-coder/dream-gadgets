@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Our Stores — Dream Gadgets Kolkata',
@@ -53,29 +52,31 @@ const STORES = [
 
 export default function StoresPage() {
   return (
-    <main>
-      <section className="text-white py-16 px-4 text-center" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
-      }}>
-        <h1 className="text-4xl font-extrabold mb-3">Our Stores</h1>
-        <p className="text-white/80">Visit us at a branch near you in Kolkata & South 24 Parganas</p>
+    <main className="animate-fade-in">
+      {/* Hero */}
+      <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative">
+          <h1 className="text-4xl font-extrabold mb-3">Our Stores</h1>
+          <p className="text-white/70">Visit us at a branch near you in Kolkata & South 24 Parganas</p>
+        </div>
       </section>
 
       <section className="max-w-5xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STORES.map(s => (
-            <div key={s.name} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg transition-shadow flex flex-col">
+            <div key={s.name} className="card p-6 hover:shadow-card-hover transition-all flex flex-col group">
               <span className="text-4xl mb-4 block">{s.emoji}</span>
-              <h2 className="font-bold text-gray-900 mb-1">{s.name}</h2>
-              <p className="text-sm text-gray-500 mb-1">{s.address}</p>
-              <p className="text-xs text-gray-400 mb-3">{s.area}</p>
-              <p className="text-xs text-gray-400 mb-3">{s.city}, {s.state} — {s.pincode}</p>
+              <h2 className="font-bold text-surface-900 mb-1 group-hover:text-primary transition-colors">{s.name}</h2>
+              <p className="text-sm text-surface-500 mb-1">{s.address}</p>
+              <p className="text-xs text-surface-400 mb-3">{s.area}</p>
+              <p className="text-xs text-surface-400 mb-3">{s.city}, {s.state} — {s.pincode}</p>
               
               <div className="space-y-1.5 text-sm mb-4 flex-1">
-                <p className="flex items-center gap-2 text-gray-600">
+                <p className="flex items-center gap-2 text-surface-600">
                   <span>📞</span> {s.phone}
                 </p>
-                <p className="flex items-center gap-2 text-gray-600">
+                <p className="flex items-center gap-2 text-surface-600">
                   <span>🕐</span> {s.hours}
                 </p>
                 <a
@@ -100,7 +101,7 @@ export default function StoresPage() {
                 href={`https://maps.google.com/?q=${encodeURIComponent(s.mapQuery)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-auto text-xs text-red-600 font-semibold hover:underline"
+                className="inline-block mt-auto text-xs text-primary font-semibold hover:underline"
               >
                 Get Directions →
               </a>
@@ -108,44 +109,34 @@ export default function StoresPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-2xl p-8 text-center border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.2)' }}>
-          <h2 className="text-xl font-bold text-white mb-2">Can&apos;t visit a store?</h2>
-          <p className="text-gray-400 text-sm mb-5">No problem! We offer free doorstep pickup across Kolkata and nearby areas.</p>
-          <a href="/sell" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-all">
+        {/* CTA */}
+        <div className="mt-12 card p-8 text-center bg-gradient-brand-subtle border-primary/20">
+          <h2 className="heading-sm text-surface-900 mb-2">Can&apos;t visit a store?</h2>
+          <p className="text-surface-500 text-sm mb-5">No problem! We offer free doorstep pickup across Kolkata and nearby areas.</p>
+          <a href="/sell" className="btn-primary btn-lg">
             Schedule Pickup →
           </a>
         </div>
       </section>
 
       {/* Common Info */}
-      <section className="bg-gray-50 border-t border-gray-100 py-12 px-4">
+      <section className="bg-surface-50 border-t border-surface-100 py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Common Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <p className="font-semibold text-gray-900">📧 Email</p>
-              <a href="mailto:dreamgadgetskolkata@gmail.com" className="text-primary hover:underline">
-                dreamgadgetskolkata@gmail.com
-              </a>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <p className="font-semibold text-gray-900">🌐 Website</p>
-              <a href="https://dreamgadgets.co" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                dreamgadgets.co
-              </a>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <p className="font-semibold text-gray-900">📺 YouTube</p>
-              <a href="https://youtube.com/@dream_gadgets" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                @dream_gadgets
-              </a>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <p className="font-semibold text-gray-900">👍 Facebook</p>
-              <a href="https://facebook.com/DreamGadgets.Kolkata" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                Dream Gadgets Kolkata
-              </a>
-            </div>
+          <h2 className="heading-sm text-surface-900 mb-4">Common Details</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            {[
+              { label: '📧 Email', value: 'dreamgadgetskolkata@gmail.com', href: 'mailto:dreamgadgetskolkata@gmail.com' },
+              { label: '🌐 Website', value: 'dreamgadgets.co', href: 'https://dreamgadgets.co' },
+              { label: '📺 YouTube', value: '@dream_gadgets', href: 'https://youtube.com/@dream_gadgets' },
+              { label: '👍 Facebook', value: 'Dream Gadgets Kolkata', href: 'https://facebook.com/DreamGadgets.Kolkata' },
+            ].map((item) => (
+              <div key={item.label} className="card p-4 hover:shadow-card-hover transition-all">
+                <p className="font-semibold text-surface-900">{item.label}</p>
+                <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">
+                  {item.value}
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       </section>

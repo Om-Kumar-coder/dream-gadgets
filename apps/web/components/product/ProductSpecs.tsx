@@ -60,21 +60,21 @@ export function ProductSpecs({ specs, storage, ram, colour, batteryHealth }: Pro
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold">Specifications</h3>
+      <h3 className="heading-sm text-surface-900">Specifications</h3>
 
-      <div className="divide-y divide-gray-100 border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="divide-y divide-surface-100 border border-surface-200 rounded-2xl overflow-hidden">
         {displayEntries.map(([key, value], i) => (
           <div
             key={key}
-            className={`flex items-center px-4 py-3 text-sm ${i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
+            className={`flex items-center px-4 py-3 text-sm ${i % 2 === 0 ? 'bg-surface-50' : 'bg-white'}`}
           >
             <span className="w-6 text-base shrink-0">
               {SPEC_ICONS[key] || '•'}
             </span>
-            <span className="w-28 text-gray-500 shrink-0">
+            <span className="w-28 text-surface-500 shrink-0">
               {SPEC_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
             </span>
-            <span className="text-gray-900 font-medium">{String(value)}</span>
+            <span className="text-surface-900 font-medium">{String(value)}</span>
           </div>
         ))}
       </div>
@@ -82,7 +82,7 @@ export function ProductSpecs({ specs, storage, ram, colour, batteryHealth }: Pro
       {allEntries.length > 6 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="text-sm text-primary font-medium hover:underline"
+          className="text-sm text-primary font-medium hover:underline transition-colors"
         >
           {showAll ? 'Show Less' : `View All ${allEntries.length} Specifications`}
         </button>

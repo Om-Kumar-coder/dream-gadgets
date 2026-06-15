@@ -115,46 +115,46 @@ export default function NewPurchasePage() {
   const models: any[] = modelsData ?? [];
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="max-w-3xl space-y-5 animate-fade-in">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-1.5 rounded-lg hover:bg-gray-100">
+        <button onClick={() => router.back()} className="p-1.5 rounded-lg hover:bg-surface-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">New Purchase Entry</h1>
-          <p className="text-sm text-gray-500">Record a new device acquisition</p>
+          <h1 className="heading-sm text-surface-900">New Purchase Entry</h1>
+          <p className="text-sm text-surface-500">Record a new device acquisition</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Vendor Info */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-medium text-gray-800">Vendor Details</h2>
+        <div className="card p-5 space-y-4">
+          <h2 className="font-medium text-surface-800">Vendor Details</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Vendor Name *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Vendor Name *</label>
               <input {...register('vendorName')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
               {errors.vendorName && <p className="text-red-500 text-xs mt-1">{errors.vendorName.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Date *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Purchase Date *</label>
               <input {...register('purchaseDate')} type="date"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
               {errors.purchaseDate && <p className="text-red-500 text-xs mt-1">{errors.purchaseDate.message}</p>}
             </div>
           </div>
         </div>
 
         {/* Device Info */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-medium text-gray-800">Device Details</h2>
+        <div className="card p-5 space-y-4">
+          <h2 className="font-medium text-surface-800">Device Details</h2>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">IMEI * (15 digits)</label>
+            <label className="block text-xs font-medium text-surface-600 mb-1">IMEI * (15 digits)</label>
             <div className="flex gap-2">
               <input {...register('imei')} placeholder="e.g. 356938035643809" maxLength={15}
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <button type="button" className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                className="input flex-1 font-mono" />
+              <button type="button" className="btn-outline btn-md">
                 <Scan className="w-4 h-4" /> Scan
               </button>
             </div>
@@ -163,46 +163,46 @@ export default function NewPurchasePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Brand *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Brand *</label>
               <select {...register('brandId')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="select">
                 <option value="">Select brand</option>
                 {brands.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Model *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Model *</label>
               <select {...register('modelId')} disabled={!watchedBrandId}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                className="select disabled:opacity-50">
                 <option value="">Select model</option>
                 {models.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
               {errors.modelId && <p className="text-red-500 text-xs mt-1">{errors.modelId.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Colour</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Colour</label>
               <input {...register('colour')} placeholder="e.g. Space Black"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Storage</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Storage</label>
               <input {...register('storage')} placeholder="e.g. 256GB"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Box Type *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Box Type *</label>
               <select {...register('boxType')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="select">
                 <option value="with_box">With Box</option>
                 <option value="without_box">Without Box</option>
                 <option value="accessories_only">Accessories Only</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Condition *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Condition *</label>
               <select {...register('condition')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="select">
                 <option value="sealed_pack">Sealed Pack</option>
                 <option value="open_box">Open Box</option>
                 <option value="super_mint">Super Mint</option>
@@ -211,31 +211,31 @@ export default function NewPurchasePage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Battery Health (%)</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Battery Health (%)</label>
               <input {...register('batteryHealth')} type="number" min={0} max={100} placeholder="e.g. 87"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
             </div>
           </div>
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-medium text-gray-800">Pricing</h2>
+        <div className="card p-5 space-y-4">
+          <h2 className="font-medium text-surface-800">Pricing</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Price (₹) *</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Purchase Price (₹) *</label>
               <input {...register('purchasePrice')} type="number" min={0} placeholder="e.g. 45000"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
               {errors.purchasePrice && <p className="text-red-500 text-xs mt-1">{errors.purchasePrice.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tax Rate (%)</label>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Tax Rate (%)</label>
               <input {...register('taxRate')} type="number" min={0} max={100}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input" />
             </div>
           </div>
           <button type="button" onClick={() => fetchSuggestion()}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
+            className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover">
             <Lightbulb className="w-4 h-4" />
             Get price suggestion for this model + condition
           </button>
@@ -247,8 +247,8 @@ export default function NewPurchasePage() {
         </div>
 
         {/* Photos */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 className="font-medium text-gray-800">Photos (up to 10)</h2>
+        <div className="card p-5 space-y-3">
+          <h2 className="font-medium text-surface-800">Photos (up to 10)</h2>
           <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-colors">
             <Upload className="w-5 h-5 text-gray-400" />
             <span className="text-sm text-gray-500">
@@ -259,10 +259,10 @@ export default function NewPurchasePage() {
         </div>
 
         {/* Notes */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+        <div className="card p-5">
+          <label className="block text-xs font-medium text-surface-600 mb-1">Notes</label>
           <textarea {...register('notes')} rows={3} placeholder="Any additional notes…"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+            className="textarea" />
         </div>
 
         {mutation.isError && (

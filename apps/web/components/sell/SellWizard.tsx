@@ -170,17 +170,17 @@ export function SellWizard() {
   if (submitted) {
     return (
       <div className="text-center py-12 animate-fade-in-up">
-        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-200 shadow-lg">
           <svg className="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted! 🎉</h3>
-        <p className="text-gray-500 mb-2 max-w-md mx-auto">
+        <h3 className="heading-md mb-2">Request Submitted! 🎉</h3>
+        <p className="text-surface-500 mb-2 max-w-md mx-auto">
           We&apos;ve received your request to sell your {data.brand} {data.modelName}.
-          Our team will contact you at <strong>{data.phone}</strong> within 24 hours.
+          Our team will contact you at <strong className="text-surface-900">{data.phone}</strong> within 24 hours.
         </p>
-        <p className="text-xs text-gray-400 mb-6">Estimated value: ₹{data.estimatedPrice?.toLocaleString('en-IN') ?? 'N/A'}</p>
+        <p className="text-xs text-surface-400 mb-6">Estimated value: ₹{data.estimatedPrice?.toLocaleString('en-IN') ?? 'N/A'}</p>
         <div className="flex gap-3 justify-center">
           <button onClick={handleReset} className="btn-outline">
             Sell Another Device
@@ -198,10 +198,10 @@ export function SellWizard() {
       {/* Progress stepper */}
       <StepIndicator steps={STEPS} currentStep={step} />
 
-      <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
+      <div className="mt-8 bg-white rounded-2xl border border-surface-100 shadow-sm p-6 sm:p-8">
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in font-medium">
             {error}
           </div>
         )}
@@ -255,37 +255,38 @@ export function SellWizard() {
           )}
           {step === 6 && (
             <div className="text-center py-8 animate-fade-in-up">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200">
                 <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">Review Your Details</h3>
-              <p className="text-sm text-gray-500 mb-4">Please confirm everything is correct before submitting.</p>
-              <div className="text-left space-y-2 bg-gray-50 rounded-xl p-4 mb-6 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Device:</span><span className="font-medium">{data.brand} {data.modelName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Condition:</span><span className="font-medium capitalize">{data.condition.replace(/_/g, ' ')}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Photos:</span><span className="font-medium">{data.photos.length > 0 ? `${data.photos.length} uploaded` : 'None'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Est. Price:</span><span className="font-bold text-primary">₹{data.estimatedPrice?.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Name:</span><span className="font-medium">{data.customerName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Phone:</span><span className="font-medium">{data.phone}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Pickup:</span><span className="font-medium">{data.pickupDate} at {data.pickupTime}</span></div>
+              <h3 className="text-xl font-bold text-surface-900 mb-1">Review Your Details</h3>
+              <p className="text-sm text-surface-500 mb-4">Please confirm everything is correct before submitting.</p>
+              <div className="text-left space-y-2 bg-surface-50 rounded-xl p-4 mb-6 text-sm border border-surface-100">
+                <div className="flex justify-between"><span className="text-surface-500">Device:</span><span className="font-semibold text-surface-900">{data.brand} {data.modelName}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Condition:</span><span className="font-semibold capitalize text-surface-900">{data.condition.replace(/_/g, ' ')}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Photos:</span><span className="font-semibold text-surface-900">{data.photos.length > 0 ? `${data.photos.length} uploaded` : 'None'}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Est. Price:</span><span className="font-bold text-primary">₹{data.estimatedPrice?.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Name:</span><span className="font-semibold text-surface-900">{data.customerName}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Phone:</span><span className="font-semibold text-surface-900">{data.phone}</span></div>
+                <div className="flex justify-between"><span className="text-surface-500">Pickup:</span><span className="font-semibold text-surface-900">{data.pickupDate} at {data.pickupTime}</span></div>
               </div>
             </div>
           )}
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-surface-100">
           <button
             onClick={handleBack}
             disabled={step === 0}
             className="btn-ghost disabled:opacity-30"
           >
-            ← Back
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+            Back
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-surface-400">
               Step {step + 1} of {STEPS.length - 1}
             </span>
             {step < 6 ? (
@@ -294,13 +295,14 @@ export function SellWizard() {
                 disabled={!canNext()}
                 className="btn-primary disabled:opacity-50"
               >
-                {step === 5 ? 'Review Order →' : 'Continue →'}
+                {step === 5 ? 'Review Order' : 'Continue'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
               </button>
             ) : (
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="btn-red px-6 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50"
+                className="btn-primary-glow disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Confirm & Submit'}
               </button>

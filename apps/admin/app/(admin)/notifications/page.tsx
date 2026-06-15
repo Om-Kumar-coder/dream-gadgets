@@ -116,11 +116,11 @@ export default function AdminNotificationsPage() {
   const failedCount = notifications.filter((n) => n.status === 'failed').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Notifications</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="heading-sm text-surface-900">Notifications</h1>
+          <p className="text-sm text-surface-500 mt-0.5">
             Delivery tracking &amp; management — {total} total
           </p>
         </div>
@@ -150,16 +150,16 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="card p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <span className="text-xs font-medium text-gray-600">Filters</span>
+            <Filter className="w-4 h-4 text-surface-400" />
+            <span className="text-xs font-medium text-surface-600">Filters</span>
           </div>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-surface-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
           >
             <option value="">All Status</option>
             <option value="sent">Sent</option>
@@ -169,7 +169,7 @@ export default function AdminNotificationsPage() {
           <select
             value={channelFilter}
             onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-surface-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
           >
             <option value="">All Channels</option>
             <option value="email">Email</option>
@@ -188,20 +188,20 @@ export default function AdminNotificationsPage() {
           { label: 'Failed', count: failedCount, color: 'bg-red-500', icon: XCircle },
           { label: 'Pending', count: notifications.filter((n) => n.status === 'pending').length, color: 'bg-yellow-500', icon: Clock },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+          <div key={s.label} className="card p-4 flex items-center gap-3">
             <div className={`p-2 rounded-lg ${s.color}`}>
               <s.icon className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-lg font-bold text-gray-900">{s.count}</p>
+              <p className="text-xs text-surface-500">{s.label}</p>
+              <p className="text-lg font-bold text-surface-900">{s.count}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Notifications Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="card overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
@@ -216,15 +216,15 @@ export default function AdminNotificationsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Subject / Body</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <tr className="table-header">
+                  <th className="table-cell text-left">Status</th>
+                  <th className="table-cell text-left">Channel</th>
+                  <th className="table-cell text-left">Type</th>
+                  <th className="table-cell text-left">Subject / Body</th>
+                  <th className="table-cell text-left">Target</th>
+                  <th className="table-cell text-center">Attempts</th>
+                  <th className="table-cell text-left">Created</th>
+                  <th className="table-cell text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -235,7 +235,7 @@ export default function AdminNotificationsPage() {
                   const channelClass = CHANNEL_COLORS[n.channel] ?? 'text-gray-600 bg-gray-50';
 
                   return (
-                    <tr key={n.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={n.id} className="table-row">
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${statusClass}`}>
                           <StatusIcon className="w-3 h-3" />
@@ -299,22 +299,22 @@ export default function AdminNotificationsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <p className="text-xs text-gray-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-surface-100">
+            <p className="text-xs text-surface-500">
               Page {page} of {totalPages} ({total} total)
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-xs font-medium text-surface-600 bg-white border border-surface-200 rounded-lg hover:bg-surface-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-xs font-medium text-surface-600 bg-white border border-surface-200 rounded-lg hover:bg-surface-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>

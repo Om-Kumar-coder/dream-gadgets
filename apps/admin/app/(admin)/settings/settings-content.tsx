@@ -96,9 +96,8 @@ export function SettingsPageContent() {
       cell: ({ row }) => {
         const status = row.original.isActive ? 'active' : 'inactive';
         return (
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          <span className={`badge ${
+              status === 'active' ? 'badge-success' : 'badge-danger'
             }`}
           >
             {status}
@@ -117,7 +116,7 @@ export function SettingsPageContent() {
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => <span className="text-sm text-gray-500">{row.original.description ?? '—'}</span>,
+      cell: ({ row }) => <span className="text-sm text-surface-500">{row.original.description ?? '—'}</span>,
     },
     {
       accessorKey: 'isSystem',
@@ -188,16 +187,16 @@ export function SettingsPageContent() {
   };
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+    <div className="space-y-5 animate-fade-in">
+      <h1 className="heading-sm text-surface-900">Settings</h1>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-surface-200">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => handleTabChange(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t ? 'border-primary text-primary' : 'border-transparent text-surface-500 hover:text-surface-700'
             }`}
           >
             {t}

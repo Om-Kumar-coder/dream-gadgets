@@ -192,15 +192,15 @@ export default function SalesPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Sales</h1>
-          <p className="text-sm text-gray-500">All completed transactions</p>
+          <h1 className="heading-sm text-surface-900">Sales</h1>
+          <p className="text-sm text-surface-500">All completed transactions</p>
         </div>
         <Link
           href="/sales/pos"
-          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="btn-primary btn-md"
         >
           <Plus className="w-4 h-4" />
           New Sale (POS)

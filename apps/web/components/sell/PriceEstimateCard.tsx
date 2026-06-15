@@ -92,7 +92,6 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setAnimatedPrice(Math.round(from + (to - from) * eased));
       if (progress < 1) requestAnimationFrame(animate);
@@ -105,67 +104,68 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Your Price Estimate</h3>
-        <p className="text-sm text-gray-500">Based on current market value and device condition</p>
+        <h3 className="heading-sm text-surface-900 mb-1">Your Price Estimate</h3>
+        <p className="text-sm text-surface-500">Based on current market value and device condition</p>
       </div>
 
       {/* Device summary */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-        <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+      <div className="flex items-center gap-4 p-4 bg-surface-50 rounded-2xl border border-surface-100">
+        <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-2xl ring-1 ring-primary/20">
           📱
         </div>
         <div>
-          <p className="font-semibold text-gray-900">{brand} {modelName}</p>
-          <p className="text-sm text-gray-500 capitalize">{condition.replace(/_/g, ' ')} condition</p>
+          <p className="font-semibold text-surface-900">{brand} {modelName}</p>
+          <p className="text-sm text-surface-500 capitalize">{condition.replace(/_/g, ' ')} condition</p>
         </div>
       </div>
 
       {/* Price card */}
       {loading ? (
-        <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="h-32 bg-surface-100 rounded-2xl animate-pulse" />
       ) : estimatedPrice ? (
-        <div className="text-center p-8 bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border-2 border-primary/20 animate-scale-in">
-          <p className="text-sm text-gray-500 mb-2">Estimated Price</p>
-          <div className="text-5xl sm:text-6xl font-extrabold text-primary mb-2">
+        <div className="relative text-center p-8 bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border-2 border-primary/20 animate-scale-in overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+          <p className="text-sm text-surface-500 mb-2">Estimated Price</p>
+          <div className="text-5xl sm:text-6xl font-extrabold text-primary mb-2 tracking-tight">
             ₹{animatedPrice.toLocaleString('en-IN')}
           </div>
           {maxPrice && (
-            <p className="text-sm text-gray-500">
-              Devices like this sell for up to <span className="font-semibold text-gray-700">₹{maxPrice.toLocaleString('en-IN')}</span>
+            <p className="text-sm text-surface-500">
+              Devices like this sell for up to <span className="font-semibold text-surface-700">₹{maxPrice.toLocaleString('en-IN')}</span>
             </p>
           )}
-          <div className="flex items-center justify-center gap-2 mt-3 text-xs text-gray-400">
+          <div className="flex items-center justify-center gap-2 mt-3 text-xs text-surface-400">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
             Price updated in real-time
           </div>
         </div>
       ) : (
-        <div className="text-center p-8 bg-gray-50 rounded-2xl">
-          <p className="text-gray-400">Select a condition to see your estimated price</p>
+        <div className="text-center p-8 bg-surface-50 rounded-2xl border border-surface-100">
+          <p className="text-surface-400">Select a condition to see your estimated price</p>
         </div>
       )}
 
       {/* Price breakdown */}
       {estimatedPrice && (
         <div className="space-y-2 text-sm animate-fade-in-up">
-          <p className="font-semibold text-gray-700">Price Breakdown</p>
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+          <p className="font-semibold text-surface-700">Price Breakdown</p>
+          <div className="bg-surface-50 rounded-xl p-4 space-y-2 border border-surface-100">
             <div className="flex justify-between">
-              <span className="text-gray-500">Base value ({modelName})</span>
-              <span className="font-medium">₹{(BASE_PRICES[modelName] || 0).toLocaleString('en-IN')}</span>
+              <span className="text-surface-500">Base value ({modelName})</span>
+              <span className="font-medium text-surface-900">₹{(BASE_PRICES[modelName] || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Condition adjustment</span>
+              <span className="text-surface-500">Condition adjustment</span>
               <span className="font-medium text-emerald-600">
                 {condition ? `${Math.round((CONDITION_MULTIPLIERS[condition] || 0) * 100)}%` : '-'}
               </span>
             </div>
-            <div className="border-t pt-2 flex justify-between font-bold">
-              <span>Your estimated price</span>
+            <div className="border-t border-surface-200 pt-2 flex justify-between font-bold">
+              <span className="text-surface-900">Your estimated price</span>
               <span className="text-primary">₹{estimatedPrice.toLocaleString('en-IN')}</span>
             </div>
           </div>
-          <p className="text-xs text-gray-400">*Final price determined after in-person inspection</p>
+          <p className="text-xs text-surface-400">*Final price determined after in-person inspection</p>
         </div>
       )}
     </div>

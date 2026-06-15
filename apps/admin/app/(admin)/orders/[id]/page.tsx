@@ -150,7 +150,7 @@ export default function OrderDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="text-gray-400 text-sm">Loading order details...</div>
+        <div className="text-surface-400 text-sm">Loading order details...</div>
       </div>
     );
   }
@@ -159,8 +159,8 @@ export default function OrderDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Package className="w-12 h-12 text-red-300 mb-3" />
-        <h3 className="text-lg font-medium text-gray-900">Order Not Found</h3>
-        <p className="text-gray-500 text-sm mt-1">
+        <h3 className="text-lg font-medium text-surface-900">Order Not Found</h3>
+        <p className="text-surface-500 text-sm mt-1">
           {error instanceof Error ? error.message : 'Could not load order details'}
         </p>
         <Link href="/orders" className="mt-4 text-blue-600 hover:underline text-sm">
@@ -173,18 +173,18 @@ export default function OrderDetailPage() {
   const availableTransitions = STATUS_TRANSITIONS[order.status] ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/orders"
-            className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-1 text-surface-600 hover:text-surface-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-900 font-mono">
+            <h1 className="heading-sm text-surface-900 font-mono">
               {order.orderNumber}
             </h1>
             <span
@@ -202,11 +202,11 @@ export default function OrderDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Order Info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Order Details</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-surface-900">Order Details</h2>
+                <p className="text-sm text-surface-500">
                   Placed on{' '}
                   {order.orderedAt
                     ? format(new Date(order.orderedAt), 'dd MMM yyyy, h:mm a')
@@ -217,15 +217,15 @@ export default function OrderDetailPage() {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <p className="text-xs text-gray-500">Order Number</p>
+                <p className="text-xs text-surface-500">Order Number</p>
                 <p className="font-mono text-sm font-medium">{order.orderNumber}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Branch</p>
+                <p className="text-xs text-surface-500">Branch</p>
                 <p className="text-sm">{order.branch?.name ?? '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Status</p>
+                <p className="text-xs text-surface-500">Status</p>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block ${
                     STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'
@@ -235,23 +235,23 @@ export default function OrderDetailPage() {
                 </span>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Customer</p>
+                <p className="text-xs text-surface-500">Customer</p>
                 <p className="text-sm">
                   {order.client ? (
                     <span>
                       {order.client.firstName} {order.client.lastName}
                       {order.client.email && (
-                        <span className="text-gray-400 ml-1">({order.client.email})</span>
+                        <span className="text-surface-400 ml-1">({order.client.email})</span>
                       )}
                     </span>
                   ) : (
-                    <span className="text-gray-400">Guest</span>
+                    <span className="text-surface-400">Guest</span>
                   )}
                 </p>
               </div>
               {order.assignedTo && (
                 <div>
-                  <p className="text-xs text-gray-500">Assigned To</p>
+                  <p className="text-xs text-surface-500">Assigned To</p>
                   <p className="text-sm">
                     {order.assignedTo.firstName} {order.assignedTo.lastName}
                   </p>
@@ -260,8 +260,8 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Timeline */}
-            <div className="border-t border-gray-100 pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Timeline</h3>
+            <div className="border-t border-surface-100 pt-4">
+              <h3 className="text-sm font-medium text-surface-700 mb-3">Timeline</h3>
               <div className="space-y-3">
                 {[
                   { label: 'Order Placed', date: order.orderedAt, icon: Package },
@@ -275,15 +275,15 @@ export default function OrderDetailPage() {
                         <t.icon className="w-4 h-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-800">{t.label}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="font-medium text-surface-800">{t.label}</p>
+                        <p className="text-xs text-surface-400">
                           {format(new Date(t.date!), 'dd MMM yyyy, h:mm a')}
                         </p>
                       </div>
                     </div>
                   ))}
                 {!order.shippedAt && !order.deliveredAt && (
-                  <p className="text-sm text-gray-400 italic">
+                  <p className="text-sm text-surface-400 italic">
                     Order is {order.status?.replace(/_/g, ' ')}
                   </p>
                 )}
@@ -292,16 +292,16 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Shipping Address */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="card p-6">
             <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Shipping Address</h2>
+              <MapPin className="w-5 h-5 text-surface-500" />
+              <h2 className="text-lg font-semibold text-surface-900">Shipping Address</h2>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
+            <div className="bg-surface-50 rounded-lg p-4 space-y-1.5 text-sm">
               <p className="font-medium">{order.shippingAddress?.name}</p>
-              <p className="text-gray-600">{order.shippingAddress?.phone}</p>
-              <p className="text-gray-600">{order.shippingAddress?.street}</p>
-              <p className="text-gray-600">
+              <p className="text-surface-600">{order.shippingAddress?.phone}</p>
+              <p className="text-surface-600">{order.shippingAddress?.street}</p>
+              <p className="text-surface-600">
                 {order.shippingAddress?.city}, {order.shippingAddress?.state}{' '}
                 {order.shippingAddress?.pincode}
               </p>
@@ -309,13 +309,13 @@ export default function OrderDetailPage() {
 
             {order.trackingNumber && (
               <div className="mt-4 flex items-center gap-2 text-sm">
-                <Truck className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-500">Tracking:</span>
+                <Truck className="w-4 h-4 text-surface-400" />
+                <span className="text-surface-500">Tracking:</span>
                 <span className="font-mono font-medium">{order.trackingNumber}</span>
                 {order.courier && (
                   <>
-                    <span className="text-gray-300">|</span>
-                    <span className="text-gray-500">{order.courier}</span>
+                    <span className="text-surface-300">|</span>
+                    <span className="text-surface-500">{order.courier}</span>
                   </>
                 )}
               </div>
@@ -323,20 +323,20 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Payments */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="card p-6">
             <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="w-5 h-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Payments</h2>
+              <CreditCard className="w-5 h-5 text-surface-500" />
+              <h2 className="text-lg font-semibold text-surface-900">Payments</h2>
             </div>
 
             {order.payments.length === 0 ? (
-              <p className="text-sm text-gray-400">No payments recorded</p>
+              <p className="text-sm text-surface-400">No payments recorded</p>
             ) : (
               <div className="space-y-3">
                 {order.payments.map((payment) => (
                   <div
                     key={payment.id}
-                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                    className="flex items-center justify-between py-3 border-b border-surface-100 last:border-0"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col">
@@ -344,7 +344,7 @@ export default function OrderDetailPage() {
                           {payment.method || '—'}
                         </span>
                         {payment.razorpayPaymentId && (
-                          <span className="text-xs text-gray-400 font-mono">
+                          <span className="text-xs text-surface-400 font-mono">
                             {payment.razorpayPaymentId}
                           </span>
                         )}
@@ -366,15 +366,15 @@ export default function OrderDetailPage() {
             )}
 
             {/* Order Totals */}
-            <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
+            <div className="mt-4 space-y-2 border-t border-surface-100 pt-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-surface-500">Subtotal</span>
                 <span className="font-medium">
                   ₹{Number(order.subtotal).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Shipping</span>
+                <span className="text-surface-500">Shipping</span>
                 <span className="font-medium">
                   {order.shippingCharge > 0
                     ? `₹${Number(order.shippingCharge).toLocaleString('en-IN')}`
@@ -388,12 +388,12 @@ export default function OrderDetailPage() {
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax</span>
+                <span className="text-surface-500">Tax</span>
                 <span className="font-medium">
                   ₹{Number(order.taxAmount).toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
+              <div className="flex justify-between text-lg font-semibold pt-2 border-t border-surface-200">
                 <span>Total</span>
                 <span>₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
               </div>
@@ -404,13 +404,13 @@ export default function OrderDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Actions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
             <div className="space-y-2">
               {/* Status Transitions */}
               {availableTransitions.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <p className="text-xs font-medium text-surface-500 uppercase tracking-wider">
                     Update Status
                   </p>
                   {availableTransitions.map((status) => (
@@ -426,7 +426,7 @@ export default function OrderDetailPage() {
                         }
                       }}
                       disabled={updateStatus.isPending}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors capitalize"
+                      className="btn-outline btn-md w-full justify-start capitalize"
                     >
                       {status === 'cancelled' ? (
                         <XCircle className="w-4 h-4 text-red-500" />
@@ -439,16 +439,16 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t border-gray-100 space-y-2">
+              <div className="pt-2 border-t border-surface-100 space-y-2">
                 {order.client?.email && (
                   <button className="flex items-center gap-2 w-full px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Mail className="w-4 h-4 text-gray-500" />
+                    <Mail className="w-4 h-4 text-surface-500" />
                     Email Customer
                   </button>
                 )}
                 {order.client?.phone && (
-                  <button className="flex items-center gap-2 w-full px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <MessageCircle className="w-4 h-4 text-gray-500" />
+                  <button className="btn-outline btn-md w-full justify-start">
+                    <MessageCircle className="w-4 h-4 text-surface-500" />
                     WhatsApp Customer
                   </button>
                 )}
@@ -457,20 +457,20 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Metadata */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-surface-900 mb-4">Metadata</h2>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-xs text-gray-500">Ordered At</p>
-                <p className="text-gray-900">
+                <p className="text-xs text-surface-500">Ordered At</p>
+                <p className="text-surface-900">
                   {order.orderedAt
                     ? format(new Date(order.orderedAt), 'dd MMM yyyy, h:mm a')
                     : '—'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Created At</p>
-                <p className="text-gray-900">
+                <p className="text-xs text-surface-500">Created At</p>
+                <p className="text-surface-900">
                   {order.createdAt
                     ? format(new Date(order.createdAt), 'dd MMM yyyy, h:mm a')
                     : '—'}
@@ -478,8 +478,8 @@ export default function OrderDetailPage() {
               </div>
               {order.notes && (
                 <div>
-                  <p className="text-xs text-gray-500">Notes</p>
-                  <p className="text-gray-900 bg-gray-50 rounded-lg p-3 mt-1 text-sm">
+                  <p className="text-xs text-surface-500">Notes</p>
+                  <p className="text-surface-900 bg-surface-50 rounded-lg p-3 mt-1 text-sm">
                     {order.notes}
                   </p>
                 </div>

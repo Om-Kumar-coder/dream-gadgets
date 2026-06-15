@@ -50,10 +50,10 @@ export function RelatedProducts({ itemId }: RelatedProductsProps) {
   if (loading) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">You May Also Like</h2>
+        <h2 className="heading-sm text-surface-900">You May Also Like</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl bg-gray-100 animate-pulse aspect-[3/4]" />
+            <div key={i} className="rounded-2xl bg-surface-100 animate-pulse aspect-[3/4]" />
           ))}
         </div>
       </div>
@@ -64,7 +64,7 @@ export function RelatedProducts({ itemId }: RelatedProductsProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold">You May Also Like</h2>
+      <h2 className="heading-sm text-surface-900">You May Also Like</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {products.slice(0, 8).map((p) => {
           const name = `${p.brand} ${p.model} ${p.storage ?? ''}`.trim();
@@ -72,9 +72,9 @@ export function RelatedProducts({ itemId }: RelatedProductsProps) {
             <Link
               key={p.id}
               href={`/products/${p.id}`}
-              className="group rounded-2xl border border-gray-100 bg-white overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+              className="group card overflow-hidden hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200"
             >
-              <div className="relative aspect-square bg-gray-100">
+              <div className="relative aspect-square bg-surface-100">
                 <Image
                   src={p.thumbnail || FALLBACK}
                   alt={name}
@@ -85,9 +85,9 @@ export function RelatedProducts({ itemId }: RelatedProductsProps) {
                 />
               </div>
               <div className="p-3">
-                <p className="text-xs text-gray-400">{p.brand}</p>
-                <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">{name}</h3>
-                <p className="text-base font-extrabold text-gray-900 mt-1">
+                <p className="text-xs text-surface-400">{p.brand}</p>
+                <h3 className="text-sm font-semibold text-surface-900 line-clamp-1">{name}</h3>
+                <p className="text-base font-extrabold text-surface-900 mt-1">
                   ₹{p.price.toLocaleString('en-IN')}
                 </p>
               </div>

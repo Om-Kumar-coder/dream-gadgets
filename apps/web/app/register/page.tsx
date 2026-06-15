@@ -48,7 +48,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gray-50/50">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -57,12 +57,12 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-sm text-gray-500 mt-1">Join Dream Gadgets today</p>
+          <h1 className="text-2xl font-bold text-surface-900">Create Account</h1>
+          <p className="text-sm text-surface-500 mt-1">Join Dream Gadgets today</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="card p-6 sm:p-8">
           {/* Step indicator */}
           <div className="flex items-center gap-2 mb-6">
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -71,9 +71,9 @@ export default function RegisterPage() {
               <span>1</span>
               <span>Verify Phone</span>
             </div>
-            <div className="w-6 h-px bg-gray-200" />
+            <div className="w-6 h-px bg-surface-200" />
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-              step === 'register' ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 text-gray-400'
+              step === 'register' ? 'bg-primary text-white shadow-sm' : 'bg-surface-100 text-surface-400'
             }`}>
               <span>2</span>
               <span>Details</span>
@@ -83,7 +83,7 @@ export default function RegisterPage() {
           {step === 'otp' ? (
             <div className="space-y-4">
               <div>
-                <label htmlFor="register-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-phone" className="block text-sm font-medium text-surface-700 mb-1.5">
                   Phone Number
                 </label>
                 <input
@@ -95,20 +95,18 @@ export default function RegisterPage() {
                     setForm(p => ({ ...p, phone: e.target.value }));
                     if (error) setError('');
                   }}
-                  className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                  className="input"
                   placeholder="+91XXXXXXXXXX"
                   required
                 />
-                <p className="text-xs text-gray-400 mt-1">We'll send a one-time OTP to verify your number</p>
+                <p className="text-xs text-surface-400 mt-1">We'll send a one-time OTP to verify your number</p>
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2.5">
-                  <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
               )}
 
               <button
@@ -132,8 +130,8 @@ export default function RegisterPage() {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
-                <label htmlFor="register-otp" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  OTP <span className="text-gray-400 font-normal">(sent to {form.phone})</span>
+                <label htmlFor="register-otp" className="block text-sm font-medium text-surface-700 mb-1.5">
+                  OTP <span className="text-surface-400 font-normal">(sent to {form.phone})</span>
                 </label>
                 <input
                   id="register-otp"
@@ -141,7 +139,7 @@ export default function RegisterPage() {
                   type="text"
                   value={form.otp}
                   onChange={e => setForm(p => ({ ...p, otp: e.target.value }))}
-                  className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                  className="input"
                   placeholder="Enter 6-digit OTP"
                   maxLength={6}
                   required
@@ -150,7 +148,7 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="register-firstName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="register-firstName" className="block text-sm font-medium text-surface-700 mb-1.5">
                     First Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -159,13 +157,13 @@ export default function RegisterPage() {
                     type="text"
                     value={form.firstName}
                     onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))}
-                    className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                    className="input"
                     placeholder="John"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="register-lastName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="register-lastName" className="block text-sm font-medium text-surface-700 mb-1.5">
                     Last Name
                   </label>
                   <input
@@ -174,15 +172,15 @@ export default function RegisterPage() {
                     type="text"
                     value={form.lastName}
                     onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))}
-                    className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                    className="input"
                     placeholder="Doe"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email <span className="text-gray-400 font-normal">(optional)</span>
+                <label htmlFor="register-email" className="block text-sm font-medium text-surface-700 mb-1.5">
+                  Email <span className="text-surface-400 font-normal">(optional)</span>
                 </label>
                 <input
                   id="register-email"
@@ -190,13 +188,13 @@ export default function RegisterPage() {
                   type="email"
                   value={form.email}
                   onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                  className="input"
                   placeholder="john@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="register-password" className="block text-sm font-medium text-surface-700 mb-1.5">
                   Password <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -205,21 +203,19 @@ export default function RegisterPage() {
                   type="password"
                   value={form.password}
                   onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                  className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                  className="input"
                   placeholder="Min 8 characters"
                   minLength={8}
                   required
                 />
-                <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>
+                <p className="text-xs text-surface-400 mt-1">At least 8 characters</p>
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2.5">
-                  <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
               )}
 
               <button
@@ -244,7 +240,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => { setStep('otp'); setError(''); }}
-                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-xs text-surface-400 hover:text-surface-600 transition-colors"
                 >
                   ← Change phone number
                 </button>
@@ -254,7 +250,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-surface-500 mt-6">
           Already have an account?{' '}
           <Link href="/login" className="text-primary font-semibold hover:underline">
             Sign In

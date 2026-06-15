@@ -32,19 +32,19 @@ export function ProductBuyPanel({ name, price, originalPrice, imageUrl, productI
 
   return (
     <div className="sticky-buy-bar animate-fade-in-up">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 max-w-7xl mx-auto">
         {/* Product info (desktop) */}
         <div className="hidden sm:flex items-center gap-3 flex-1 min-w-0">
           {imageUrl && (
-            <img src={imageUrl} alt={name} className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
+            <img src={imageUrl} alt={name} className="w-11 h-11 rounded-xl object-cover bg-surface-100 border border-surface-200" />
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+            <p className="text-sm font-semibold text-surface-900 truncate">{name}</p>
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-extrabold text-primary">₹{price.toLocaleString('en-IN')}</span>
               {originalPrice && originalPrice > price && (
                 <>
-                  <span className="text-xs text-gray-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</span>
+                  <span className="text-xs text-surface-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</span>
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                     -{discount}%
                   </span>
@@ -65,9 +65,9 @@ export function ProductBuyPanel({ name, price, originalPrice, imageUrl, productI
             )}
           </div>
           {originalPrice && (
-            <span className="text-xs text-gray-400 line-through mr-2">₹{originalPrice.toLocaleString('en-IN')}</span>
+            <span className="text-xs text-surface-400 line-through mr-2">₹{originalPrice.toLocaleString('en-IN')}</span>
           )}
-          <span className="text-[10px] text-gray-400">+ Free Delivery</span>
+          <span className="text-[10px] text-surface-400">+ Free Delivery</span>
         </div>
 
         {/* Actions */}
@@ -76,7 +76,7 @@ export function ProductBuyPanel({ name, price, originalPrice, imageUrl, productI
             href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent(`Hi! I am interested in ${name}`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:flex items-center justify-center w-11 h-11 rounded-xl border-2 border-green-500 text-green-600 hover:bg-green-50 transition-colors"
+            className="hidden sm:flex items-center justify-center w-11 h-11 rounded-xl border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 active:scale-[0.97] transition-all"
             aria-label="WhatsApp"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -86,13 +86,22 @@ export function ProductBuyPanel({ name, price, originalPrice, imageUrl, productI
 
           <button
             onClick={handleAdd}
-            className={`px-6 py-2.5 rounded-xl font-semibold text-sm active:scale-95 transition-all whitespace-nowrap ${
+            className={`px-6 py-2.5 rounded-xl font-bold text-sm active:scale-[0.97] transition-all whitespace-nowrap ${
               justAdded
-                ? 'bg-emerald-500 text-white'
-                : 'bg-primary text-white hover:opacity-90 shadow-md shadow-primary/30'
+                ? 'bg-emerald-500 text-white shadow-md'
+                : 'bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/30'
             }`}
           >
-            {justAdded ? '✓ Added!' : 'Add to Cart'}
+            {justAdded ? (
+              <span className="flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Added!
+              </span>
+            ) : (
+              'Add to Cart'
+            )}
           </button>
         </div>
       </div>

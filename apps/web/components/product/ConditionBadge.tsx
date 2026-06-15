@@ -7,7 +7,7 @@ const CONDITION_CONFIG: Record<string, { label: string; className: string }> = {
 };
 
 export function ConditionBadge({ condition }: { condition: string }) {
-  const config = CONDITION_CONFIG[condition] ?? { label: condition, className: 'bg-gray-500 text-white' };
+  const config = CONDITION_CONFIG[condition] ?? { label: condition, className: 'bg-surface-500 text-white' };
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${config.className}`}>
       {config.label}

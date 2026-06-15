@@ -35,14 +35,14 @@ function KpiCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4">
+    <div className="stat-card">
       <div className={`p-2.5 rounded-lg ${color}`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        <p className="text-xs text-surface-500 font-medium uppercase tracking-wide">{title}</p>
+        <p className="text-2xl font-bold text-surface-900 mt-0.5">{value}</p>
+        {sub && <p className="text-xs text-surface-400 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -85,10 +85,10 @@ export default function ReportsPage() {
   const kpis = dashboard?.data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Reports & Analytics</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="heading-sm text-surface-900">Reports & Analytics</h1>
+        <p className="text-sm text-surface-500 mt-0.5">
           Key metrics, business insights, and report exports
         </p>
       </div>
@@ -138,19 +138,19 @@ export default function ReportsPage() {
       ) : null}
 
       {/* Report Export */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <div className="card p-6 space-y-5">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-gray-500" />
-          <h2 className="text-base font-semibold text-gray-900">Export Reports</h2>
+          <FileText className="w-5 h-5 text-surface-500" />
+          <h2 className="text-base font-semibold text-surface-900">Export Reports</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Report Type</label>
+            <label className="block text-xs font-medium text-surface-600 mb-1.5">Report Type</label>
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             >
               {REPORT_TYPES.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -160,21 +160,21 @@ export default function ReportsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">From Date</label>
+            <label className="block text-xs font-medium text-surface-600 mb-1.5">From Date</label>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">To Date</label>
+            <label className="block text-xs font-medium text-surface-600 mb-1.5">To Date</label>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
           </div>
         </div>
@@ -199,8 +199,8 @@ export default function ReportsPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <h2 className="text-base font-semibold text-gray-900">Quick Links</h2>
+      <div className="card p-6 space-y-4">
+        <h2 className="text-base font-semibold text-surface-900">Quick Links</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Sales Dashboard', href: '/sales', desc: 'View all sales' },
@@ -211,10 +211,10 @@ export default function ReportsPage() {
             <Link
               key={link.href}
               href={link.href}
-              className="p-4 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-colors"
+              className="p-4 rounded-lg border border-surface-100 hover:border-primary/30 hover:bg-primary/5 transition-colors"
             >
-              <p className="text-sm font-medium text-gray-900">{link.label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{link.desc}</p>
+              <p className="text-sm font-medium text-surface-900">{link.label}</p>
+              <p className="text-xs text-surface-400 mt-0.5">{link.desc}</p>
             </Link>
           ))}
         </div>

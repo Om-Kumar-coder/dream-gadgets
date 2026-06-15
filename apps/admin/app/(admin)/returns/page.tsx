@@ -79,11 +79,11 @@ export default function ReturnsPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Returns</h1>
-          <p className="text-sm text-gray-500">Manage product returns</p>
+          <h1 className="heading-sm text-surface-900">Returns</h1>
+          <p className="text-sm text-surface-500">Manage product returns</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function ReturnsPage() {
         <button
           onClick={() => setReturnType('sale')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            returnType === 'sale' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            returnType === 'sale' ? 'bg-primary text-primary-foreground' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
           }`}
         >
           Sales Returns
@@ -99,7 +99,7 @@ export default function ReturnsPage() {
         <button
           onClick={() => setReturnType('purchase')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            returnType === 'purchase' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            returnType === 'purchase' ? 'bg-primary text-primary-foreground' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
           }`}
         >
           Purchase Returns

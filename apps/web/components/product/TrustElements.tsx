@@ -48,17 +48,17 @@ export function TrustElements({ warrantyStatus, warrantyExpiry, condition }: Tru
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold">Why Buy From Us</h3>
+      <h3 className="heading-sm text-surface-900">Why Buy From Us</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {trustItems.map((item, i) => (
           <div
             key={i}
-            className="flex gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+            className="flex gap-3 p-4 bg-surface-50 rounded-xl border border-surface-100 hover:bg-surface-100 hover:border-surface-200 transition-all duration-200"
           >
             <div className="text-primary shrink-0 mt-0.5">{item.icon}</div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+              <p className="text-sm font-semibold text-surface-900">{item.title}</p>
+              <p className="text-xs text-surface-500 mt-0.5">{item.desc}</p>
             </div>
           </div>
         ))}

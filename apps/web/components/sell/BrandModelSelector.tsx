@@ -132,15 +132,15 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">What device are you selling?</h3>
-        <p className="text-sm text-gray-500">Search for your device below</p>
+        <h3 className="heading-sm text-surface-900 mb-1">What device are you selling?</h3>
+        <p className="text-sm text-surface-500">Search for your device below</p>
       </div>
 
       {/* Smart Search Input */}
       <div ref={wrapperRef} className="relative">
         <div className="relative">
           <svg
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400 pointer-events-none"
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <circle cx="11" cy="11" r="8" />
@@ -157,12 +157,12 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
             }}
             onFocus={() => setIsFocused(true)}
             placeholder="Enter device name (e.g. iPhone 13, HP Laptop…)"
-            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-surface-200 bg-white text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
           />
           {searchValue && (
             <button
               onClick={() => { setSearchValue(''); onUpdate({ brand: '', modelName: '' }); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 p-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -173,20 +173,20 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
 
         {/* Suggestions dropdown */}
         {isFocused && filtered.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-black/5 overflow-hidden z-50 animate-dropdown-fade-in max-h-80 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-surface-100 shadow-xl shadow-black/5 overflow-hidden z-50 animate-dropdown max-h-80 overflow-y-auto">
             {filtered.map((item, i) => (
               <button
                 key={`${item.brand}-${item.model}-${i}`}
                 type="button"
                 onClick={() => handleSelect(item)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-colors text-left"
               >
                 <span className="text-lg shrink-0">{DEVICE_TYPE_ICONS[item.deviceType] || '📱'}</span>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium">{item.brand} </span>
                   <span>{item.model}</span>
                 </div>
-                <span className="text-xs text-gray-400 capitalize shrink-0">{item.deviceType}</span>
+                <span className="text-xs text-surface-400 capitalize shrink-0">{item.deviceType}</span>
               </button>
             ))}
           </div>
@@ -205,7 +205,7 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 deviceType === dt.value && !brand
                   ? 'bg-primary text-white shadow-sm'
-                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100'
+                  : 'bg-surface-50 text-surface-500 hover:bg-surface-100 border border-surface-100'
               }`}
             >
               <span>{DEVICE_TYPE_ICONS[dt.value]}</span>
@@ -217,17 +217,17 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
 
       {/* Selected device summary */}
       {brand && modelName && (
-        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl animate-fade-in-up">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl animate-fade-in-up">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{DEVICE_TYPE_ICONS[deviceType] || '📱'}</span>
             <div>
-              <p className="text-sm font-semibold text-gray-900">{brand} {modelName}</p>
-              <p className="text-xs text-gray-500 capitalize">{deviceType}</p>
+              <p className="text-sm font-semibold text-surface-900">{brand} {modelName}</p>
+              <p className="text-xs text-surface-500 capitalize">{deviceType}</p>
             </div>
             <button
               type="button"
               onClick={() => { setSearchValue(''); onUpdate({ brand: '', modelName: '' }); }}
-              className="ml-auto text-gray-400 hover:text-red-500 p-1 transition-colors"
+              className="ml-auto text-surface-400 hover:text-primary p-1 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -240,7 +240,7 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
       {/* Brands quick pick */}
       {!searchValue && (
         <div className="animate-fade-in-up">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Popular Brands</p>
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-2">Popular Brands</p>
           <div className="flex flex-wrap gap-2">
             {['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Google', 'Dell', 'HP', 'Sony'].map(b => (
               <button
@@ -250,7 +250,7 @@ export function BrandModelSelector({ brand, modelName, deviceType, onUpdate }: B
                   setSearchValue(b);
                   setIsFocused(true);
                 }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-600 hover:border-primary/40 hover:text-primary transition-all"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-surface-200 text-surface-600 hover:border-primary/40 hover:text-primary transition-all"
               >
                 {b}
               </button>

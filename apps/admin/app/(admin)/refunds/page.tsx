@@ -94,11 +94,10 @@ export default function AdminRefundsPage() {
     return true;
   });
 
-  return (
-    <div className="space-y-6">
+  return (        <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Refunds</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="heading-sm text-surface-900">Refunds</h1>
+        <p className="text-sm text-surface-500 mt-1">
           Monitor and manually trigger refunds for cancelled online orders
         </p>
       </div>
@@ -106,13 +105,13 @@ export default function AdminRefundsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
           <input
             type="text"
             placeholder="Search order #, customer, payment ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm input"
           />
         </div>
         <div className="flex gap-1.5">
@@ -122,8 +121,8 @@ export default function AdminRefundsPage() {
               onClick={() => setRefundFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
                 refundFilter === f
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
               }`}
             >
               {f === 'all' ? 'All' : f}
@@ -135,8 +134,8 @@ export default function AdminRefundsPage() {
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-400">Loading refunds...</span>
+          <Loader2 className="w-5 h-5 animate-spin text-surface-400" />
+          <span className="ml-2 text-sm text-surface-400">Loading refunds...</span>
         </div>
       )}
 
@@ -144,7 +143,7 @@ export default function AdminRefundsPage() {
       {isError && (
         <div className="flex flex-col items-center justify-center py-16">
           <ShieldAlert className="w-8 h-8 text-red-400 mb-2" />
-          <p className="text-sm text-gray-500">Failed to load refund data. Check server connection.</p>
+          <p className="text-sm text-surface-500">Failed to load refund data. Check server connection.</p>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-refunds'] })}
             className="mt-3 text-sm text-blue-600 hover:underline"
@@ -158,8 +157,8 @@ export default function AdminRefundsPage() {
       {!isLoading && !isError && filteredRefunds.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <RotateCcw className="w-10 h-10 text-green-300 mb-3" />
-          <h3 className="text-sm font-medium text-gray-700">All caught up</h3>
-          <p className="text-xs text-gray-400 mt-1">
+          <h3 className="text-sm font-medium text-surface-700">All caught up</h3>
+          <p className="text-xs text-surface-400 mt-1">
             {searchQuery || refundFilter !== 'all'
               ? 'No refunds match your filters'
               : 'No cancelled orders with completed payments need refund action'}
@@ -172,17 +171,17 @@ export default function AdminRefundsPage() {
         <div className="space-y-4">
           {filteredRefunds.map((item) => (
             <div
-              key={item.orderId}
-              className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow"
+            key={item.orderId}
+            className="card p-5 hover:shadow-card-hover transition-all"
             >
               {/* Header row */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-sm font-medium">{item.orderNumber}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full badge-neutral">
                     Cancelled
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-surface-400">
                     {new Date(item.cancelledAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
@@ -196,12 +195,12 @@ export default function AdminRefundsPage() {
               </div>
 
               {/* Customer & branch */}
-              <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
+              <div className="flex items-center gap-4 text-xs text-surface-500 mb-4">
                 <span>{item.clientName}</span>
                 {item.clientEmail && (
-                  <span className="text-gray-400">{item.clientEmail}</span>
+                  <span className="text-surface-400">{item.clientEmail}</span>
                 )}
-                <span className="text-gray-400">{item.branchName}</span>
+                <span className="text-surface-400">{item.branchName}</span>
               </div>
 
               {/* Payments needing refund */}
@@ -215,7 +214,7 @@ export default function AdminRefundsPage() {
                       className={`flex items-center justify-between p-3 rounded-lg ${
                         needsRefund
                           ? 'bg-amber-50 border border-amber-200'
-                          : 'bg-gray-50 border border-gray-100'
+                          : 'bg-surface-50 border border-surface-100'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -223,12 +222,12 @@ export default function AdminRefundsPage() {
                           <p className="text-xs font-medium">
                             ₹{Number(payment.amount).toLocaleString('en-IN')}
                           </p>
-                          <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                          <p className="text-[10px] text-surface-400 font-mono mt-0.5">
                             {payment.razorpayPaymentId ?? 'No Razorpay ID'}
                           </p>
                         </div>
                         {payment.razorpayRefundId && (
-                          <div className="pl-3 border-l border-gray-200">
+                          <div className="pl-3 border-l border-surface-200">
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                                 REFUND_STATUS_COLORS[refundStatus] ?? 'bg-gray-100 text-gray-600'
@@ -236,7 +235,7 @@ export default function AdminRefundsPage() {
                             >
                               {refundStatus}
                             </span>
-                            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                            <p className="text-[10px] text-surface-400 font-mono mt-0.5">
                               {payment.razorpayRefundId}
                             </p>
                           </div>
@@ -282,21 +281,21 @@ export default function AdminRefundsPage() {
       {selectedPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Confirm Refund</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <h3 className="text-base font-semibold text-surface-900 mb-2">Confirm Refund</h3>
+            <p className="text-sm text-surface-500 mb-4">
               This will initiate a full refund via Razorpay for the following payment:
             </p>
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-1.5 text-sm">
+            <div className="bg-surface-50 rounded-lg p-3 mb-4 space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Order</span>
+                <span className="text-surface-500">Order</span>
                 <span className="font-mono font-medium">{selectedPayment.orderNumber}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Customer</span>
+                <span className="text-surface-500">Customer</span>
                 <span>{selectedPayment.clientName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Amount</span>
+                <span className="text-surface-500">Amount</span>
                 <span className="font-semibold">₹{Number(selectedPayment.amount).toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -304,7 +303,7 @@ export default function AdminRefundsPage() {
               <button
                 onClick={() => setSelectedPayment(null)}
                 disabled={retryMutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-surface-700 bg-surface-100 hover:bg-surface-200 rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

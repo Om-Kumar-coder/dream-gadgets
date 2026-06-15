@@ -57,9 +57,9 @@ export default function ContactPage() {
         </section>
         <section className="max-w-lg mx-auto px-4 py-16 text-center">
           <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h2>
-          <p className="text-gray-500 mb-6">Thank you for reaching out! Our team will get back to you within 24 hours.</p>
-          <button onClick={() => setSuccess(false)} className="px-6 py-3 btn-red rounded-xl font-semibold text-sm">
+          <h2 className="text-2xl font-bold text-surface-900 mb-2">Message Sent!</h2>
+          <p className="text-surface-500 mb-6">Thank you for reaching out! Our team will get back to you within 24 hours.</p>
+          <button onClick={() => setSuccess(false)} className="px-6 py-3 btn-primary rounded-xl">
             Send Another Message
           </button>
         </section>
@@ -81,66 +81,66 @@ export default function ContactPage() {
 
           {/* Form */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Send us a message</h2>
+            <h2 className="heading-sm text-surface-900 mb-6">Send us a message</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="contact-firstName" className="block text-xs font-semibold text-gray-700 mb-1">First Name <span className="text-red-400">*</span></label>
+                  <label htmlFor="contact-firstName" className="block text-xs font-semibold text-surface-700 mb-1">First Name <span className="text-red-400">*</span></label>
                   <input
                     id="contact-firstName"
                     name="firstName"
                     type="text"
                     value={form.firstName}
                     onChange={e => updateField('firstName', e.target.value)}
-                    className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${errors.firstName ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white focus:border-primary focus:ring-primary/20'}`}
+                    className={`input ${errors.firstName ? 'border-red-300 bg-red-50' : ''}`}
                   />
                   {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                 </div>
                 <div>
-                  <label htmlFor="contact-lastName" className="block text-xs font-semibold text-gray-700 mb-1">Last Name</label>
+                  <label htmlFor="contact-lastName" className="block text-xs font-semibold text-surface-700 mb-1">Last Name</label>
                   <input
                     id="contact-lastName"
                     name="lastName"
                     type="text"
                     value={form.lastName}
                     onChange={e => updateField('lastName', e.target.value)}
-                    className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                    className="input"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="contact-phone" className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-400">*</span></label>
+                <label htmlFor="contact-phone" className="block text-xs font-semibold text-surface-700 mb-1">Phone Number <span className="text-red-400">*</span></label>
                 <input
                   id="contact-phone"
                   name="phone"
                   type="tel"
                   value={form.phone}
                   onChange={e => updateField('phone', e.target.value)}
-                  className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white focus:border-primary focus:ring-primary/20'}`}
+                  className={`input ${errors.phone ? 'border-red-300 bg-red-50' : ''}`}
                 />
                 {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
               </div>
               <div>
-                <label htmlFor="contact-email" className="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+                <label htmlFor="contact-email" className="block text-xs font-semibold text-surface-700 mb-1">Email</label>
                 <input
                   id="contact-email"
                   name="email"
                   type="email"
                   value={form.email}
                   onChange={e => updateField('email', e.target.value)}
-                  className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white focus:border-primary focus:ring-primary/20'}`}
+                  className={`input ${errors.email ? 'border-red-300 bg-red-50' : ''}`}
                 />
                 {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
               </div>
               <div>
-                <label htmlFor="contact-message" className="block text-xs font-semibold text-gray-700 mb-1">Message <span className="text-red-400">*</span></label>
+                <label htmlFor="contact-message" className="block text-xs font-semibold text-surface-700 mb-1">Message <span className="text-red-400">*</span></label>
                 <textarea
                   id="contact-message"
                   name="message"
                   rows={4}
                   value={form.message}
                   onChange={e => updateField('message', e.target.value)}
-                  className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none transition-all ${errors.message ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white focus:border-primary focus:ring-primary/20'}`}
+                  className={`textarea ${errors.message ? 'border-red-300 bg-red-50' : ''}`}
                 />
                 {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message}</p>}
               </div>
@@ -152,7 +152,7 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full btn-red font-bold py-3 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full py-3"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -171,18 +171,18 @@ export default function ContactPage() {
 
           {/* Info */}
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-gray-900">Get in touch</h2>
+            <h2 className="heading-sm text-surface-900">Get in touch</h2>
             {[
               { icon: '📍', title: 'Main Branch', detail: '29A, Pitambar Ghatak Lane, Chetla, Kolkata — 700027' },
               { icon: '📞', title: 'Phone', detail: '+91 82820 11193 (Chetla) / +91 90383 12344 (Jadavpur)' },
               { icon: '✉️', title: 'Email', detail: 'dreamgadgetskolkata@gmail.com' },
               { icon: '🕐', title: 'Hours', detail: '12:30–9:30 PM (Chetla & Champahati) / 2–10 PM (Jadavpur)' },
             ].map(i => (
-              <div key={i.title} className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div key={i.title} className="flex gap-4 p-4 bg-surface-50 rounded-2xl border border-surface-100">
                 <span className="text-2xl shrink-0">{i.icon}</span>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{i.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{i.detail}</p>
+                  <p className="font-semibold text-surface-900 text-sm">{i.title}</p>
+                  <p className="text-sm text-surface-500 mt-0.5">{i.detail}</p>
                 </div>
               </div>
             ))}

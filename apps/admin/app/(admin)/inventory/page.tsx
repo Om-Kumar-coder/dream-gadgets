@@ -80,7 +80,7 @@ export default function InventoryPage() {
           <p className="font-medium">
             {row.original.brand?.name ?? row.original.brand} {row.original.model?.name ?? row.original.model}
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-surface-400">
             {row.original.storage} · {row.original.colour}
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function InventoryPage() {
     {
       accessorKey: 'branch',
       header: 'Branch',
-      cell: ({ row }) => <span className="text-xs text-gray-500">{row.original.branch?.name}</span>,
+      cell: ({ row }) =>        <span className="text-xs text-surface-500">{row.original.branch?.name}</span>,
     },
   ];
 
@@ -170,15 +170,15 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Inventory</h1>
-          <p className="text-sm text-gray-500">All inventory items</p>
+          <h1 className="heading-sm text-surface-900">Inventory</h1>
+          <p className="text-sm text-surface-500">All inventory items</p>
         </div>
         <Link
           href="/purchases/new"
-          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="btn-primary btn-md"
         >
           <Plus className="w-4 h-4" />
           Add Item

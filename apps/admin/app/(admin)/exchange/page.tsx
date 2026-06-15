@@ -51,7 +51,7 @@ export default function ExchangePage() {
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.brand} {row.original.model}</p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-surface-400">
             {row.original.storage ?? '—'} · {row.original.colour ?? '—'}
           </p>
         </div>
@@ -106,7 +106,7 @@ export default function ExchangePage() {
       accessorKey: 'createdAt',
       header: 'Date',
       cell: ({ row }) => (
-        <span className="text-gray-500 text-xs">
+        <span className="text-surface-500 text-xs">
           {row.original.createdAt ? format(new Date(row.original.createdAt), 'dd MMM yyyy') : '—'}
         </span>
       ),
@@ -114,11 +114,11 @@ export default function ExchangePage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Exchange Devices</h1>
-          <p className="text-sm text-gray-500">Manage exchange devices</p>
+          <h1 className="heading-sm text-surface-900">Exchange Devices</h1>
+          <p className="text-sm text-surface-500">Manage exchange devices</p>
         </div>
         <Button variant="default" size="md">
           <Plus className="w-4 h-4" />

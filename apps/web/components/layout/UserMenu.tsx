@@ -60,7 +60,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   if (!visible) return null;
   return (
     <div className="fixed top-4 right-4 z-[100] animate-fade-in-down">
-      <div className="flex items-center gap-2.5 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-xl text-sm font-medium">
+      <div className="flex items-center gap-2.5 bg-surface-950 text-white px-5 py-3 rounded-xl shadow-xl text-sm font-medium">
         <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -133,13 +133,13 @@ export function UserMenu() {
       <>
         <Link
           href="/login"
-          className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-colors"
+          className="hidden sm:block text-sm font-medium text-surface-500 hover:text-surface-700 hover:bg-surface-50 px-3 py-1.5 rounded-lg transition-colors"
         >
           Login
         </Link>
         <Link
           href="/login"
-          className="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
+          className="sm:hidden p-2 rounded-lg text-surface-500 hover:bg-surface-50 transition-colors"
           aria-label="Login"
         >
           <IconUser size={20} />
@@ -168,7 +168,7 @@ export function UserMenu() {
         {/* Avatar Button */}
         <button
           onClick={() => setDropdownOpen(o => !o)}
-          className="relative flex items-center gap-2 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-1"
+          className="relative flex items-center gap-2 p-1 rounded-full hover:bg-surface-50 transition-colors focus:outline-none focus:ring-2 focus:ring-surface-200 focus:ring-offset-1"
           aria-label="User menu"
           aria-expanded={dropdownOpen}
           aria-haspopup="true"
@@ -192,7 +192,7 @@ export function UserMenu() {
 
           <IconChevronDown
             size={14}
-            className={`text-gray-400 transition-transform duration-200 hidden sm:block ${
+            className={`text-surface-400 transition-transform duration-200 hidden sm:block ${
               dropdownOpen ? 'rotate-180' : ''
             }`}
           />
@@ -201,12 +201,12 @@ export function UserMenu() {
         {/* Dropdown Menu */}
         {dropdownOpen && (
           <div
-            className="absolute right-0 top-full mt-2 w-64 origin-top-right animate-dropdown-fade-in"
+            className="absolute right-0 top-full mt-2 w-64 origin-top-right animate-dropdown"
             role="menu"
           >
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/5 overflow-hidden">
+            <div className="bg-white border border-surface-100 rounded-2xl shadow-xl shadow-black/5 overflow-hidden">
               {/* User Info Header */}
-              <div className="px-4 py-3.5 border-b border-gray-50">
+              <div className="px-4 py-3.5 border-b border-surface-50">
                 <div className="flex items-center gap-3">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
@@ -218,15 +218,15 @@ export function UserMenu() {
                   <div className="min-w-0 flex-1">
                     {profileLoading ? (
                       <div className="space-y-1.5">
-                        <div className="h-3.5 bg-gray-100 rounded animate-pulse w-24" />
-                        <div className="h-2.5 bg-gray-50 rounded animate-pulse w-32" />
+                        <div className="h-3.5 bg-surface-100 rounded animate-pulse w-24" />
+                        <div className="h-2.5 bg-surface-50 rounded animate-pulse w-32" />
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm font-semibold text-gray-900 truncate">
+                        <p className="text-sm font-semibold text-surface-900 truncate">
                           {displayName}
                         </p>
-                        <p className="text-xs text-gray-400 truncate">
+                        <p className="text-xs text-surface-400 truncate">
                           {profile?.email || user.email}
                         </p>
                       </>
@@ -238,13 +238,13 @@ export function UserMenu() {
               {/* Menu Items */}
               {/* Wallet Balance */}
               {profile && !profileLoading && (
-                <div className="px-4 py-2.5 border-b border-gray-50">
+                <div className="px-4 py-2.5 border-b border-surface-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <IconWallet size={16} className="text-amber-500" />
-                      <span className="text-sm font-medium text-gray-700">Wallet Balance</span>
+                      <span className="text-sm font-medium text-surface-700">Wallet Balance</span>
                     </div>
-                    <span className="text-sm font-extrabold text-gray-900">
+                    <span className="text-sm font-extrabold text-surface-900">
                       ₹{Number(profile.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -260,7 +260,7 @@ export function UserMenu() {
               </div>
 
               {/* Divider + Admin + Logout */}
-              <div className="border-t border-gray-50 py-1.5">
+              <div className="border-t border-surface-50 py-1.5">
                 {isAdmin && (
                   <DropdownItem
                     href="/admin"
@@ -307,7 +307,7 @@ function DropdownItem({
       <div className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 cursor-not-allowed select-none">
         <span className="shrink-0 text-gray-200">{icon}</span>
         <span>{label}</span>
-        <span className="ml-auto text-[10px] text-gray-300 font-medium bg-gray-50 px-1.5 py-0.5 rounded-full">
+        <span className="ml-auto text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">
           Coming soon
         </span>
       </div>
@@ -317,7 +317,7 @@ function DropdownItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-colors"
       role="menuitem"
     >
       <span className="shrink-0 text-gray-400">{icon}</span>

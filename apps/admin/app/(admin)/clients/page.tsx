@@ -42,7 +42,7 @@ export default function ClientsPage() {
             </div>
             <div>
               <p className="font-medium">{client.firstName} {client.lastName}</p>
-              <p className="text-xs text-gray-400">{client.email}</p>
+              <p className="text-xs text-surface-400">{client.email}</p>
             </div>
           </div>
         );
@@ -80,7 +80,7 @@ export default function ClientsPage() {
     {
       accessorKey: 'branch',
       header: 'Branch',
-      cell: ({ row }) => <span className="text-xs text-gray-500">{row.original.branch?.name}</span>,
+      cell: ({ row }) =>        <span className="text-xs text-surface-500">{row.original.branch?.name}</span>,
     },
     {
       id: 'actions',
@@ -97,11 +97,11 @@ export default function ClientsPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Clients</h1>
-          <p className="text-sm text-gray-500">All registered clients</p>
+          <h1 className="heading-sm text-surface-900">Clients</h1>
+          <p className="text-sm text-surface-500">All registered clients</p>
         </div>
         <Button variant="default" size="md">
           <span className="text-lg leading-none mr-1">+</span> New Client

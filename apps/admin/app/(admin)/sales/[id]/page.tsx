@@ -118,7 +118,7 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-surface-400">Loading...</div>
       </div>
     );
   }
@@ -127,8 +127,8 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="text-red-500 mb-2">⚠️</div>
-        <h3 className="text-lg font-medium text-gray-900">Failed to load sale</h3>
-        <p className="text-gray-500 text-sm mt-1">
+        <h3 className="text-lg font-medium text-surface-900">Failed to load sale</h3>
+        <p className="text-surface-500 text-sm mt-1">
           {error instanceof Error ? error.message : 'Please try again'}
         </p>
         <Link
@@ -142,16 +142,16 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/sales"
-            className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1 text-surface-600 hover:text-surface-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className="heading-sm text-surface-900">
             {sale.invoiceNumber}
           </h1>
         </div>
@@ -160,7 +160,7 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
             href={`/api/v1/sales/${sale.id}/invoice`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="btn-primary btn-md"
           >
             <FileText className="w-4 h-4" /> Download PDF
           </a>
@@ -170,11 +170,11 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Order Details</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-surface-900">Order Details</h2>
+                <p className="text-sm text-surface-500">
                   {sale.saleDate ? format(new Date(sale.saleDate), 'dd MMM yyyy, h:mm a') : '—'}
                 </p>
               </div>
@@ -196,29 +196,29 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <p className="text-xs text-gray-500">Invoice #</p>
+                <p className="text-xs text-surface-500">Invoice #</p>
                 <p className="font-mono text-sm">{sale.invoiceNumber}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Branch</p>
+                <p className="text-xs text-surface-500">Branch</p>
                 <p className="text-sm">{sale.branch?.name ?? 'N/A'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Sale Type</p>
+                <p className="text-xs text-surface-500">Sale Type</p>
                 <p className="text-sm capitalize">{sale.saleType}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Client</p>
+                <p className="text-xs text-surface-500">Client</p>
                 <p className="text-sm">
                   {sale.client ? (
                     <span>
                       {sale.client.firstName} {sale.client.lastName}
                       {sale.client.email && (
-                        <span className="text-gray-400 ml-1">({sale.client.email})</span>
+                        <span className="text-surface-400 ml-1">({sale.client.email})</span>
                       )}
                     </span>
                   ) : (
-                    <span className="text-gray-400">Walk-in</span>
+                    <span className="text-surface-400">Walk-in</span>
                   )}
                 </p>
               </div>
@@ -226,36 +226,34 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
 
             <div className="space-y-3">
               {sale.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div key={item.id} className="flex items-center justify-between py-3 border-b border-surface-100 last:border-0">
                   <div>
                     <p className="font-medium text-sm">{item.description}</p>
-                    <p className="text-xs text-gray-400">IMEI: {item.imei}</p>
+                    <p className="text-xs text-surface-400">IMEI: {item.imei}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-sm">₹{Number(item.total).toLocaleString()}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-surface-400">
                       ₹{Number(item.unitPrice).toLocaleString()} × {item.discount > 0 ? '1' : '1'}
                       {item.discount > 0 && <span className="text-red-500"> -₹{item.discount}</span>}
                     </p>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="mt-6 space-y-2 border-t border-gray-100 pt-4">
+            </div>              <div className="mt-6 space-y-2 border-t border-surface-100 pt-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-surface-500">Subtotal</span>
                 <span className="font-medium">₹{Number(sale.subtotal).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Discount</span>
+                <span className="text-surface-500">Discount</span>
                 <span className="font-medium text-red-500">- ₹{Number(sale.discountAmount).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax</span>
+                <span className="text-surface-500">Tax</span>
                 <span className="font-medium">₹{Number(sale.taxAmount).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
+              <div className="flex justify-between text-lg font-semibold pt-2 border-t border-surface-200">
                 <span>Total</span>
                 <span>₹{Number(sale.totalAmount).toLocaleString()}</span>
               </div>
@@ -263,22 +261,22 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Payments */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-surface-900 mb-4">Payments</h2>
             <div className="space-y-3">
               {sale.payments.map((payment) => (
-                <div key={payment.id} className="py-3 border-b border-gray-100 last:border-0">
+                <div key={payment.id} className="py-3 border-b border-surface-100 last:border-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium capitalize">{payment.method}</span>
                       {payment.reference && (
-                        <span className="text-xs text-gray-400">Ref: {payment.reference}</span>
+                        <span className="text-xs text-surface-400">Ref: {payment.reference}</span>
                       )}
                       {payment.status && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                          payment.status === 'completed' ? 'bg-green-50 text-green-700' :
-                          payment.status === 'failed' ? 'bg-red-50 text-red-700' :
-                          'bg-gray-50 text-gray-600'
+                          payment.status === 'completed' ? 'badge-success' :
+                          payment.status === 'failed' ? 'badge-danger' :
+                          'badge-neutral'
                         }`}>
                           {payment.status}
                         </span>
@@ -295,7 +293,7 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
                         </svg>
                         Refund {payment.refundStatus === 'processed' ? 'Processed' : payment.refundStatus ?? ''}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-600">
+                      <div className="flex items-center gap-3 text-xs text-surface-600">
                         <span>ID: <span className="font-mono">{payment.razorpayRefundId}</span></span>
                         {payment.refundAmount != null && (
                           <span>Amount: <strong>₹{Number(payment.refundAmount).toLocaleString('en-IN')}</strong></span>
@@ -314,23 +312,22 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
-            <div className="space-y-2">
-              <button
-                onClick={() => emailInvoice.mutate(sale.id)}
-                disabled={sale.isVoided || emailInvoice.isPending}
-                className="flex items-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Mail className="w-4 h-4" /> Email Invoice
-              </button>
-              <button
-                onClick={() => whatsappInvoice.mutate(sale.id)}
-                disabled={sale.isVoided || whatsappInvoice.isPending}
-                className="flex items-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <MessageCircle className="w-4 h-4" /> WhatsApp Invoice
-              </button>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
+            <div className="space-y-2">                <button
+                    onClick={() => emailInvoice.mutate(sale.id)}
+                    disabled={sale.isVoided || emailInvoice.isPending}
+                    className="btn-outline btn-md w-full justify-start"
+                  >
+                    <Mail className="w-4 h-4" /> Email Invoice
+                  </button>
+                  <button
+                    onClick={() => whatsappInvoice.mutate(sale.id)}
+                    disabled={sale.isVoided || whatsappInvoice.isPending}
+                    className="btn-outline btn-md w-full justify-start"
+                  >
+                    <MessageCircle className="w-4 h-4" /> WhatsApp Invoice
+                  </button>
               {!sale.isVoided && (
                 <button
                   onClick={() => {
@@ -339,7 +336,7 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
                     }
                   }}
                   disabled={voidSale.isPending}
-                  className="flex items-center gap-2 w-full px-4 py-2 border border-red-200 rounded-lg hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 w-full px-4 py-2 border-2 border-red-200 rounded-xl hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Trash2 className="w-4 h-4" /> Void Sale
                 </button>
@@ -347,19 +344,19 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-surface-900 mb-4">Metadata</h2>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-gray-500">Created</p>
-                <p className="text-gray-900">
+                <p className="text-surface-500">Created</p>
+                <p className="text-surface-900">
                   {sale.createdAt ? format(new Date(sale.createdAt), 'dd MMM yyyy, h:mm a') : '—'}
                 </p>
               </div>
               {sale.isVoided && sale.voidedAt && (
                 <div>
-                  <p className="text-gray-500">Voided</p>
-                  <p className="text-gray-900">
+                  <p className="text-surface-500">Voided</p>
+                  <p className="text-surface-900">
                     {format(new Date(sale.voidedAt), 'dd MMM yyyy, h:mm a')}
                   </p>
                 </div>

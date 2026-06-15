@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Open_Sans, Anton } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import { Providers } from './providers';
@@ -9,6 +9,8 @@ import { WhatsAppButton } from '../components/layout/WhatsAppButton';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 
 const inter = Inter({ subsets: ['latin'] });
+const openSans = Open_Sans({ subsets: ['latin'], variable: '--font-open-sans' });
+const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' });
 
 export const metadata: Metadata = {
   title: { default: 'Dream Gadgets', template: '%s | Dream Gadgets' },
@@ -19,8 +21,8 @@ export const metadata: Metadata = {
 
 function HeaderFallback() {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="bg-gray-900 text-gray-100 text-xs py-1.5 px-4 text-center hidden md:block">
+    <header className="sticky top-0 z-50 bg-white border-b border-surface-100 shadow-sm">
+      <div className="bg-surface-950 text-white/80 text-xs py-1.5 px-4 text-center hidden md:block">
         🚀 Free doorstep pickup across India &nbsp;·&nbsp; Instant payment within 24 hours
       </div>
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4" />
@@ -31,7 +33,7 @@ function HeaderFallback() {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} pb-16 md:pb-0`}>
+      <body className={`${inter.className} ${openSans.variable} ${anton.variable} pb-16 md:pb-0`}>
         <Providers>
           <Suspense fallback={<HeaderFallback />}>
             <Header />

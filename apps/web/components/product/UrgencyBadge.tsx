@@ -45,7 +45,7 @@ export function UrgencyBadge({ stockLevel = 'high', salesVelocity = 'normal', cu
 
   return (
     <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
       In Stock
     </div>
   );
@@ -55,12 +55,12 @@ export function StockCounter({ count = 0 }: { count?: number }) {
   if (count <= 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="flex items-center gap-1.5 text-xs text-surface-500">
       <div className="flex -space-x-1">
         {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
           <div
             key={i}
-            className="w-5 h-5 rounded-full border-2 border-white bg-gray-200"
+            className="w-5 h-5 rounded-full border-2 border-white bg-surface-200"
             style={{ background: i < 3 ? '#10B981' : i < 4 ? '#F59E0B' : '#EF4444' }}
           />
         ))}

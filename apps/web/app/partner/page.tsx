@@ -65,23 +65,18 @@ export default function PartnerPage() {
 
   if (submitted) {
     return (
-      <main>
+      <main className="animate-fade-in">
         <section className="max-w-lg mx-auto px-4 py-20 text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Inquiry Submitted!</h1>
-          <p className="text-gray-500 text-sm mb-8">
+          <h1 className="heading-md text-surface-900 mb-2">Inquiry Submitted!</h1>
+          <p className="text-surface-500 text-sm mb-8">
             Thank you for your interest in partnering with Dream Gadgets. Our partnerships team will review your inquiry and reach out within 2 business days.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/"
-              className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              Go Home
-            </Link>
+            <Link href="/" className="btn-secondary btn-md">Go Home</Link>
             <button
               onClick={() => { setSubmitted(false); setForm({ name: '', businessName: '', email: '', phone: '', partnerType: '', message: '' }); }}
-              className="px-6 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              className="btn-outline btn-md"
             >
               Submit Another
             </button>
@@ -92,12 +87,10 @@ export default function PartnerPage() {
   }
 
   return (
-    <main>
+    <main className="animate-fade-in">
       {/* Hero */}
-      <section className="text-white py-16 px-4 text-center relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)',
-      }}>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-2xl mx-auto">
           <h1 className="text-4xl font-extrabold mb-3">Become a Partner</h1>
           <p className="text-white/70 text-sm max-w-xl mx-auto">
@@ -110,16 +103,13 @@ export default function PartnerPage() {
       <section className="max-w-6xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
           {PARTNER_TYPES.map((p) => (
-            <div
-              key={p.title}
-              className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all"
-            >
+            <div key={p.title} className="card p-6 hover:shadow-card-hover hover:-translate-y-0.5 transition-all group">
               <span className="text-4xl mb-3 block">{p.icon}</span>
-              <h3 className="font-bold text-gray-900 text-lg mb-2">{p.title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-4">{p.desc}</p>
+              <h3 className="font-bold text-surface-900 text-lg mb-2 group-hover:text-primary transition-colors">{p.title}</h3>
+              <p className="text-sm text-surface-600 leading-relaxed mb-4">{p.desc}</p>
               <ul className="space-y-1.5">
                 {p.benefits.map((b) => (
-                  <li key={b} className="text-xs text-gray-500 flex items-center gap-2">
+                  <li key={b} className="text-xs text-surface-500 flex items-center gap-2">
                     <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
@@ -131,11 +121,11 @@ export default function PartnerPage() {
           ))}
         </div>
 
-        {/* CTA Section + Form */}
+        {/* CTA + Form */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-          {/* Left: Stats & Info */}
+          {/* Left: Stats */}
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Why Partner With Us?</h2>
+            <h2 className="heading-md text-surface-900">Why Partner With Us?</h2>
             <div className="space-y-4">
               {[
                 { stat: '50,000+', label: 'Happy Customers' },
@@ -143,83 +133,60 @@ export default function PartnerPage() {
                 { stat: '₹50Cr+', label: 'Partner Payouts' },
                 { stat: '95%', label: 'Satisfaction Rate' },
               ].map((s) => (
-                <div key={s.label} className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{s.label}</span>
+                <div key={s.label} className="card p-4 flex items-center justify-between hover:shadow-card-hover transition-all">
+                  <span className="text-sm text-surface-600">{s.label}</span>
                   <span className="text-lg font-bold text-primary">{s.stat}</span>
                 </div>
               ))}
             </div>
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-xs text-red-700 leading-relaxed">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+              <p className="text-xs text-surface-700 leading-relaxed">
                 <strong>Trusted by businesses across India.</strong> Our partner network spans retail stores, service centers, and bulk suppliers in over 100 cities. Join the network and be part of India&apos;s circular economy.
               </p>
             </div>
           </div>
 
           {/* Right: Form */}
-          <div className="lg:col-span-3 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold text-gray-900 text-lg mb-1">Partner Inquiry Form</h3>
-            <p className="text-sm text-gray-500 mb-6">Fill out the form and our partnerships team will contact you within 2 business days.</p>
+          <div className="lg:col-span-3 card p-6">
+            <h3 className="font-bold text-surface-900 text-lg mb-1">Partner Inquiry Form</h3>
+            <p className="text-sm text-surface-500 mb-6">Fill out the form and our partnerships team will contact you within 2 business days.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 font-medium">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.name}
+                  <label className="block text-xs text-surface-500 mb-1 font-medium">Full Name *</label>
+                  <input type="text" required value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="Your full name"
-                  />
+                    className="input-field" placeholder="Your full name" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 font-medium">Business Name</label>
-                  <input
-                    type="text"
-                    value={form.businessName}
+                  <label className="block text-xs text-surface-500 mb-1 font-medium">Business Name</label>
+                  <input type="text" value={form.businessName}
                     onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="Your business name"
-                  />
+                    className="input-field" placeholder="Your business name" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 font-medium">Email Address *</label>
-                  <input
-                    type="email"
-                    required
-                    value={form.email}
+                  <label className="block text-xs text-surface-500 mb-1 font-medium">Email Address *</label>
+                  <input type="email" required value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="your@email.com"
-                  />
+                    className="input-field" placeholder="your@email.com" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 font-medium">Phone Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={form.phone}
+                  <label className="block text-xs text-surface-500 mb-1 font-medium">Phone Number *</label>
+                  <input type="tel" required value={form.phone}
                     onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="10-digit mobile number"
-                    minLength={10}
-                  />
+                    className="input-field" placeholder="10-digit mobile number" minLength={10} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Partner Type *</label>
-                <select
-                  required
-                  value={form.partnerType}
+                <label className="block text-xs text-surface-500 mb-1 font-medium">Partner Type *</label>
+                <select required value={form.partnerType}
                   onChange={(e) => setForm((f) => ({ ...f, partnerType: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                >
+                  className="input-field">
                   <option value="">Select partner type...</option>
                   {PARTNER_TYPES.map((p) => (
                     <option key={p.title} value={p.title}>{p.title}</option>
@@ -228,25 +195,17 @@ export default function PartnerPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Message (optional)</label>
-                <textarea
-                  rows={3}
-                  value={form.message}
+                <label className="block text-xs text-surface-500 mb-1 font-medium">Message (optional)</label>
+                <textarea rows={3} value={form.message}
                   onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                  placeholder="Tell us about your business and how you'd like to partner..."
-                />
+                  className="input-field resize-none" placeholder="Tell us about your business..." />
               </div>
 
               {error && (
                 <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
               )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-all"
-              >
+              <button type="submit" disabled={submitting} className="btn-primary btn-lg w-full">
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -260,7 +219,7 @@ export default function PartnerPage() {
                 )}
               </button>
 
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-surface-400 text-center">
                 By submitting, you agree to our{' '}
                 <Link href="/terms" className="text-primary hover:underline">Terms & Conditions</Link>
                 {' '}and{' '}

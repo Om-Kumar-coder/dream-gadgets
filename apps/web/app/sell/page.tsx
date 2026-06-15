@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SellWizard } from '../../components/sell/SellWizard';
-import { IconFile, IconClock, IconSearch, IconTag, IconWallet, IconTruck, IconZap, IconShield, IconAward, IconPhone, IconStar, IconMapPin } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
@@ -9,100 +8,116 @@ export const metadata: Metadata = {
 };
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: <IconFile size={24} />, title: 'Get Instant Quote', desc: 'Select your device and condition to get the best price instantly.' },
-  { step: '02', icon: <IconClock size={24} />, title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.' },
-  { step: '03', icon: <IconSearch size={24} />, title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.' },
-  { step: '04', icon: <IconTag size={24} />, title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.' },
+  { step: '01', icon: '💰', title: 'Get Instant Quote', desc: 'Select your device and condition to get the best price instantly.' },
+  { step: '02', icon: '📅', title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.' },
+  { step: '03', icon: '🔍', title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.' },
+  { step: '04', icon: '⚡', title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.' },
 ];
 
 const BENEFITS = [
-  { icon: <IconWallet size={24} />, title: 'Best Price Assured', desc: 'We offer the highest market price for your device, guaranteed.' },
-  { icon: <IconTruck size={24} />, title: 'Free Doorstep Pickup', desc: 'Free pickup from your home or office anywhere in India.' },
-  { icon: <IconZap size={24} />, title: 'Instant Payment', desc: 'Get paid via bank transfer or UPI within minutes of inspection.' },
-  { icon: <IconShield size={24} />, title: 'Secure Data Wipe', desc: 'Complete data erasure before your device is processed.' },
-  { icon: <IconAward size={24} />, title: '1M+ Happy Customers', desc: 'Trusted by millions across India for selling their devices.' },
-  { icon: <IconPhone size={24} />, title: 'Dedicated Support', desc: 'Our team is available 7 days a week to assist you.' },
+  { icon: '💰', title: 'Best Price Assured', desc: 'We offer the highest market price for your device, guaranteed.' },
+  { icon: '🚚', title: 'Free Doorstep Pickup', desc: 'Free pickup from your home or office anywhere in India.' },
+  { icon: '⚡', title: 'Instant Payment', desc: 'Get paid via bank transfer or UPI within minutes of inspection.' },
+  { icon: '🛡️', title: 'Secure Data Wipe', desc: 'Complete data erasure before your device is processed.' },
+  { icon: '⭐', title: '1M+ Happy Customers', desc: 'Trusted by millions across India for selling their devices.' },
+  { icon: '📞', title: 'Dedicated Support', desc: 'Our team is available 7 days a week to assist you.' },
 ];
 
 export default function SellPage() {
   return (
     <main>
-      {/* Hero */}
-      <section className="text-white py-16 px-4 text-center relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
-      }}>
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ════════════════════════════════════
+          HERO
+          ════════════════════════════════════ */}
+      <section className="sell-hero py-20 md:py-24 px-4 text-center">
+        <div className="sell-hero-bg" />
+        <div className="sell-hero-glow top-0 right-0 w-96 h-96 bg-primary/10" />
+        <div className="sell-hero-glow bottom-0 left-0 w-80 h-80 bg-primary/10" />
         <div className="relative max-w-3xl mx-auto">
-          <span className="inline-block bg-white/10 backdrop-blur-sm text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-4">
-            ✦ Sell in 60 Seconds
+          <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 border border-white/10">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse-soft" />
+            Sell in 60 Seconds
           </span>
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-3 leading-tight">
+          <h1 className="heading-xl mb-4">
             Sell Your Old Phone<br />
-            <span className="text-primary">Get Best Price Today!</span>
+            <span className="text-gradient-brand">Get Best Price Today!</span>
           </h1>
-          <p className="text-white/70 text-base mb-2">Highest price guaranteed · Free doorstep pickup · Instant payment</p>
-          <div className="flex items-center justify-center gap-6 text-xs text-white/50 mt-4">
-            <span className="flex items-center gap-1.5"><IconStar size={14} /> 4.8 Rating</span>
-            <span className="flex items-center gap-1.5"><IconAward size={14} /> 1M+ Customers</span>
-            <span className="flex items-center gap-1.5"><IconMapPin size={14} /> Pan India</span>
+          <p className="text-white/60 text-base md:text-lg mb-6 max-w-xl mx-auto">
+            Highest price guaranteed · Free doorstep pickup · Instant payment
+          </p>
+          <div className="flex items-center justify-center gap-6 md:gap-10 text-xs text-white/50">
+            <span className="flex items-center gap-1.5">⭐ 4.8 Rating</span>
+            <span className="w-1 h-1 rounded-full bg-white/20" />
+            <span className="flex items-center gap-1.5">🏆 1M+ Customers</span>
+            <span className="w-1 h-1 rounded-full bg-white/20" />
+            <span className="flex items-center gap-1.5">📍 Pan India</span>
           </div>
         </div>
       </section>
 
-      {/* Wizard Section */}
-      <section className="max-w-4xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+      {/* ════════════════════════════════════
+          WIZARD
+          ════════════════════════════════════ */}
+      <section className="container-narrow -mt-8 relative z-10 pb-16 md:pb-20">
         <SellWizard />
       </section>
 
-      {/* Stats bar */}
-      <section className="bg-gray-50 border-y border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {[
-            { v: '10,000+', l: 'Phones Sold' },
-            { v: '4.8 ★', l: 'Customer Rating' },
-            { v: '50+', l: 'Cities Covered' },
-            { v: '100%', l: 'Secure Payments' },
-          ].map(s => (
-            <div key={s.l}>
-              <p className="text-2xl font-extrabold text-primary">{s.v}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.l}</p>
-            </div>
-          ))}
+      {/* ════════════════════════════════════
+          STATS BAR
+          ════════════════════════════════════ */}
+      <section className="bg-surface-50 border-y border-surface-100">
+        <div className="container-narrow py-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            {[
+              { v: '10,000+', l: 'Phones Sold' },
+              { v: '4.8 ★', l: 'Customer Rating' },
+              { v: '50+', l: 'Cities Covered' },
+              { v: '100%', l: 'Secure Payments' },
+            ].map(s => (
+              <div key={s.l}>
+                <p className="text-2xl md:text-3xl font-extrabold text-primary">{s.v}</p>
+                <p className="text-xs text-surface-500 mt-0.5 font-medium">{s.l}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
+      {/* ════════════════════════════════════
+          HOW IT WORKS
+          ════════════════════════════════════ */}
+      <section className="section-pad container-page">
         <div className="text-center mb-12">
-          <h2 className="text-2xl font-bold text-gray-900">How It Works</h2>
-          <p className="text-gray-500 text-sm mt-2">Sell your phone in 4 simple steps</p>
+          <h2 className="section-title">How It Works</h2>
+          <p className="section-subtitle mx-auto">Sell your phone in 4 simple steps</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {HOW_IT_WORKS.map(s => (
-            <div key={s.step} className="how-it-works-step bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1">
-              <div className="how-it-works-icon bg-primary/10">
-                {s.icon}
+            <div key={s.step} className="how-it-works-step bg-white border border-surface-100 hover:shadow-elevation-3 hover:-translate-y-1.5 transition-all duration-300">
+              <div className="how-it-works-icon bg-primary/10 text-primary">
+                <span className="text-2xl">{s.icon}</span>
               </div>
               <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
-              <h3 className="font-bold text-gray-900">{s.title}</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+              <h3 className="font-bold text-surface-900">{s.title}</h3>
+              <p className="text-xs text-surface-500 leading-relaxed">{s.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="bg-gray-50 px-4 py-16">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">Why Sell with Dream Gadgets?</h2>
+      {/* ════════════════════════════════════
+          BENEFITS
+          ════════════════════════════════════ */}
+      <section className="bg-surface-50 section-pad">
+        <div className="container-narrow">
+          <h2 className="section-title text-center mb-10">Why Sell with Dream Gadgets?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {BENEFITS.map(b => (
-              <div key={b.title} className="flex gap-4 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md transition-shadow">
-                <span className="text-3xl shrink-0">{b.icon}</span>
+              <div key={b.title} className="card-hover flex gap-4 p-5">
+                <span className="text-2xl shrink-0 mt-0.5">{b.icon}</span>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1 text-sm">{b.title}</h3>
-                  <p className="text-sm text-gray-500">{b.desc}</p>
+                  <h3 className="font-bold text-surface-900 mb-1 text-sm">{b.title}</h3>
+                  <p className="text-sm text-surface-500">{b.desc}</p>
                 </div>
               </div>
             ))}
@@ -110,9 +125,11 @@ export default function SellPage() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Frequently Asked Questions</h2>
+      {/* ════════════════════════════════════
+          FAQ
+          ════════════════════════════════════ */}
+      <section className="section-pad container-narrow">
+        <h2 className="section-title text-center mb-8">Frequently Asked Questions</h2>
         <div className="space-y-3">
           {[
             { q: 'How is the price calculated?', a: 'We analyze current market data, device condition, and recent sales to give you the best possible price.' },
@@ -120,26 +137,28 @@ export default function SellPage() {
             { q: 'What documents are required?', a: 'A valid government ID (Aadhaar, PAN, or Driving License) and the original invoice (if available).' },
             { q: 'What if I change my mind?', a: 'You can cancel anytime before inspection. No questions asked.' },
           ].map(faq => (
-            <details key={faq.q} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden">
-              <summary className="flex items-center justify-between p-4 cursor-pointer text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+            <details key={faq.q} className="group bg-white border border-surface-100 rounded-2xl overflow-hidden hover:border-surface-200 transition-colors">
+              <summary className="flex items-center justify-between p-4 cursor-pointer text-sm font-semibold text-surface-900 hover:bg-surface-50 transition-colors">
                 {faq.q}
-                <svg className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-surface-400 group-open:rotate-180 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
-              <p className="px-4 pb-4 text-sm text-gray-500">{faq.a}</p>
+              <p className="px-4 pb-4 text-sm text-surface-500">{faq.a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      {/* Brands */}
-      <section className="bg-gray-50 px-4 py-12">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-xs text-gray-400 mb-4">WE ACCEPT ALL MAJOR BRANDS</p>
-          <div className="flex flex-wrap justify-center gap-3">
+      {/* ════════════════════════════════════
+          BRANDS
+          ════════════════════════════════════ */}
+      <section className="bg-surface-50 section-pad-sm">
+        <div className="container-narrow text-center">
+          <p className="text-xs text-surface-400 font-bold uppercase tracking-wider mb-5">We Accept All Major Brands</p>
+          <div className="flex flex-wrap justify-center gap-2.5">
             {['Apple', 'Samsung', 'OnePlus', 'Oppo', 'Vivo', 'Xiaomi', 'Realme', 'Motorola', 'Google', 'Nokia', 'Nothing', 'Asus', 'LG', 'Sony'].map(b => (
-              <span key={b} className="text-sm text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-full font-medium">
+              <span key={b} className="text-sm text-surface-600 bg-white border border-surface-200 px-4 py-2 rounded-full font-medium hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all cursor-default">
                 {b}
               </span>
             ))}

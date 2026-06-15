@@ -3,10 +3,10 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Dream Gadgets',
-  description: 'Our privacy policy explains how Dream Gadgets collects, uses, stores, and protects your personal information. Learn about your data rights.',
+  description: 'Our privacy policy explains how Dream Gadgets collects, uses, stores, and protects your personal information.',
   openGraph: {
     title: 'Privacy Policy — Dream Gadgets',
-    description: 'Learn how Dream Gadgets handles your personal data, your rights, and our security measures to protect your information.',
+    description: 'Learn how Dream Gadgets handles your personal data, your rights, and our security measures.',
   },
 };
 
@@ -16,22 +16,10 @@ const SECTIONS = [
     title: '1. Information We Collect',
     content: `We collect information that you provide directly to us, as well as information that is automatically collected when you use our website and services.`,
     list: [
-      {
-        title: 'Information You Provide',
-        desc: 'Name, phone number, email address, shipping address, billing information, device IMEI numbers, device condition details, and payment details (processed securely through Razorpay).',
-      },
-      {
-        title: 'Account Information',
-        desc: 'When you create an account, we collect your name, email address, phone number, and encrypted password. You may also add profile details such as address book and order preferences.',
-      },
-      {
-        title: 'Device Information',
-        desc: 'When selling a device, we collect information about the device including brand, model, IMEI number, condition assessment, and photographs you upload for inspection.',
-      },
-      {
-        title: 'Automatically Collected',
-        desc: 'IP address, browser type, operating system, referring URLs, device type, pages visited, time spent on pages, and other usage data through cookies and analytics tools.',
-      },
+      { title: 'Information You Provide', desc: 'Name, phone number, email address, shipping address, billing information, device IMEI numbers, device condition details, and payment details (processed securely through Razorpay).' },
+      { title: 'Account Information', desc: 'When you create an account, we collect your name, email address, phone number, and encrypted password.' },
+      { title: 'Device Information', desc: 'When selling a device, we collect information about the device including brand, model, IMEI number, condition assessment, and photographs you upload for inspection.' },
+      { title: 'Automatically Collected', desc: 'IP address, browser type, operating system, referring URLs, device type, pages visited, time spent on pages, and other usage data through cookies and analytics tools.' },
     ],
   },
   {
@@ -54,7 +42,7 @@ const SECTIONS = [
     list: [
       { title: 'Service Providers', desc: 'We share information with trusted partners who help us operate our business — courier partners (for shipping), Razorpay (for payment processing), and cloud infrastructure providers (for data hosting).' },
       { title: 'Legal Compliance', desc: 'We may disclose information if required by law, court order, or governmental regulation, or to protect our legal rights.' },
-      { title: 'Business Transfers', desc: 'In the event of a merger, acquisition, or sale of assets, your data may be transferred as part of the business transaction. You will be notified of any such change.' },
+      { title: 'Business Transfers', desc: 'In the event of a merger, acquisition, or sale of assets, your data may be transferred as part of the business transaction.' },
     ],
   },
   {
@@ -112,25 +100,23 @@ We are committed to resolving any privacy concerns promptly and transparently.`,
 
 export default function PrivacyPage() {
   return (
-    <main>
+    <main className="animate-fade-in">
       {/* Hero */}
-      <section className="text-white py-16 px-4 text-center relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)',
-      }}>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
           <h1 className="text-4xl font-extrabold mb-3">Privacy Policy</h1>
           <p className="text-white/60 text-sm">Last updated: January 2025</p>
         </div>
       </section>
 
-      {/* Table of Contents */}
       <section className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-gray-50 rounded-2xl p-5 mb-10">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Table of Contents</h2>
+        {/* Table of Contents */}
+        <div className="card p-5 mb-10">
+          <h2 className="text-sm font-bold text-surface-900 mb-3">Table of Contents</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {SECTIONS.map((section) => (
-              <a key={section.id} href={`#${section.id}`} className="text-sm text-gray-600 hover:text-primary hover:underline">
+              <a key={section.id} href={`#${section.id}`} className="text-sm text-surface-600 hover:text-primary hover:underline">
                 {section.title}
               </a>
             ))}
@@ -140,9 +126,9 @@ export default function PrivacyPage() {
         <div className="space-y-10">
           {SECTIONS.map((section) => (
             <div key={section.id} id={section.id}>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">{section.title}</h2>
+              <h2 className="heading-sm text-surface-900 mb-4">{section.title}</h2>
 
-              <div className="text-gray-600 leading-relaxed text-sm space-y-3 whitespace-pre-line">
+              <div className="text-surface-600 leading-relaxed text-sm space-y-3 whitespace-pre-line">
                 {section.content.split('\n\n').filter(Boolean).map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
@@ -151,11 +137,11 @@ export default function PrivacyPage() {
               {section.list && (
                 <div className="mt-4 space-y-3">
                   {section.list.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div key={i} className="flex items-start gap-3 p-4 card hover:shadow-card-hover transition-all">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                       <div>
-                        <h3 className="font-semibold text-gray-900 text-sm">{item.title}</h3>
-                        <p className="text-sm text-gray-600 mt-0.5">{item.desc}</p>
+                        <h3 className="font-semibold text-surface-900 text-sm">{item.title}</h3>
+                        <p className="text-sm text-surface-600 mt-0.5">{item.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -163,7 +149,7 @@ export default function PrivacyPage() {
               )}
 
               {'note' in section && section.note && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-xs text-blue-700 leading-relaxed">{section.note}</p>
                 </div>
               )}
@@ -171,17 +157,11 @@ export default function PrivacyPage() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-100">
+        <div className="divider mt-12 pt-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Link href="/cookies" className="text-sm text-primary hover:underline font-medium">
-              Cookies Policy →
-            </Link>
-            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">
-              Terms & Conditions →
-            </Link>
-            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">
-              Contact Us →
-            </Link>
+            <Link href="/cookies" className="text-sm text-primary hover:underline font-medium">Cookies Policy →</Link>
+            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">Terms & Conditions →</Link>
+            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">Contact Us →</Link>
           </div>
         </div>
       </section>

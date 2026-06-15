@@ -77,13 +77,13 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     delivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     cancelled: 'bg-red-50 text-red-700 border-red-200',
     return_requested: 'bg-rose-50 text-rose-700 border-rose-200',
-    returned: 'bg-gray-50 text-gray-700 border-gray-200',
+    returned: 'bg-surface-50 text-surface-700 border-surface-200',
   };
 
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-        styles[status] ?? 'bg-gray-50 text-gray-600 border-gray-200'
+        styles[status] ?? 'bg-surface-50 text-surface-600 border-surface-200'
       }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${
@@ -101,34 +101,33 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 function OrderCard({ order }: { order: OrderItem }) {
   const cancellable = CANCELLABLE_STATUSES.includes(order.status);
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-5 hover:border-primary/30 hover:shadow-md transition-all duration-200">
+    <div className="card p-4 sm:p-5 hover:shadow-card-hover hover:border-primary/30 transition-all duration-200">
       <Link href={`/orders/${order.id}`} className="flex items-start justify-between gap-3 group">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">#{order.orderNumber}</span>
+            <span className="text-sm font-bold text-surface-900 group-hover:text-primary transition-colors">#{order.orderNumber}</span>
             <StatusBadge status={order.status} />
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-surface-400">
             {new Date(order.orderedAt).toLocaleDateString('en-IN', {
               day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </p>
           {order.shippingAddress?.city && (
-            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-              <IconMapPin size={12} className="text-gray-300" />
+            <p className="text-xs text-surface-400 mt-1 flex items-center gap-1">
+              <IconMapPin size={12} className="text-surface-300" />
               {order.shippingAddress.city}, {order.shippingAddress.state}
             </p>
           )}
         </div>
         <div className="text-right shrink-0">
-          <p className="text-base font-extrabold text-gray-900">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
+          <p className="text-base font-extrabold text-surface-900">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
           {order.payments?.length > 0 && (
-            <p className="text-[10px] text-gray-400 mt-0.5">via {order.payments[0].method}</p>
+            <p className="text-[10px] text-surface-400 mt-0.5">via {order.payments[0].method}</p>
           )}
         </div>
       </Link>
-      <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-2">
-        {/* Track Order button for active orders */}
+      <div className="mt-3 pt-3 border-t border-surface-50 flex items-center gap-2">
         {(order.status === 'shipped' || order.status === 'out_for_delivery') && order.trackingNumber && (
           <span className="flex items-center gap-1 text-xs font-medium text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-lg">
             <IconTruck size={12} />
@@ -136,11 +135,7 @@ function OrderCard({ order }: { order: OrderItem }) {
           </span>
         )}
         {cancellable && (
-          <CancelOrderButton
-            orderId={order.id}
-            status={order.status}
-            amount={order.totalAmount}
-          />
+          <CancelOrderButton orderId={order.id} status={order.status} amount={order.totalAmount} />
         )}
       </div>
     </div>
@@ -148,7 +143,7 @@ function OrderCard({ order }: { order: OrderItem }) {
 }
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`bg-gray-100 animate-pulse rounded-lg ${className}`} />;
+  return <div className={`bg-surface-100 animate-pulse rounded-lg ${className}`} />;
 }
 
 export default function AccountPage() {
@@ -158,7 +153,6 @@ export default function AccountPage() {
   const [tab, setTab] = useState<StatusTab>('all');
   const [activeSection, setActiveSection] = useState<'overview' | 'orders' | 'addresses' | 'settings'>('overview');
 
-  // Fetch profile + orders
   const profileQuery = useQuery({
     queryKey: ['account-profile'],
     queryFn: () =>
@@ -214,15 +208,12 @@ export default function AccountPage() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="w-20 h-20 mx-auto bg-red-50 rounded-full flex items-center justify-center mb-6">
+          <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-6">
             <IconUser size={40} className="text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">My Account</h1>
-          <p className="text-gray-500 mb-6">Sign in to view your orders and manage your account.</p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-          >
+          <h1 className="heading-md text-surface-900 mb-2">My Account</h1>
+          <p className="text-surface-500 mb-6">Sign in to view your orders and manage your account.</p>
+          <Link href="/login" className="btn-primary btn-lg">
             Sign In
             <IconArrowRight size={16} />
           </Link>
@@ -232,50 +223,45 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
-      {/* ── Page Header ── */}
+    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10 animate-fade-in">
+      {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Account</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage your profile, orders, and settings</p>
+          <h1 className="heading-md text-surface-900">My Account</h1>
+          <p className="text-sm text-surface-400 mt-0.5">Manage your profile, orders, and settings</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-400 hover:text-red-600 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
-        >
+        <button onClick={handleLogout}
+          className="text-sm text-surface-400 hover:text-red-600 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50">
           <IconLogout size={16} />
           Logout
         </button>
       </div>
 
-      {/* ── Section Navigation ── */}
+      {/* Section Navigation */}
       <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-        {[
+        {([
           { key: 'overview' as const, label: 'Overview', icon: <IconAward size={16} /> },
           { key: 'orders' as const, label: 'Orders', icon: <IconPackage size={16} /> },
           { key: 'addresses' as const, label: 'Addresses', icon: <IconMapPin size={16} /> },
           { key: 'settings' as const, label: 'Settings', icon: <IconSettings size={16} /> },
-        ].map(s => (
-          <button
-            key={s.key}
-            onClick={() => setActiveSection(s.key)}
+        ]).map(s => (
+          <button key={s.key} onClick={() => setActiveSection(s.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
               activeSection === s.key
                 ? 'bg-primary text-white shadow-sm'
-                : 'text-gray-500 hover:bg-gray-100'
-            }`}
-          >
-            <span className={activeSection === s.key ? 'text-white' : 'text-gray-400'}>{s.icon}</span>
+                : 'text-surface-500 hover:bg-surface-100'
+            }`}>
+            <span className={activeSection === s.key ? 'text-white' : 'text-surface-400'}>{s.icon}</span>
             {s.label}
           </button>
         ))}
       </div>
 
-      {/* ══════════════════ OVERVIEW ══════════════════ */}
+      {/* ════ OVERVIEW ════ */}
       {activeSection === 'overview' && (
         <div className="space-y-6">
-          {/* ── Profile Card ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+          {/* Profile Card */}
+          <div className="card p-5 sm:p-6">
             {profileQuery.isLoading ? (
               <div className="flex items-center gap-4">
                 <Skeleton className="w-14 h-14 rounded-full" />
@@ -290,19 +276,17 @@ export default function AccountPage() {
                   {(profile.firstName?.[0] ?? 'U').toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900 truncate">
+                  <h2 className="text-lg font-bold text-surface-900 truncate">
                     {profile.firstName} {profile.lastName}
                   </h2>
-                  <p className="text-sm text-gray-400">{profile.email || profile.phone}</p>
-                  <p className="text-xs text-gray-300 mt-0.5 flex items-center gap-1">
+                  <p className="text-sm text-surface-400">{profile.email || profile.phone}</p>
+                  <p className="text-xs text-surface-300 mt-0.5 flex items-center gap-1">
                     <IconClock size={12} />
                     Member since {new Date(profile.memberSince).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
-                <button
-                  onClick={() => setActiveSection('settings')}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-[0.97] border border-primary/20"
-                >
+                <button onClick={() => setActiveSection('settings')}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-[0.97] border border-primary/20">
                   <IconSettings size={14} />
                   Edit Profile
                 </button>
@@ -310,7 +294,7 @@ export default function AccountPage() {
             ) : null}
           </div>
 
-          {/* ── Stats Grid ── */}
+          {/* Stats Grid */}
           {!profileQuery.isLoading && profile && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -319,21 +303,21 @@ export default function AccountPage() {
                 { label: 'Delivered', value: profile.stats.deliveredCount, icon: <IconCheckCircle size={20} />, color: 'text-green-600 bg-green-50' },
                 { label: 'Pending', value: profile.stats.pendingCount, icon: <IconClock size={20} />, color: 'text-amber-600 bg-amber-50' },
               ].map(stat => (
-                <div key={stat.label} className="bg-white border border-gray-100 rounded-xl p-4">
+                <div key={stat.label} className="card p-4">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${stat.color}`}>
                     {stat.icon}
                   </div>
-                  <p className="text-lg font-extrabold text-gray-900">{stat.value}</p>
-                  <p className="text-xs text-gray-400">{stat.label}</p>
+                  <p className="text-lg font-extrabold text-surface-900">{stat.value}</p>
+                  <p className="text-xs text-surface-400">{stat.label}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── Recent Orders ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          {/* Recent Orders */}
+          <div className="card overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
-              <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
+              <h2 className="text-lg font-bold text-surface-900">Recent Orders</h2>
               <button onClick={() => setActiveSection('orders')} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                 View All <IconChevronRight size={14} />
               </button>
@@ -342,7 +326,7 @@ export default function AccountPage() {
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2].map(i => (
-                    <div key={i} className="border border-gray-50 rounded-xl p-4">
+                    <div key={i} className="border border-surface-50 rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2 flex-1">
                           <Skeleton className="h-5 w-40" />
@@ -357,15 +341,12 @@ export default function AccountPage() {
                 </div>
               ) : allOrders.length === 0 ? (
                 <div className="text-center py-10">
-                  <div className="w-14 h-14 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                    <IconPackage size={28} className="text-gray-300" />
+                  <div className="w-14 h-14 mx-auto bg-surface-50 rounded-full flex items-center justify-center mb-3">
+                    <IconPackage size={28} className="text-surface-300" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">No orders yet</h3>
-                  <p className="text-sm text-gray-400 mb-4">Start shopping to see your orders here.</p>
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-                  >
+                  <h3 className="text-base font-semibold text-surface-900 mb-1">No orders yet</h3>
+                  <p className="text-sm text-surface-400 mb-4">Start shopping to see your orders here.</p>
+                  <Link href="/products" className="btn-primary btn-md">
                     Browse Products
                     <IconArrowRight size={14} />
                   </Link>
@@ -380,7 +361,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* ── Quick Links ── */}
+          {/* Quick Links */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { href: '/products', label: 'Browse Products', icon: <IconSearch size={18} />, desc: 'Find your next device' },
@@ -388,68 +369,52 @@ export default function AccountPage() {
               { href: '/sell', label: 'Sell Device', icon: <IconPlus size={18} />, desc: 'Get instant quote' },
               { href: '/contact', label: 'Support', icon: <IconMessageCircle size={18} />, desc: 'We are here to help' },
             ].map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex flex-col items-start gap-1.5 p-4 bg-white border border-gray-100 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-200 active:scale-[0.98]"
-              >
+              <Link key={link.href} href={link.href}
+                className="flex flex-col items-start gap-1.5 p-4 card hover:shadow-card-hover hover:border-primary/30 transition-all active:scale-[0.98]">
                 <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center shrink-0 text-primary">
                   {link.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-900">{link.label}</span>
-                <span className="text-xs text-gray-400">{link.desc}</span>
+                <span className="text-sm font-medium text-surface-900">{link.label}</span>
+                <span className="text-xs text-surface-400">{link.desc}</span>
               </Link>
             ))}
           </div>
         </div>
       )}
 
-      {/* ══════════════════ ORDERS ══════════════════ */}
+      {/* ════ ORDERS ════ */}
       {activeSection === 'orders' && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          {/* Section Header */}
+        <div className="card overflow-hidden">
           <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-0">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-surface-900 mb-4 flex items-center gap-2">
               <IconPackage size={20} className="text-primary" />
               Order History
             </h2>
 
             {/* Status Tabs */}
-            <div className="flex gap-1 border-b border-gray-100 overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
-              {([
-                { key: 'all' as const, label: 'All', count: counts.all },
+            <div className="flex gap-1 border-b border-surface-100 overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
+              {([{ key: 'all' as const, label: 'All', count: counts.all },
                 { key: 'active' as const, label: 'Active', count: counts.active },
                 { key: 'completed' as const, label: 'Completed', count: counts.completed },
                 { key: 'cancelled' as const, label: 'Cancelled', count: counts.cancelled },
               ]).map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
+                <button key={t.key} onClick={() => setTab(t.key)}
                   className={`relative pb-3 px-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                    tab === t.key
-                      ? 'text-primary'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
+                    tab === t.key ? 'text-primary' : 'text-surface-400 hover:text-surface-600'
+                  }`}>
                   {t.label}
                   {t.count > 0 && (
                     <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      tab === t.key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-400'
-                    }`}>
-                      {t.count}
-                    </span>
+                      tab === t.key ? 'bg-primary/10 text-primary' : 'bg-surface-100 text-surface-400'
+                    }`}>{t.count}</span>
                   )}
-                  {tab === t.key && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-                  )}
+                  {tab === t.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Orders List */}
           <div className="p-5 sm:p-6">
-            {/* Error Banner */}
             {error && (
               <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
                 <IconAlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
@@ -457,12 +422,9 @@ export default function AccountPage() {
                   <p className="text-sm font-medium text-red-800">Could not load orders</p>
                   <p className="text-xs text-red-600 mt-0.5">Please try refreshing the page</p>
                 </div>
-                <button
-                  onClick={() => { profileQuery.refetch(); ordersQuery.refetch(); }}
-                  className="text-xs text-red-600 hover:text-red-800 font-medium shrink-0 flex items-center gap-1"
-                >
-                  <IconRefreshCw size={12} />
-                  Retry
+                <button onClick={() => { profileQuery.refetch(); ordersQuery.refetch(); }}
+                  className="text-xs text-red-600 hover:text-red-800 font-medium shrink-0 flex items-center gap-1">
+                  <IconRefreshCw size={12} /> Retry
                 </button>
               </div>
             )}
@@ -470,7 +432,7 @@ export default function AccountPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="border border-gray-50 rounded-xl p-4 sm:p-5">
+                  <div key={i} className="border border-surface-50 rounded-xl p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-2 flex-1">
                         <Skeleton className="h-5 w-40" />
@@ -487,22 +449,16 @@ export default function AccountPage() {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <IconPackage size={32} className="text-gray-300" />
+                <div className="w-16 h-16 mx-auto bg-surface-50 rounded-full flex items-center justify-center mb-4">
+                  <IconPackage size={32} className="text-surface-300" />
                 </div>
-                <h3 className="text-base font-semibold text-gray-900 mb-1">
+                <h3 className="text-base font-semibold text-surface-900 mb-1">
                   {tab === 'all' ? 'No orders yet' : `No ${tab} orders`}
                 </h3>
-                <p className="text-sm text-gray-400 mb-6">
-                  {tab === 'all'
-                    ? 'Start shopping to see your orders here.'
-                    : `You don't have any ${tab} orders at the moment.`
-                  }
+                <p className="text-sm text-surface-400 mb-6">
+                  {tab === 'all' ? 'Start shopping to see your orders here.' : `You don't have any ${tab} orders at the moment.`}
                 </p>
-                <Link
-                  href="/products"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-                >
+                <Link href="/products" className="btn-primary btn-md">
                   Browse Products
                   <IconArrowRight size={14} />
                 </Link>
@@ -518,20 +474,20 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* ══════════════════ ADDRESSES ══════════════════ */}
+      {/* ════ ADDRESSES ════ */}
       {activeSection === 'addresses' && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="card p-5 sm:p-6">
+          <h2 className="text-lg font-bold text-surface-900 mb-4 flex items-center gap-2">
             <IconMapPin size={20} className="text-primary" />
             Saved Addresses
           </h2>
           <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-4">
-              <IconMapPin size={32} className="text-gray-300" />
+            <div className="w-16 h-16 mx-auto bg-surface-50 rounded-full flex items-center justify-center mb-4">
+              <IconMapPin size={32} className="text-surface-300" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No addresses saved</h3>
-            <p className="text-sm text-gray-400 mb-6">Add an address for faster checkout.</p>
-            <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all">
+            <h3 className="text-base font-semibold text-surface-900 mb-1">No addresses saved</h3>
+            <p className="text-sm text-surface-400 mb-6">Add an address for faster checkout.</p>
+            <button className="btn-secondary btn-md">
               <IconPlus size={14} />
               Add Address
             </button>
@@ -539,32 +495,30 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* ══════════════════ SETTINGS ══════════════════ */}
+      {/* ════ SETTINGS ════ */}
       {activeSection === 'settings' && (
         <div className="space-y-4">
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="card p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-surface-900 mb-4 flex items-center gap-2">
               <IconSettings size={20} className="text-primary" />
               Account Settings
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {[
                 { label: 'Personal Information', desc: 'Update your name, email, and phone number', icon: <IconUser size={18} /> },
                 { label: 'Change Password', desc: 'Update your account password', icon: <IconShieldCheck size={18} /> },
                 { label: 'Notification Preferences', desc: 'Manage email and SMS notifications', icon: <IconMessageCircle size={18} /> },
               ].map(item => (
-                <button
-                  key={item.label}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
-                >
-                  <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center text-gray-500 shrink-0">
+                <button key={item.label}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors text-left">
+                  <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-500 shrink-0">
                     {item.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-400">{item.desc}</p>
+                    <p className="text-sm font-medium text-surface-900">{item.label}</p>
+                    <p className="text-xs text-surface-400">{item.desc}</p>
                   </div>
-                  <IconChevronRight size={16} className="text-gray-300 shrink-0" />
+                  <IconChevronRight size={16} className="text-surface-300 shrink-0" />
                 </button>
               ))}
             </div>
@@ -578,15 +532,12 @@ export default function AccountPage() {
               { href: '/faq', label: 'FAQ', icon: <IconMessageCircle size={18} /> },
               { href: '/contact', label: 'Contact Support', icon: <IconMessageCircle size={18} /> },
             ].map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-200 active:scale-[0.98]"
-              >
+              <Link key={link.href} href={link.href}
+                className="flex items-center gap-3 p-3 card hover:shadow-card-hover hover:border-primary/30 transition-all active:scale-[0.98]">
                 <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center shrink-0 text-primary">
                   {link.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-700">{link.label}</span>
+                <span className="text-sm font-medium text-surface-700">{link.label}</span>
               </Link>
             ))}
           </div>

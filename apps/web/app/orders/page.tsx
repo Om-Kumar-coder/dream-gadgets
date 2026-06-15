@@ -143,25 +143,24 @@ function Pagination({
     <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Order pagination">
       <button
         onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Prev
-      </button>
-      {pageNumbers.map((p, i) =>
-        p === 'ellipsis' ? (
-          <span key={`e-${i}`} className="px-2 text-gray-400 select-none">…</span>
-        ) : (
-          <button
-            key={p}
-            onClick={() => onPageChange(p)}
-            className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${
-              p === currentPage
-                ? 'bg-gray-900 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
+        disabled={currentPage <= 1}          className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:bg-surface-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Prev
+        </button>
+        {pageNumbers.map((p, i) =>
+          p === 'ellipsis' ? (
+            <span key={`e-${i}`} className="px-2 text-surface-400 select-none">…</span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${
+                p === currentPage
+                  ? 'bg-surface-950 text-white shadow-sm'
+                  : 'text-surface-600 hover:bg-surface-100'
             }`}
           >
             {p}
@@ -170,12 +169,11 @@ function Pagination({
       )}
       <button
         onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
-      >
-        Next
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        disabled={currentPage >= totalPages}          className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:bg-surface-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
+        >
+          Next
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
     </nav>
@@ -189,12 +187,12 @@ function OrderCard ({ order }: { order: Order }) {
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="block bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all group"
+      className="block card p-5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all group"
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-xs text-gray-400">Order #{order.orderNumber}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-surface-400">Order #{order.orderNumber}</p>
+          <p className="text-xs text-surface-400 mt-0.5">
             {order.orderedAt ? new Date(order.orderedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
           </p>
         </div>
@@ -204,8 +202,8 @@ function OrderCard ({ order }: { order: Order }) {
       </div>
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs text-gray-400">{itemsCount} item{itemsCount !== 1 ? 's' : ''}</p>
-          <p className="text-lg font-bold text-gray-900 mt-0.5">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
+          <p className="text-xs text-surface-400">{itemsCount} item{itemsCount !== 1 ? 's' : ''}</p>
+          <p className="text-lg font-bold text-surface-900 mt-0.5">₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
         </div>
         <div className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
           View Details →
@@ -310,7 +308,7 @@ export default function OrdersPage() {
       <main className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-center py-20">
           <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Loading your orders...</p>
+          <p className="text-surface-500 text-sm">Loading your orders...</p>
         </div>
       </main>
     );
@@ -321,8 +319,8 @@ export default function OrdersPage() {
       <main className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-center py-20">
           <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Sign in Required</h1>
-          <p className="text-sm text-gray-500 mb-6">Please log in to view your order history.</p>
+          <h1 className="text-2xl font-bold text-surface-900 mb-2">Sign in Required</h1>
+          <p className="text-sm text-surface-500 mb-6">Please log in to view your order history.</p>
           <Link
             href="/login"
             className="inline-block px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all"
@@ -339,11 +337,11 @@ export default function OrdersPage() {
       <main className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-center py-20">
           <div className="text-4xl mb-4">😕</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Couldn&apos;t Load Orders</h1>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <h1 className="text-xl font-bold text-surface-900 mb-2">Couldn&apos;t Load Orders</h1>
+          <p className="text-sm text-surface-500 mb-6">{error}</p>
           <button
             onClick={() => doFetch(1, activeFilter, searchQuery)}
-            className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="btn-primary px-5 py-2.5"
           >
             Try Again
           </button>
@@ -385,7 +383,7 @@ export default function OrdersPage() {
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
             placeholder="Search by order number…"
-            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all"
+            className="input pl-10 pr-10"
           />
           {searchInput && (
             <button
@@ -399,8 +397,7 @@ export default function OrdersPage() {
           )}
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-gray-100 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* Filter Tabs */}          <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-surface-100 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           {FILTER_TABS.map((tab) => {
             const isActive = activeFilter === tab.value;
             return (
@@ -409,8 +406,8 @@ export default function OrdersPage() {
                 onClick={() => handleFilterChange(tab.value)}
                 className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-gray-900 text-white shadow-sm'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-surface-950 text-white shadow-sm'
+                    : 'bg-surface-50 text-surface-600 hover:bg-surface-100'
                 }`}
               >
                 {tab.label}
@@ -424,8 +421,8 @@ export default function OrdersPage() {
             {searchQuery ? (
               <>
                 <div className="text-5xl mb-4">🔎</div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">No Results for &ldquo;{searchQuery}&rdquo;</h2>
-                <p className="text-sm text-gray-500 mb-6">We couldn&apos;t find any orders matching your search. Try a different order number.</p>
+                <h2 className="text-xl font-bold text-surface-900 mb-2">No Results for &ldquo;{searchQuery}&rdquo;</h2>
+                <p className="text-sm text-surface-500 mb-6">We couldn&apos;t find any orders matching your search. Try a different order number.</p>
                 <button
                   onClick={clearSearch}
                   className="inline-block px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all"
@@ -436,8 +433,8 @@ export default function OrdersPage() {
             ) : activeFilter ? (
               <>
                 <div className="text-6xl mb-4">🔍</div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">No {STATUS_BADGES[activeFilter]?.label ?? 'Matching'} Orders</h2>
-                <p className="text-sm text-gray-500 mb-6">You don&apos;t have any orders with this status yet.</p>
+                <h2 className="text-xl font-bold text-surface-900 mb-2">No {STATUS_BADGES[activeFilter]?.label ?? 'Matching'} Orders</h2>
+                <p className="text-sm text-surface-500 mb-6">You don&apos;t have any orders with this status yet.</p>
                 <button
                   onClick={() => handleFilterChange('')}
                   className="inline-block px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all"
@@ -448,11 +445,11 @@ export default function OrdersPage() {
             ) : (
               <>
                 <div className="text-6xl mb-4">📦</div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">No Orders Yet</h2>
-                <p className="text-sm text-gray-500 mb-6">You haven&apos;t placed any orders yet. Start shopping and find your next device!</p>
+                <h2 className="text-xl font-bold text-surface-900 mb-2">No Orders Yet</h2>
+                <p className="text-sm text-surface-500 mb-6">You haven&apos;t placed any orders yet. Start shopping and find your next device!</p>
                 <Link
                   href="/products"
-                  className="inline-block px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all"
+                  className="btn-primary px-6 py-3"
                 >
                   Browse Products
                 </Link>

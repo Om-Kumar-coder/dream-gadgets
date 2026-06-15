@@ -123,43 +123,43 @@ export default function POSPage() {
   });
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex gap-6 h-[calc(100vh-8rem)] animate-fade-in">
       {/* Left: Item Search + Bill */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">POS Terminal</h1>
-          <p className="text-sm text-gray-500">Search items by IMEI, model, or brand</p>
+          <h1 className="heading-sm text-surface-900">POS Terminal</h1>
+          <p className="text-sm text-surface-500">Search items by IMEI, model, or brand</p>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by IMEI, model, brand…"
-            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input pl-9"
           />
           {searchQuery.length >= 2 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 card shadow-lg z-10 max-h-64 overflow-y-auto p-0">
               {isFetching ? (
-                <div className="px-4 py-3 text-sm text-gray-400">Searching…</div>
+                <div className="px-4 py-3 text-sm text-surface-400">Searching…</div>
               ) : (searchResults ?? []).length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-400">No available items found</div>
+                <div className="px-4 py-3 text-sm text-surface-400">No available items found</div>
               ) : (
                 (searchResults ?? []).map((item: any) => (
                   <button
                     key={item.id}
                     onClick={() => addItem(item)}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-0"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-50 text-left border-b border-surface-100 last:border-0 transition-colors"
                   >
                     <div>
                       <p className="text-sm font-medium">
                         {item.brand?.name ?? item.brand} {item.model?.name ?? item.model}
                       </p>
-                      <p className="text-xs text-gray-400 font-mono">{item.imei} · {CONDITION_LABELS[item.condition]}</p>
+                      <p className="text-xs text-surface-400 font-mono">{item.imei} · {CONDITION_LABELS[item.condition]}</p>
                     </div>
-                    <span className="text-sm font-semibold text-blue-600">
+                    <span className="text-sm font-semibold text-primary">
                       ₹{Number(item.sellingPrice ?? item.totalCost).toLocaleString()}
                     </span>
                   </button>
@@ -170,15 +170,15 @@ export default function POSPage() {
         </div>
 
         {/* Bill Items */}
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-100 text-xs font-medium text-gray-500 uppercase grid grid-cols-[1fr_auto_auto] gap-4">
+        <div className="flex-1 card overflow-hidden flex flex-col p-0">
+          <div className="px-4 py-3 border-b border-surface-100 text-xs font-medium text-surface-500 uppercase grid grid-cols-[1fr_auto_auto] gap-4">
             <span>Item</span>
             <span>Price</span>
             <span></span>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-surface-100">
             {billItems.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-sm text-gray-400">
+              <div className="flex items-center justify-center h-32 text-sm text-surface-400">
                 Search and add items to the bill
               </div>
             ) : (
@@ -186,10 +186,10 @@ export default function POSPage() {
                 <div key={item.id} className="px-4 py-3 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
                   <div>
                     <p className="text-sm font-medium">{item.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{item.imei} · {CONDITION_LABELS[item.condition]}</p>
+                    <p className="text-xs text-surface-400 font-mono">{item.imei} · {CONDITION_LABELS[item.condition]}</p>
                   </div>
                   <span className="text-sm font-semibold">₹{item.price.toLocaleString()}</span>
-                  <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500">
+                  <button onClick={() => removeItem(item.id)} className="text-surface-400 hover:text-destructive transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -201,47 +201,47 @@ export default function POSPage() {
 
       {/* Right: Payment Panel */}
       <div className="w-80 flex flex-col gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-          <h2 className="font-medium text-gray-800">Order Summary</h2>
+        <div className="card p-4 space-y-3">
+          <h2 className="font-medium text-surface-800">Order Summary</h2>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Client Phone (optional)</label>
+            <label className="block text-xs text-surface-500 mb-1">Client Phone (optional)</label>
             <input
               value={clientPhone}
               onChange={(e) => setClientPhone(e.target.value)}
               placeholder="9876543210"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Discount (%)</label>
+            <label className="block text-xs text-surface-500 mb-1">Discount (%)</label>
             <input
               type="number"
               min={0}
               max={100}
               value={discount}
               onChange={(e) => setDiscount(Number(e.target.value))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
           </div>
 
-          <div className="space-y-1.5 text-sm border-t border-gray-100 pt-3">
-            <div className="flex justify-between text-gray-600">
+          <div className="space-y-1.5 text-sm border-t border-surface-100 pt-3">
+            <div className="flex justify-between text-surface-600">
               <span>Subtotal</span>
               <span>₹{subtotal.toLocaleString()}</span>
             </div>
             {discount > 0 && (
-              <div className="flex justify-between text-green-600">
+              <div className="flex justify-between text-emerald-600">
                 <span>Discount ({discount}%)</span>
                 <span>-₹{discountAmount.toLocaleString()}</span>
               </div>
             )}
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-surface-600">
               <span>GST (18%)</span>
               <span>₹{taxAmount.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-2">
+            <div className="flex justify-between font-bold text-surface-900 text-base border-t border-surface-100 pt-2">
               <span>Total</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
@@ -249,12 +249,12 @@ export default function POSPage() {
         </div>
 
         {/* Payment Splits */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-gray-800">Payment</h2>
+            <h2 className="font-medium text-surface-800">Payment</h2>
             <button
               onClick={addPaymentSplit}
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs text-primary hover:text-primary-hover flex items-center gap-1 transition-colors"
             >
               <Plus className="w-3 h-3" /> Split
             </button>
@@ -265,7 +265,7 @@ export default function POSPage() {
               <select
                 value={p.method}
                 onChange={(e) => updatePayment(idx, 'method', e.target.value)}
-                className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="select flex-1"
               >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -277,17 +277,17 @@ export default function POSPage() {
                 value={p.amount || ''}
                 onChange={(e) => updatePayment(idx, 'amount', Number(e.target.value))}
                 placeholder="Amount"
-                className="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input w-24"
               />
               {payments.length > 1 && (
-                <button onClick={() => removePaymentSplit(idx)} className="text-gray-400 hover:text-red-500">
+                <button onClick={() => removePaymentSplit(idx)} className="text-surface-400 hover:text-destructive transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
           ))}
 
-          <div className={`text-sm font-medium ${Math.abs(balance) < 0.01 ? 'text-green-600' : 'text-red-500'}`}>
+          <div className={`text-sm font-medium ${Math.abs(balance) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
             {Math.abs(balance) < 0.01
               ? '✓ Payment balanced'
               : balance > 0
@@ -297,12 +297,12 @@ export default function POSPage() {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Notes</label>
+          <label className="block text-xs text-surface-500 mb-1">Notes</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="input resize-none min-h-[60px]"
           />
         </div>
 

@@ -45,7 +45,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
       {/* Main Image */}
       <div
         ref={imageRef}
-        className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 cursor-crosshair group"
+        className="relative aspect-square rounded-2xl overflow-hidden bg-surface-100 cursor-crosshair group"
         onMouseEnter={() => setZoom(true)}
         onMouseLeave={() => setZoom(false)}
         onMouseMove={handleMouseMove}
@@ -71,24 +71,27 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
           }}
         />
 
+        {/* Shadow overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
         {/* Navigation arrows */}
         {images.length > 1 && (
           <>
             <button
               onClick={() => setSelectedIndex(i => Math.max(0, i - 1))}
               disabled={selectedIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0 hover:bg-white"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0 hover:bg-white backdrop-blur-sm"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-surface-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button
               onClick={() => setSelectedIndex(i => Math.min(images.length - 1, i + 1))}
               disabled={selectedIndex === images.length - 1}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0 hover:bg-white"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0 hover:bg-white backdrop-blur-sm"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-surface-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -96,7 +99,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
         )}
 
         {/* Badge */}
-        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
+        <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-medium">
           {selectedIndex + 1} / {images.length || 1}
         </div>
       </div>
@@ -108,10 +111,10 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
             <button
               key={i}
               onClick={() => setSelectedIndex(i)}
-              className={`relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0 border-2 transition-all ${
+              className={`relative w-16 h-16 rounded-xl overflow-hidden bg-surface-100 shrink-0 border-2 transition-all ${
                 i === selectedIndex
-                  ? 'border-primary ring-1 ring-primary/30 scale-105'
-                  : 'border-transparent hover:border-gray-300 opacity-70 hover:opacity-100'
+                  ? 'border-primary ring-2 ring-primary/20 scale-105 shadow-sm'
+                  : 'border-transparent hover:border-surface-300 opacity-60 hover:opacity-100'
               }`}
             >
               <Image
@@ -130,7 +133,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
       )}
 
       {/* Mobile swipe hint */}
-      <p className="text-xs text-gray-400 text-center md:hidden">
+      <p className="text-xs text-surface-400 text-center md:hidden">
         ← Swipe to navigate →
       </p>
     </div>

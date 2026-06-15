@@ -55,7 +55,7 @@ export default function PurchasesPage() {
       accessorKey: 'purchaseDate',
       header: 'Date',
       cell: ({ row }) => (
-        <span className="text-gray-500 text-xs">
+        <span className="text-surface-500 text-xs">
           {row.original.purchaseDate ? format(new Date(row.original.purchaseDate), 'dd MMM yyyy') : '—'}
         </span>
       ),
@@ -77,16 +77,13 @@ export default function PurchasesPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Purchases</h1>
-          <p className="text-sm text-gray-500">All device acquisitions</p>
+          <h1 className="heading-sm text-surface-900">Purchases</h1>
+          <p className="text-sm text-surface-500">All device acquisitions</p>
         </div>
-        <Link
-          href="/purchases/new"
-          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
+        <Link href="/purchases/new" className="btn-primary btn-md">
           <Plus className="w-4 h-4" />
           New Purchase
         </Link>

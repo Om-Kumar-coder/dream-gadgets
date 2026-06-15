@@ -23,6 +23,14 @@ const CONDITIONS = [
   { value: ItemCondition.GOOD, label: 'Good', short: 'Good' },
 ];
 
+const PRICE_RANGES = [
+  { label: 'Under ₹10,000', min: '', max: '10000' },
+  { label: '₹10,000 – ₹25,000', min: '10000', max: '25000' },
+  { label: '₹25,000 – ₹50,000', min: '25000', max: '50000' },
+  { label: '₹50,000 – ₹1,00,000', min: '50000', max: '100000' },
+  { label: 'Above ₹1,00,000', min: '100000', max: '' },
+];
+
 async function getProducts(searchParams: Record<string, string>) {
   const params = new URLSearchParams({
     page: searchParams.page ?? '1',
@@ -51,6 +59,21 @@ async function getProducts(searchParams: Record<string, string>) {
   }
 }
 
+function FilterLink({ href, active, children, className }: { href: string; active: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <a
+      href={href}
+      className={`block text-sm px-3 py-2 rounded-lg transition-all duration-200 ${
+        active
+          ? 'bg-primary/10 text-primary font-semibold'
+          : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
+      } ${className || ''}`}
+    >
+      {children}
+    </a>
+  );
+}
+
 export default async function ProductsPage({ searchParams }: Props) {
   const { data: products, total } = await getProducts(searchParams);
   const activeCondition = searchParams.condition;
@@ -66,15 +89,17 @@ export default async function ProductsPage({ searchParams }: Props) {
     ? CONDITIONS.find(c => c.value === activeCondition)?.label ?? 'Phones'
     : 'All Products';
 
+  const hasFilters = !!(activeBrand || activeCondition || activeSearch || searchParams.minPrice);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-50/50">
       {/* Page header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-5">
+      <div className="bg-white border-b border-surface-100/80">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{pageTitle}</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-surface-900 tracking-tight">{pageTitle}</h1>
+              <p className="text-sm text-surface-400 mt-1">
                 {total} product{total !== 1 ? 's' : ''} available
                 {activeSearch && <> for &ldquo;{activeSearch}&rdquo;</>}
               </p>
@@ -83,20 +108,20 @@ export default async function ProductsPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
-        {/* ── Sidebar ── */}
-        <aside className="hidden md:block w-60 shrink-0">
+      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
+        {/* ── Sidebar (Desktop) ── */}
+        <aside className="hidden md:block w-64 shrink-0">
           <div className="sticky top-28 space-y-6">
             {/* Search summary */}
             {activeSearch && (
               <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Search</h3>
-                <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 rounded-lg">
+                <h3 className="text-[11px] font-bold text-surface-400 uppercase tracking-wider mb-3">Search</h3>
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-primary/5 rounded-xl border border-primary/10">
                   <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <span className="text-xs text-primary font-medium truncate">{activeSearch}</span>
-                  <a href="/products" className="ml-auto text-gray-300 hover:text-gray-500">
+                  <a href="/products" className="ml-auto text-surface-300 hover:text-surface-500 transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -107,95 +132,82 @@ export default async function ProductsPage({ searchParams }: Props) {
 
             {/* Brand filter */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Brand</h3>
+              <h3 className="text-[11px] font-bold text-surface-400 uppercase tracking-wider mb-3">Brand</h3>
               <div className="space-y-0.5">
-                <a
-                  href={activeSearch ? `/products?search=${encodeURIComponent(activeSearch)}` : '/products'}
-                  className={`block text-sm px-3 py-2 rounded-lg transition-colors ${!activeBrand ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
+                <FilterLink href={activeSearch ? `/products?search=${encodeURIComponent(activeSearch)}` : '/products'} active={!activeBrand}>
                   All Brands
-                </a>
+                </FilterLink>
                 {BRANDS.map(b => (
-                  <a
+                  <FilterLink
                     key={b}
                     href={`/products?brand=${b}${activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''}`}
-                    className={`block text-sm px-3 py-2 rounded-lg transition-colors ${activeBrand === b ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                    active={activeBrand === b}
                   >
                     {b}
-                  </a>
+                  </FilterLink>
                 ))}
               </div>
             </div>
 
             {/* Condition filter */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Condition</h3>
+              <h3 className="text-[11px] font-bold text-surface-400 uppercase tracking-wider mb-3">Condition</h3>
               <div className="space-y-0.5">
-                <a
+                <FilterLink
                   href={activeBrand ? `/products?brand=${activeBrand}` : '/products'}
-                  className={`block text-sm px-3 py-2 rounded-lg transition-colors ${!activeCondition ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                  active={!activeCondition}
                 >
                   All Conditions
-                </a>
+                </FilterLink>
                 {CONDITIONS.map(c => {
                   const params = new URLSearchParams({ condition: c.value });
                   if (activeBrand) params.set('brand', activeBrand);
                   return (
-                    <a
+                    <FilterLink
                       key={c.value}
                       href={`/products?${params}`}
-                      className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeCondition === c.value ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                      active={activeCondition === c.value}
                     >
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
-                        c.value === ItemCondition.SEALED_PACK ? 'bg-violet-50 text-violet-600 border-violet-200' :
-                        c.value === ItemCondition.OPEN_BOX ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                        c.value === ItemCondition.SUPER_MINT ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                        c.value === ItemCondition.MINT ? 'bg-teal-50 text-teal-600 border-teal-200' :
-                        'bg-amber-50 text-amber-600 border-amber-200'
-                      }`}>
-                        {c.short}
+                      <span className="flex items-center gap-2">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                          c.value === ItemCondition.SEALED_PACK ? 'bg-violet-50 text-violet-600 border-violet-200' :
+                          c.value === ItemCondition.OPEN_BOX ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                          c.value === ItemCondition.SUPER_MINT ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                          c.value === ItemCondition.MINT ? 'bg-teal-50 text-teal-600 border-teal-200' :
+                          'bg-amber-50 text-amber-600 border-amber-200'
+                        }`}>
+                          {c.short}
+                        </span>
                       </span>
-                    </a>
+                    </FilterLink>
                   );
                 })}
               </div>
             </div>
 
-            {/* Price range quick filters */}
+            {/* Price range */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Price Range</h3>
+              <h3 className="text-[11px] font-bold text-surface-400 uppercase tracking-wider mb-3">Price Range</h3>
               <div className="space-y-0.5">
-                {[
-                  { label: 'Under ₹10,000', min: '', max: '10000' },
-                  { label: '₹10,000 – ₹25,000', min: '10000', max: '25000' },
-                  { label: '₹25,000 – ₹50,000', min: '25000', max: '50000' },
-                  { label: '₹50,000 – ₹1,00,000', min: '50000', max: '100000' },
-                  { label: 'Above ₹1,00,000', min: '100000', max: '' },
-                ].map(r => {
+                {PRICE_RANGES.map(r => {
                   const params = new URLSearchParams(r);
                   if (activeBrand) params.set('brand', activeBrand);
                   if (activeCondition) params.set('condition', activeCondition);
-                  const activeMin = searchParams.minPrice;
-                  const activeMax = searchParams.maxPrice;
-                  const isActive = activeMin === r.min && activeMax === r.max;
+                  const isActive = searchParams.minPrice === r.min && searchParams.maxPrice === r.max;
                   return (
-                    <a
-                      key={r.label}
-                      href={`/products?${params}`}
-                      className={`block text-sm px-3 py-2 rounded-lg transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
+                    <FilterLink key={r.label} href={`/products?${params}`} active={isActive}>
                       {r.label}
-                    </a>
+                    </FilterLink>
                   );
                 })}
               </div>
             </div>
 
             {/* Clear all */}
-            {(activeBrand || activeCondition || activeSearch || searchParams.minPrice) && (
+            {hasFilters && (
               <a
                 href="/products"
-                className="flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm text-primary font-semibold hover:bg-primary/5 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -208,8 +220,8 @@ export default async function ProductsPage({ searchParams }: Props) {
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0">
-          {/* Mobile filter chips + Filter button + Sort bar */}
-          <div className="flex items-center justify-between gap-3 mb-4">
+          {/* Mobile filter + Sort bar */}
+          <div className="flex items-center justify-between gap-3 mb-6">
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:hidden flex-1">
               <FilterSheetClient
                 brands={BRANDS}
@@ -222,38 +234,40 @@ export default async function ProductsPage({ searchParams }: Props) {
                 <a
                   key={c.value}
                   href={`/products?condition=${c.value}${activeBrand ? `&brand=${activeBrand}` : ''}`}
-                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${activeCondition === c.value ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium border transition-all ${
+                    activeCondition === c.value
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-white text-surface-600 border-surface-200 hover:border-surface-300'
+                  }`}
                 >
                   {c.short}
                 </a>
               ))}
             </div>
-
-            {/* Sort */}
             <SortSelect defaultValue={activeSort} />
           </div>
 
           {/* Products grid */}
           {products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-28 h-28 bg-surface-100 rounded-full flex items-center justify-center mb-5">
+                <svg className="w-14 h-14 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <p className="text-lg font-semibold text-gray-700">No products found</p>
-              <p className="text-sm text-gray-400 mt-1 max-w-xs">
+              <p className="text-lg font-bold text-surface-700">No products found</p>
+              <p className="text-sm text-surface-400 mt-1.5 max-w-xs">
                 {activeSearch
                   ? `We couldn't find any results for "${activeSearch}". Try a different search term.`
                   : 'Try adjusting your filters or browse all products.'}
               </p>
-              <a href="/products" className="mt-6 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 active:scale-95 transition-all">
+              <a href="/products" className="mt-6 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 active:scale-[0.97] transition-all shadow-md shadow-primary/25">
                 Browse All Products
               </a>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                 {products.map((p: any) => {
                   const price = Number(p.price ?? p.onlinePrice ?? p.sellingPrice ?? 0);
                   const originalPrice = p.originalPrice ? Number(p.originalPrice) : undefined;
@@ -280,10 +294,12 @@ export default async function ProductsPage({ searchParams }: Props) {
 
               {/* Pagination */}
               {total > 24 && (
-                <div className="mt-8 flex items-center justify-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    Showing 1–{Math.min(24, total)} of {total}
-                  </span>
+                <div className="mt-10 flex items-center justify-center gap-2">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-surface-200 shadow-sm">
+                    <span className="text-sm text-surface-500 font-medium">
+                      Showing 1–{Math.min(24, total)} of {total}
+                    </span>
+                  </div>
                 </div>
               )}
             </>
@@ -293,5 +309,3 @@ export default async function ProductsPage({ searchParams }: Props) {
     </div>
   );
 }
-
-

@@ -51,7 +51,7 @@ function StarRating({ rating, interactive, onChange, size }: {
             onClick={() => interactive && onChange?.(star)}
             className={`${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform ${sizeClass}`}
           >
-            <svg viewBox="0 0 24 24" className={`${sizeClass} ${filled ? 'text-amber-400' : half ? 'text-amber-300' : 'text-gray-200'}`} fill="currentColor">
+            <svg viewBox="0 0 24 24" className={`${sizeClass} ${filled ? 'text-amber-400' : half ? 'text-amber-300' : 'text-surface-200'}`} fill="currentColor">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           </button>
@@ -65,14 +65,14 @@ function RatingBar({ label, count, total }: { label: string; count: number; tota
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="w-8 text-gray-500 text-xs">{label}</span>
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+      <span className="w-8 text-surface-500 text-xs">{label}</span>
+      <div className="flex-1 h-2 bg-surface-100 rounded-full overflow-hidden">
         <div
           className="h-full bg-amber-400 rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-6 text-right text-xs text-gray-400">{count}</span>
+      <span className="w-6 text-right text-xs text-surface-400">{count}</span>
     </div>
   );
 }
@@ -90,7 +90,6 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
     try {
       const res = await fetch(`${API}/public/products/${itemId}/reviews`);
       const json = await res.json();
-      // Unwrap TransformInterceptor: { status, data: { data, summary } }
       const unwrapped = json.data ?? json;
       if (unwrapped.data) {
         setReviews(unwrapped.data ?? []);
@@ -134,11 +133,11 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="flex flex-col sm:flex-row gap-6 p-5 bg-gray-50 rounded-2xl">
+      <div className="flex flex-col sm:flex-row gap-6 p-5 bg-surface-50 rounded-2xl border border-surface-100">
         <div className="text-center sm:text-left">
-          <div className="text-4xl font-bold text-gray-900">{summary.avg_rating.toFixed(1)}</div>
+          <div className="text-4xl font-bold text-surface-900">{summary.avg_rating.toFixed(1)}</div>
           <StarRating rating={Math.round(summary.avg_rating)} size="sm" />
-          <p className="text-xs text-gray-500 mt-1">{summary.total_reviews} reviews</p>
+          <p className="text-xs text-surface-500 mt-1">{summary.total_reviews} reviews</p>
         </div>
         <div className="flex-1 space-y-1">
           {[5, 4, 3, 2, 1].map((star) => {
@@ -158,11 +157,11 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
       {/* Reviews List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Customer Reviews</h3>
+          <h3 className="heading-sm text-surface-900">Customer Reviews</h3>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="text-sm text-primary font-medium hover:underline"
+              className="text-sm text-primary font-medium hover:underline transition-colors"
             >
               Write a Review
             </button>
@@ -170,24 +169,22 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
         </div>
 
         {reviews.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-surface-400">
             <div className="text-3xl mb-2">✍️</div>
             <p className="text-sm">No reviews yet. Be the first to review!</p>
           </div>
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="border-b border-gray-100 pb-4 last:border-0">
+            <div key={review.id} className="border-b border-surface-100 pb-4 last:border-0 last:pb-0">
               <div className="flex items-center gap-2 mb-1">
                 <StarRating rating={review.rating} size="sm" />
                 {review.is_verified && (
-                  <span className="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full font-medium">
-                    Verified
-                  </span>
+                  <span className="badge-success text-[10px]">Verified</span>
                 )}
               </div>
-              <p className="text-sm font-medium text-gray-900">{review.client_name}</p>
-              {review.comment && <p className="text-sm text-gray-600 mt-1">{review.comment}</p>}
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-sm font-medium text-surface-900">{review.client_name}</p>
+              {review.comment && <p className="text-sm text-surface-600 mt-1">{review.comment}</p>}
+              <p className="text-xs text-surface-400 mt-1">
                 {new Date(review.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
               </p>
             </div>
@@ -197,10 +194,10 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
 
       {/* Add Review Form */}
       {showForm && (
-        <div className="border border-gray-200 rounded-2xl p-5">
+        <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Write a Review</h3>
-            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+            <h3 className="font-semibold text-surface-900">Write a Review</h3>
+            <button onClick={() => setShowForm(false)} className="text-surface-400 hover:text-surface-600 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -209,19 +206,19 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Your Name</label>
+              <label className="block text-sm text-surface-600 mb-1">Your Name</label>
               <input
                 type="text"
                 required
                 value={formData.clientName}
                 onChange={e => setFormData(p => ({ ...p, clientName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="input"
                 placeholder="Enter your name"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Rating</label>
+              <label className="block text-sm text-surface-600 mb-1">Rating</label>
               <StarRating
                 rating={formData.rating}
                 interactive
@@ -231,33 +228,44 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Review</label>
+              <label className="block text-sm text-surface-600 mb-1">Review</label>
               <textarea
                 required
                 value={formData.comment}
                 onChange={e => setFormData(p => ({ ...p, comment: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                className="input resize-none"
                 placeholder="Share your experience (min 10 characters)"
               />
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+              <p className="text-sm text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-xl flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </p>
             )}
 
             {submitted && (
-              <p className="text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
-                ✓ Review submitted successfully!
+              <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl flex items-center gap-2">
+                <span>✓</span>
+                <span>Review submitted successfully!</span>
               </p>
             )}
 
             <button
               type="submit"
               disabled={submitting}
-              className="btn-red w-full py-2.5 rounded-xl font-medium text-sm disabled:opacity-50"
+              className="btn-primary-glow w-full disabled:opacity-50"
             >
-              {submitting ? 'Submitting...' : 'Submit Review'}
+              {submitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Submitting...
+                </div>
+              ) : (
+                'Submit Review'
+              )}
             </button>
           </form>
         </div>

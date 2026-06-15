@@ -67,9 +67,9 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
         <div className="px-5 pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-gray-900">Filters</h2>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h2 className="heading-sm text-surface-900">Filters</h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-100 transition-colors">
+              <svg className="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -78,7 +78,7 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
           <div className="space-y-6 overflow-y-auto max-h-[60vh]">
             {/* Brand */}
             <div>
-              <p className="text-sm font-bold text-gray-900 mb-3">Brand</p>
+              <p className="text-sm font-bold text-surface-900 mb-3">Brand</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedBrand('')}
@@ -104,7 +104,7 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
 
             {/* Condition */}
             <div>
-              <p className="text-sm font-bold text-gray-900 mb-3">Condition</p>
+              <p className="text-sm font-bold text-surface-900 mb-3">Condition</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedCondition('')}
@@ -130,7 +130,7 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
 
             {/* Price */}
             <div>
-              <p className="text-sm font-bold text-gray-900 mb-3">Price Range</p>
+              <p className="text-sm font-bold text-surface-900 mb-3">Price Range</p>
               <div className="flex flex-wrap gap-2">
                 {PRICE_RANGES.map(r => {
                   const isActive = selectedPriceMin === r.min && selectedPriceMax === r.max;
@@ -142,7 +142,7 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
                         setSelectedPriceMax(r.max);
                       }}
                       className={`text-xs px-3 py-2 rounded-xl font-medium border transition-colors ${
-                        isActive ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                        isActive ? 'bg-primary text-white border-primary' : 'bg-white text-surface-600 border-surface-200 hover:border-surface-300'
                       }`}
                     >
                       {r.label}
@@ -156,7 +156,7 @@ export function FilterSheet({ open, onClose, activeBrand, activeCondition, activ
           {/* Actions */}
           <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
             {hasActiveFilters && (
-              <button onClick={handleClear} className="flex-1 py-3 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              <button onClick={handleClear} className="flex-1 py-3 text-sm font-medium text-surface-600 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors">
                 Clear All
               </button>
             )}

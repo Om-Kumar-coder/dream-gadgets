@@ -328,7 +328,7 @@ export default function BuybackLeadsPage() {
       accessorKey: 'createdAt',
       header: 'Submitted',
       cell: ({ row }) => (
-        <span className="text-gray-500 text-xs">
+        <span className="text-surface-500 text-xs">
           {row.original.createdAt ? format(new Date(row.original.createdAt), 'dd MMM yyyy') : '—'}
         </span>
       ),
@@ -370,11 +370,11 @@ export default function BuybackLeadsPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Buyback Leads</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="heading-sm text-surface-900">Buyback Leads</h1>
+          <p className="text-sm text-surface-500">
             Customer sell/buyback requests submitted from the website
           </p>
         </div>
@@ -386,10 +386,10 @@ export default function BuybackLeadsPage() {
           <button
             key={status || 'all'}
             onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+            className={`badge text-xs px-3 py-1.5 transition-colors capitalize ${
               statusFilter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'badge-neutral cursor-pointer hover:bg-surface-200'
             }`}
           >
             {status || 'All'}

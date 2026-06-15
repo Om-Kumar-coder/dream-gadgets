@@ -96,8 +96,8 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Device Condition</h3>
-        <p className="text-sm text-gray-500">How would you describe your device?</p>
+        <h3 className="heading-sm text-surface-900 mb-1">Device Condition</h3>
+        <p className="text-sm text-surface-500">How would you describe your device?</p>
       </div>
 
       {/* Condition Cards */}
@@ -114,13 +114,13 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
           >
             <span className="text-3xl">{c.icon}</span>
             <div className="text-center">
-              <span className={`text-sm font-bold ${condition === c.value ? 'text-primary' : 'text-gray-900'}`}>
+              <span className={`text-sm font-bold ${condition === c.value ? 'text-primary' : 'text-surface-900'}`}>
                 {c.label}
               </span>
-              <p className="text-xs text-gray-500 mt-0.5">{c.desc}</p>
+              <p className="text-xs text-surface-500 mt-0.5">{c.desc}</p>
             </div>
             {condition === c.value && (
-              <span className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+              <span className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm">
                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
@@ -132,8 +132,8 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
 
       {/* Quick condition questions (shown when condition selected) */}
       {condition && (
-        <div className="space-y-4 p-4 bg-gray-50 rounded-2xl animate-fade-in-up">
-          <p className="text-sm font-semibold text-gray-700">Quick Assessment</p>
+        <div className="space-y-4 p-5 bg-surface-50 rounded-2xl border border-surface-100 animate-fade-in-up">
+          <p className="text-sm font-semibold text-surface-700">Quick Assessment</p>
           {CONDITION_QUESTIONS.map(q => {
             const currentValue =
               q.id === 'screen' ? screenCondition :
@@ -142,7 +142,7 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
 
             return (
               <div key={q.id}>
-                <p className="text-xs text-gray-500 mb-2">{q.label}</p>
+                <p className="text-xs text-surface-500 mb-2">{q.label}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {q.options.map(o => {
                     const isSelected = currentValue === o;
@@ -158,7 +158,7 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
                         className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                           isSelected
                             ? 'bg-primary text-white border-primary shadow-sm'
-                            : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                            : 'border-surface-200 text-surface-600 hover:border-primary hover:text-primary'
                         }`}
                       >
                         {o}
@@ -174,11 +174,11 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
 
       {/* Functional Issues (shown when condition selected) */}
       {condition && (
-        <div className="space-y-3 p-4 bg-white rounded-2xl border border-red-100">
+        <div className="space-y-3 p-5 bg-white rounded-2xl border border-red-200">
           <div className="flex items-center gap-2">
             <span className="text-sm">⚠️</span>
-            <p className="text-sm font-semibold text-gray-700">Functional Issues</p>
-            <span className="text-[10px] text-gray-400 font-normal">(select all that apply)</span>
+            <p className="text-sm font-semibold text-surface-700">Functional Issues</p>
+            <span className="text-[10px] text-surface-400 font-normal">(select all that apply)</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {FUNCTIONAL_ISSUES.map(issue => {
@@ -200,7 +200,7 @@ export function ConditionSelector({ condition, screenCondition, bodyCondition, b
                   className={`text-xs px-3 py-2 rounded-xl border transition-all ${
                     isSelected
                       ? 'bg-red-50 text-red-700 border-red-300 shadow-sm'
-                      : 'border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600'
+                      : 'border-surface-200 text-surface-600 hover:border-red-200 hover:text-red-600'
                   }`}
                 >
                   {isSelected && <span className="mr-1">✓</span>}

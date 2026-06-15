@@ -100,7 +100,7 @@ export default function OnlineOrdersPage() {
               {client.firstName ?? ''} {client.lastName ?? ''}
             </p>
             {client.email && (
-              <p className="text-xs text-gray-400">{client.email}</p>
+              <p className="text-xs text-surface-400">{client.email}</p>
             )}
           </div>
         );
@@ -159,14 +159,14 @@ export default function OnlineOrdersPage() {
       accessorKey: 'branch',
       header: 'Branch',
       cell: ({ row }) => (
-        <span className="text-xs text-gray-500">{row.original.branch?.name ?? '—'}</span>
+        <span className="text-xs text-surface-500">{row.original.branch?.name ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'orderedAt',
       header: 'Date',
       cell: ({ row }) => (
-        <span className="text-gray-500 text-xs">
+        <span className="text-surface-500 text-xs">
           {row.original.orderedAt
             ? format(new Date(row.original.orderedAt), 'dd MMM yyyy')
             : '—'}
@@ -208,11 +208,11 @@ export default function OnlineOrdersPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Online Orders</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="heading-sm text-surface-900">Online Orders</h1>
+          <p className="text-sm text-surface-500">
             Customer orders placed through the website
           </p>
         </div>
@@ -236,10 +236,10 @@ export default function OnlineOrdersPage() {
           <button
             key={status || 'all'}
             onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`badge text-xs px-3 py-1.5 transition-colors ${
               statusFilter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'badge-neutral cursor-pointer hover:bg-surface-200'
             }`}
           >
             {status ? status.replace(/_/g, ' ') : 'All'}

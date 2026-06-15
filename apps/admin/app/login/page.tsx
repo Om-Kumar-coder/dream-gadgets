@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { apiClient } from '@/lib/api';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { Button } from '@dream-gadgets/ui';
+import { Eye, EyeOff, Shield, Smartphone } from 'lucide-react';
 
 const loginSchema = z.object({
   identifier: z.string().min(1, 'Email or phone is required'),
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { setTokens } = useAdminAuthStore();
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -38,7 +40,6 @@ export default function LoginPage() {
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', refreshToken);
       document.cookie = `admin_access_token=${accessToken}; path=/; max-age=900; SameSite=Lax`;
-      // Decode JWT payload (flat structure with role as string) instead of raw user entity
       const jwtPayload = JSON.parse(atob(accessToken.split('.')[1]));
       setTokens(accessToken, refreshToken, jwtPayload);
       router.push('/dashboard');
@@ -48,52 +49,106 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
-        <div className="mb-8 text-center">
-          <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-14 w-auto mx-auto mb-4 rounded-lg" />
-          <p className="text-sm text-gray-500">Admin Panel — Sign in to continue</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-surface-50 via-white to-surface-50 p-4">
+      {/* Decorative elements */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md">
+        {/* Brand header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/20 mb-4">
+            <Smartphone className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-surface-900">Dream Gadgets</h1>
+          <p className="text-sm text-surface-500 mt-1">Admin Panel — Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email or Phone
-            </label>
-            <input
-              {...register('identifier')}
-              type="text"
-              placeholder="admin@dreamgadgets.in or 9876543210"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.identifier && (
-              <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              {...register('password')}
-              type="password"
-              placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
-              {error}
+        {/* Login card */}
+        <div className="bg-white rounded-2xl border border-surface-100 shadow-card p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email or Phone */}
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                Email or Phone
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400">
+                  👤
+                </span>
+                <input
+                  {...register('identifier')}
+                  type="text"
+                  placeholder="admin@dreamgadgets.in or 9876543210"
+                  className="input pl-10"
+                />
+              </div>
+              {errors.identifier && (
+                <p className="text-destructive text-xs mt-1">{errors.identifier.message}</p>
+              )}
             </div>
-          )}
 
-          <Button type="submit" isLoading={isSubmitting} className="w-full">
-            {isSubmitting ? 'Signing in…' : 'Sign In'}
-          </Button>
-        </form>
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Password</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400">
+                  🔒
+                </span>
+                <input
+                  {...register('password')}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  className="input pl-10 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-destructive text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary w-full py-2.5"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Signing in…
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Sign In
+                </div>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-surface-400 mt-6">
+          Authorized personnel only. All access is monitored.
+        </p>
       </div>
     </div>
   );

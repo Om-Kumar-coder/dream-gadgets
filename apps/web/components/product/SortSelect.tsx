@@ -26,13 +26,13 @@ export function SortSelect({ defaultValue }: SortSelectProps) {
 
   return (
     <div className="flex items-center gap-2 ml-auto">
-      <label htmlFor="sort-select" className="text-xs text-gray-400 hidden sm:block">
+      <label htmlFor="sort-select" className="text-xs text-surface-400 hidden sm:block">
         Sort by:
       </label>
       <select
         id="sort-select"
         name="sort"
-        className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+        className="text-xs border border-surface-200 rounded-lg px-3 py-1.5 bg-white text-surface-700 font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
         defaultValue={defaultValue}
         onChange={handleChange}
       >

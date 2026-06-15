@@ -23,16 +23,16 @@ export function AddToCartButton({ product }: Props) {
       <div className="flex-1 flex items-center gap-0 border-2 border-primary/20 rounded-xl overflow-hidden">
         <button
           onClick={() => qty > 1 ? updateQuantity(product.id, qty - 1) : removeItem(product.id)}
-          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-600 font-bold text-lg"
+          className="w-11 h-11 flex items-center justify-center bg-surface-50 hover:bg-surface-100 active:bg-surface-200 transition-colors text-surface-600 font-bold text-lg"
         >
           −
         </button>
-        <div className="flex-1 h-11 flex items-center justify-center bg-white font-semibold text-sm text-gray-900 border-x border-gray-100">
+        <div className="flex-1 h-11 flex items-center justify-center bg-white font-semibold text-sm text-surface-900 border-x border-surface-100">
           {qty} in Cart
         </div>
         <button
           onClick={() => updateQuantity(product.id, qty + 1)}
-          className="w-11 h-11 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-600 font-bold text-lg"
+          className="w-11 h-11 flex items-center justify-center bg-surface-50 hover:bg-surface-100 active:bg-surface-200 transition-colors text-surface-600 font-bold text-lg"
         >
           +
         </button>
@@ -43,10 +43,10 @@ export function AddToCartButton({ product }: Props) {
   return (
     <button
       onClick={handleAdd}
-      className={`flex-1 py-3 rounded-xl font-medium active:scale-95 transition-all ${
+      className={`flex-1 py-3 rounded-xl font-medium active:scale-[0.97] transition-all ${
         justAdded
-          ? 'bg-emerald-500 text-white'
-          : 'bg-primary text-primary-foreground hover:opacity-90'
+          ? 'bg-emerald-500 text-white shadow-sm'
+          : 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm hover:shadow-md'
       }`}
     >
       {justAdded ? '✓ Added!' : 'Add to Cart'}

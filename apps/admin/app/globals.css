@@ -5,23 +5,248 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 3.9%;
     --primary: 357 92.4% 46.7%;
     --primary-hover: 356.8 92.2% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10.2%;
+    --secondary: 0 0% 9%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 89.8%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 45%;
     --accent: 0 100% 58.8%;
-    --accent-glow: rgba(255, 45, 45, 0.4);
+    --accent-glow: rgba(229, 9, 20, 0.4);
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 65.1% 50.6%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 87.8%;
+    --border: 0 0% 89%;
     --sidebar: 240 3.2% 6.1%;
     --sidebar-foreground: 0 0% 100%;
     --radius: 0.75rem;
+
+    /* Surface palette */
+    --surface-50: 0 0% 97%;
+    --surface-100: 0 0% 93%;
+    --surface-200: 0 0% 87%;
+    --surface-300: 0 0% 75%;
+    --surface-400: 0 0% 55%;
+    --surface-500: 0 0% 42%;
+    --surface-600: 0 0% 32%;
+    --surface-700: 0 0% 22%;
+    --surface-800: 0 0% 14%;
+    --surface-900: 0 0% 7%;
+    --surface-950: 0 0% 3.5%;
+
+    /* Glow effects */
+    --glow-red: rgba(229, 9, 20, 0.25);
+    --glow-amber: rgba(255, 184, 0, 0.25);
+    --glow-emerald: rgba(16, 185, 129, 0.25);
+  }
+
+  * {
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
+  }
+}
+
+@layer components {
+  /* ── Button system ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 disabled:pointer-events-none select-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary-hover active:scale-[0.97] shadow-sm hover:shadow-md;
+  }
+
+  .btn-primary-glow {
+    @apply btn-primary shadow-[0_0_20px_var(--glow-red)];
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground hover:bg-surface-800 active:scale-[0.97];
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-surface-200 bg-transparent text-surface-700 hover:bg-surface-50 hover:border-surface-300 active:scale-[0.97];
+  }
+
+  .btn-ghost {
+    @apply btn text-surface-600 hover:bg-surface-100 active:scale-[0.97];
+  }
+
+  .btn-sm {
+    @apply text-xs px-3 py-1.5 rounded-lg;
+  }
+
+  .btn-md {
+    @apply text-sm px-4 py-2;
+  }
+
+  .btn-lg {
+    @apply text-base px-6 py-3;
+  }
+
+  /* ── Card system ── */
+  .card {
+    @apply bg-white rounded-2xl border border-surface-100 shadow-card transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-card-hover hover:border-surface-200;
+  }
+
+  .card-dark {
+    @apply bg-surface-950 rounded-2xl border border-surface-800;
+  }
+
+  .card-glass {
+    @apply bg-white/80 backdrop-blur-xl rounded-2xl border border-white/20 shadow-glass;
+  }
+
+  /* ── Input system ── */
+  .input {
+    @apply w-full rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm text-surface-900 placeholder:text-surface-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all;
+  }
+
+  .textarea {
+    @apply input resize-none min-h-[100px];
+  }
+
+  .select {
+    @apply input appearance-none cursor-pointer;
+  }
+
+  /* ── Badge system ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary/10 text-primary;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-red-700;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-50 text-blue-700;
+  }
+
+  .badge-neutral {
+    @apply badge bg-surface-100 text-surface-600;
+  }
+
+  /* ── Glass morphism ── */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-surface-950/80 backdrop-blur-xl border border-surface-800;
+  }
+
+  /* ── Heading system ── */
+  .heading-lg {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+  }
+
+  .heading-md {
+    @apply text-xl sm:text-2xl font-bold tracking-tight;
+  }
+
+  .heading-sm {
+    @apply text-lg font-bold;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    @apply w-full h-px bg-surface-100;
+  }
+
+  /* ── Container ── */
+  .container-page {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ── Stat card ── */
+  .stat-card {
+    @apply card p-5 flex items-start gap-4 hover:shadow-card-hover transition-all duration-200;
+  }
+
+  /* ── Table styles ── */
+  .table-header {
+    @apply bg-surface-50 text-surface-500 text-xs font-semibold uppercase tracking-wider;
+  }
+
+  .table-cell {
+    @apply px-4 py-3 text-sm text-surface-700;
+  }
+
+  .table-row {
+    @apply hover:bg-surface-50 transition-colors;
+  }
+
+  /* ── Status dot ── */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply status-dot bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)];
+  }
+
+  .status-dot-pending {
+    @apply status-dot bg-amber-500 shadow-[0_0_8px_rgba(255,184,0,0.4)];
+  }
+
+  .status-dot-inactive {
+    @apply status-dot bg-surface-300;
+  }
+
+  .status-dot-danger {
+    @apply status-dot bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)];
   }
 }
 
@@ -43,5 +268,8 @@
   }
   .ring-accent-glow {
     box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-primary to-neon-amber bg-clip-text text-transparent;
   }
 }

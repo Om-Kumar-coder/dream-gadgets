@@ -1,519 +1,616 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { IconAward, IconTruck, IconZap, IconShield, IconWallet, IconSmartphone, IconMapPin, IconFile, IconSearch, IconTag, IconRotateCcw, IconRefreshCw, IconClock } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
   description: "India's most transparent mobile selling platform. Highest price, doorstep pickup, instant payment.",
 };
 
-const BRANDS = [
-  { name: 'Apple', logo: '/logos/apple.svg', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
-  { name: 'Samsung', logo: '/logos/samsung.svg', color: 'from-blue-50 to-blue-100', text: 'text-blue-700' },
-  { name: 'OnePlus', logo: '/logos/oneplus.svg', color: 'from-red-50 to-red-100', text: 'text-red-700' },
-  { name: 'Xiaomi', logo: '/logos/xiaomi.svg', color: 'from-orange-50 to-orange-100', text: 'text-orange-700' },
-  { name: 'Realme', logo: '/logos/realme.svg', color: 'from-yellow-50 to-yellow-100', text: 'text-yellow-700' },
-  { name: 'Vivo', logo: '/logos/vivo.svg', color: 'from-blue-50 to-blue-100', text: 'text-blue-700' },
-  { name: 'Oppo', logo: '/logos/oppo.svg', color: 'from-green-50 to-green-100', text: 'text-green-700' },
-  { name: 'Google', logo: '/logos/google.svg', color: 'from-gray-50 to-gray-100', text: 'text-gray-700' },
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
+
+const BRAND_NAMES = ['Apple', 'Samsung', 'OnePlus', 'Oppo', 'Vivo', 'Realme', 'Xiaomi', 'Motorola', 'Google', 'Nothing'];
+
+const BRANCHES = [
+  { name: 'Barrackpore', address: 'Kolkata, West Bengal', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
+  { name: 'Salt Lake', address: 'Sector 5, Salt Lake City, Kolkata', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
+  { name: 'Howrah', address: 'Howrah Station Area, Howrah', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
 ];
 
-const DEVICE_CATEGORIES = [
-  { name: 'iPhone', image: '/logos/mobile.svg', count: '120+', href: '/products?brand=Apple' },
-  { name: 'Samsung Galaxy', image: '/logos/mobile.svg', count: '85+', href: '/products?brand=Samsung' },
-  { name: 'OnePlus', image: '/logos/mobile.svg', count: '45+', href: '/products?brand=OnePlus' },
-  { name: 'Laptops', image: '/logos/laptop.svg', count: '30+', href: '/products?category=laptop' },
-  { name: 'Tablets', image: '/logos/tablet.svg', count: '25+', href: '/products?category=tablet' },
-  { name: 'Smartwatches', image: '/logos/smartwatch.svg', count: '20+', href: '/products?category=smartwatch' },
-];
+async function getHomeProducts() {
+  try {
+    const res = await fetch(`${API}/public/products?limit=12&sort=popular`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data ?? json.items ?? [];
+  } catch {
+    return [];
+  }
+}
 
-const SERVICES = [
-  { icon: '/logos/mobile.svg', label: 'Mobile', href: '/sell?type=mobile' },
-  { icon: '/logos/laptop.svg', label: 'Laptop', href: '/sell?type=laptop' },
-  { icon: '/logos/tablet.svg', label: 'Tablet', href: '/sell?type=tablet' },
-  { icon: '/logos/smartwatch.svg', label: 'Smartwatch', href: '/sell?type=smartwatch' },
-  { icon: '/logos/gaming.svg', label: 'Gaming Console', href: '/sell?type=gaming' },
-];
+function computeDiscount(price: number, original?: number): number | null {
+  if (!original || original <= price) return null;
+  return Math.round((1 - price / original) * 100);
+}
 
-const TRUST_BADGES = [
-  { icon: <IconAward size={18} />, label: '1M+ Customers', desc: 'Trusted by millions' },
-  { icon: <IconTruck size={18} />, label: 'Free Pickup', desc: 'Doorstep service' },
-  { icon: <IconZap size={18} />, label: 'Instant Payment', desc: 'Within 24 hours' },
-  { icon: <IconShield size={18} />, label: 'Data Secure', desc: '100% safe wiping' },
-];
+function formatPrice(n: number): string {
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
 
-const QUALITY_POINTS = [
-  '20-point professional inspection',
-  'Strict quality charter that protects you',
-  'Free warranty with every purchase',
-  '30 days to change your mind',
-];
+function getQualityClass(q: string): string {
+  const map: Record<string, string> = {
+    super_mint: 'Super Mint', sealed_pack: 'Sealed Pack', open_box: 'Open Box',
+    mint: 'Mint', good: 'Good',
+  };
+  return map[q?.toLowerCase()] || q || 'Mint';
+}
 
-const TESTIMONIALS = [
-  { initials: 'RM', name: 'Rohit Mehra', city: 'Delhi', device: 'OnePlus Nord', review: "I didn't want the hassle of selling it. Got an instant quote, they picked it up next day and I received payment right away." },
-  { initials: 'NJ', name: 'Neha Joshi', city: 'Pune', device: 'Xiaomi Mi 11x', review: 'They scheduled a pickup for the morning just how I wanted. The agent arrived, checked my phone, and I got cash on the spot.' },
-  { initials: 'AV', name: 'Amit Verma', city: 'Bengaluru', device: 'Apple iPhone 12', review: 'I was worried about data security. Dream Gadgets did a complete data wipe and all my past data was securely erased. Fast and secure process.' },
-  { initials: 'RP', name: 'Rishikesh Patil', city: 'Mumbai', device: 'Apple iPhone 14', review: 'Great experience, no complaints. Selling my phone was fast and stress-free. Would definitely use again.' },
-  { initials: 'AG', name: 'Abhi Gupta', city: 'Navi Mumbai', device: 'Samsung Note 20 Ultra', review: 'Quick and easy process. The payment was processed instantly, and the entire experience was smooth. Highly recommend!' },
-];
+function getProductImage(p: any): string | null {
+  if (p.images?.[0]) return p.images[0];
+  if (p.thumbnail) return p.thumbnail;
+  return null;
+}
 
-const BLOGS = [
-  {
-    title: 'Samsung Galaxy M53 5G To Be Launched In India On April 22',
-    date: '19th April 2022',
-    excerpt: 'Samsung keeps on adding to their series of smartphones each year. With multiple lines of series and aiming at low as well as high budget mobile phones...',
-    slug: 'samsung-galaxy-m53-5g-launch',
-  },
-  {
-    title: 'Future Of Mobile Technology And Its Impact On Modern Family',
-    date: '21st April 2022',
-    excerpt: 'We have come so far when it comes to mobile technology. The fast pace of growth in the technology sector is quite commendable...',
-    slug: 'future-of-mobile-technology',
-  },
-  {
-    title: 'How To Contribute Used Mobiles To Poor School Children',
-    date: '18th March 2022',
-    excerpt: 'Smartphones have become a significant part of our life\'s functional values. However, it is unfortunate that not every individual who needs access to a smartphone has it...',
-    slug: 'contribute-used-mobiles-school-children',
-  },
-];
+export default async function HomePage() {
+  const products = await getHomeProducts();
+  const trending = products.slice(0, 6);
+  const dealOfDay = products.slice(0, 3);
+  const hotDeals = products.slice(0, 4);
+  const recommended = products.slice(2, 6);
 
-const ECO_STATS = [
-  { icon: <IconRefreshCw size={32} />, value: '70–80%', label: 'Reduction in E-Waste', desc: 'Prevent e-waste generated from manufacturing a new device.' },
-  { icon: <IconTruck size={32} />, value: '7,500L', label: 'Water Saved', desc: 'Save water used during production of a single smartphone.' },
-  { icon: <IconZap size={32} />, value: '60kg', label: 'CO₂ Avoided', desc: 'Avoid emitting up to 60kg of CO₂ per device.' },
-  { icon: <IconWallet size={32} />, value: '50–65%', label: 'Cost Savings', desc: 'Save significantly by choosing refurbished.' },
-];
+  const lastSoldProduct = products[0];
+  const lsPrice = lastSoldProduct ? Number(lastSoldProduct.online_price ?? lastSoldProduct.price ?? lastSoldProduct.selling_price ?? 0) : 0;
+  const lsName = lastSoldProduct ? (lastSoldProduct.item_name ?? `${lastSoldProduct.model ?? ''} ${lastSoldProduct.storage ?? ''}`.trim()) : 'APPLE IPHONE 16 PRO';
+  const lsBranch = lastSoldProduct?.branch_name ?? 'Barrackpore';
+  const lsImg = lastSoldProduct ? getProductImage(lastSoldProduct) : null;
 
-export default function HomePage() {
   return (
-    <main className="overflow-x-hidden">
-      {/* ── Hero Section (Cashify-style) ── */}
-      <section className="relative text-white overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            {/* Left: Text */}
-            <div>
-              <span className="inline-block bg-white/10 backdrop-blur-sm text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-widest uppercase">
-                ✦ India&apos;s Most Trusted Platform
-              </span>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight tracking-tight">
-                Sell Your Old Phone<br />
-                <span className="text-primary">in 60 Seconds!</span>
-              </h1>
-              <p className="text-base md:text-lg text-white/70 mb-6 max-w-lg">
-                Get the highest price for your old phone. Free doorstep pickup, instant payment, 100% secure data wipe.
-              </p>
+    <main className="overflow-hidden">
+      {/* ════════════════════════════════════════
+          HERO SECTION — Premium Banner + Last Sold
+          ════════════════════════════════════════ */}
+      <section className="relative bg-gradient-hero overflow-hidden">
+        {/* Ambient Glow Effects */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-neon-amber/5 rounded-full blur-[120px] pointer-events-none" />
 
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap gap-3 mb-8">
-                <Link href="/sell" className="px-8 py-3.5 rounded-full font-bold text-sm btn-red hover:shadow-lg transition-all sell-cta-glow">
-                  Sell Now →
-                </Link>
-                <Link href="/products" className="px-8 py-3.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full font-semibold text-sm hover:bg-white/20 transition-all">
-                  Browse Phones
-                </Link>
+        <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* ── Main Hero Banner ── */}
+            <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-primary/5 to-surface-950 border border-white/5 min-h-[320px] md:min-h-[400px] flex items-center">
+              <div className="absolute inset-0 noise-bg" />
+              <div className="relative z-10 p-8 md:p-12 lg:p-16">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white/80 text-xs font-semibold mb-5">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse-soft" />
+                  Certified & Verified
+                </div>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.1] mb-4">
+                  Premium Phones
+                  <br />
+                  <span className="text-gradient-brand">Best Prices</span>
+                </h1>
+                <p className="text-lg text-white/60 mb-6 max-w-lg">
+                  Certified pre-owned smartphones with warranty, quality checked, and delivered to your doorstep.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/products"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 active:scale-[0.97] transition-all shadow-lg shadow-primary/30"
+                  >
+                    Shop Now
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </Link>
+                  <Link
+                    href="/sell"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-sm hover:bg-white/20 active:scale-[0.97] transition-all border border-white/10"
+                  >
+                    Sell Your Phone
+                  </Link>
+                </div>
+
+                {/* Stats */}
+                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
+                  <div>
+                    <p className="text-xl font-bold text-white">10K+</p>
+                    <p className="text-xs text-white/40">Phones Sold</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-white">4.8★</p>
+                    <p className="text-xs text-white/40">Avg Rating</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-white">50+</p>
+                    <p className="text-xs text-white/40">Cities</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Trust Badges */}
-              <div className="flex flex-wrap gap-5">
-                {TRUST_BADGES.map(b => (
-                  <div key={b.label} className="flex items-center gap-2">
-                    <span className="text-white/80">{b.icon}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{b.label}</p>
-                      <p className="text-[10px] text-white/50">{b.desc}</p>
-                    </div>
-                  </div>
-                ))}
+              {/* Decorative element */}
+              <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64">
+                <div className="w-full h-full rounded-full border border-white/5" />
+                <div className="absolute inset-4 rounded-full border border-white/5" />
+                <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-2xl" />
               </div>
             </div>
 
-            {/* Right: Quick sell / smart search — Cashify-style */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
-              <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Sell your device
-              </p>
-              <div className="space-y-3">
-                <div className="relative">
-                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="M21 21l-4.35-4.35" />
+            {/* ── Last Sold Product Card ── */}
+            <div className="relative overflow-hidden rounded-3xl bg-white/5 backdrop-blur-sm border border-white/5 min-h-[320px] md:min-h-[400px] flex items-center">
+              <div className="p-6 md:p-8 w-full">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 rounded-full text-amber-400 text-xs font-semibold mb-4">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  Just Sold
+                </div>
+                <p className="text-xs text-white/40 uppercase tracking-wider font-semibold mb-1">Last Sold Product</p>
+
+                <div className="flex flex-col items-center text-center py-4">
+                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5">
+                    {lsImg ? (
+                      <img src={lsImg} alt={lsName} className="w-full h-full object-contain p-3" />
+                    ) : (
+                      <svg className="w-16 h-16 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-1 line-clamp-2">{lsName}</h3>
+                  <p className="text-xs text-white/40 mb-3">{lsBranch}</p>
+                  <span className="inline-flex items-center gap-1 px-4 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-lg shadow-primary/25">
+                    {formatPrice(lsPrice)}
+                  </span>
+                </div>
+
+                <Link
+                  href="/products"
+                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 hover:bg-white/15 rounded-xl text-sm font-semibold text-white/80 hover:text-white transition-all"
+                >
+                  View All Products
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                  <input
-                    type="text"
-                    placeholder="Enter device name (e.g. iPhone 13, HP Laptop…)"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
-                    list="device-suggestions"
-                  />
-                  <datalist id="device-suggestions">
-                    <option value="iPhone 16 Pro Max" />
-                    <option value="iPhone 16 Pro" />
-                    <option value="iPhone 15 Pro Max" />
-                    <option value="iPhone 15" />
-                    <option value="iPhone 14" />
-                    <option value="iPhone 13" />
-                    <option value="Samsung Galaxy S25 Ultra" />
-                    <option value="Samsung Galaxy S24" />
-                    <option value="Samsung Galaxy S23" />
-                    <option value="OnePlus 13" />
-                    <option value="OnePlus 12" />
-                    <option value="Google Pixel 9 Pro" />
-                    <option value="Xiaomi 14 Pro" />
-                    <option value="HP Laptop" />
-                    <option value="Dell Laptop" />
-                    <option value="MacBook Air M3" />
-                    <option value="MacBook Pro" />
-                    <option value="iPad Pro" />
-                    <option value="iPad Air" />
-                    <option value="Samsung Galaxy Tab" />
-                    <option value="PS5" />
-                    <option value="Xbox Series X" />
-                  </datalist>
-                </div>
-                <Link href="/sell" className="block w-full py-3 text-center bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all active:scale-[0.98]">
-                  Get Price →
                 </Link>
-                <p className="text-[10px] text-white/40 text-center">Get instant quote in seconds</p>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Wave separator */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 56L1440 56L1440 0C1200 46 960 56 720 36C480 16 240 0 0 28L0 56Z" fill="white" />
-          </svg>
-        </div>
       </section>
 
-      {/* ── Stats bar ── */}
-      <section className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {[
-            { v: '10,000+', l: 'Phones Sold' },
-            { v: '4.8 ★', l: 'Customer Rating' },
-            { v: '50+', l: 'Cities Covered' },
-            { v: '100%', l: 'IMEI Verified' },
-          ].map(s => (
-            <div key={s.l}>
-              <p className="text-2xl font-extrabold text-primary">{s.v}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.l}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Quick Actions: Buy / Sell / Stores ── */}
-      <section className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link href="/sell"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <IconWallet size={24} />
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-base">Sell Your Phone</p>
-              <p className="text-sm text-gray-500">Get the best price today</p>
-            </div>
-          </Link>
-          <Link href="/products"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <IconSmartphone size={24} />
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-base">Buy Refurbished</p>
-              <p className="text-sm text-gray-500">Certified phones at great prices</p>
-            </div>
-          </Link>
-          <Link href="/stores"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-            <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <IconMapPin size={24} />
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-base">Find Stores</p>
-              <p className="text-sm text-gray-500">Visit us in your city</p>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Device Categories ── */}
-      <section className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Shop by Category</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Find your perfect device</p>
-          </div>
-          <Link href="/products" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {DEVICE_CATEGORIES.map(c => (
-            <Link key={c.name} href={c.href} className="device-category-card group p-5 text-center">
-              <img src={c.image} alt={c.name} className="w-16 h-16 mx-auto mb-3 object-contain" />
-              <p className="font-semibold text-gray-900 text-sm">{c.name}</p>
-              <p className="text-xs text-gray-400">{c.count} devices</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Shop by Brand ── */}
-      <section className="bg-gray-50 section-pad">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Shop by Brand</h2>
-              <p className="text-sm text-gray-500 mt-1">Certified used phones from top brands</p>
-            </div>
-            <Link href="/products" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
-          </div>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
-            {BRANDS.map(b => (
-              <Link key={b.name} href={`/products?brand=${b.name}`}
-                className={`flex flex-col items-center p-4 rounded-2xl bg-gradient-to-br ${b.color} border border-white hover:shadow-md hover:-translate-y-0.5 transition-all`}>
-                <img src={b.logo} alt={b.name} className="w-14 h-14 mb-1.5 object-contain" />
-                <span className={`text-xs font-bold ${b.text}`}>{b.name}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How It Works ── */}
-      <section className="max-w-7xl mx-auto section-pad">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl font-bold text-gray-900">How It Works</h2>
-          <p className="text-gray-500 text-sm mt-2">Sell your phone in 4 simple steps</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: <IconFile size={28} />, title: 'Get Instant Quote', desc: 'Enter your device details and get the best price in seconds.', step: '01' },
-            { icon: <IconClock size={28} />, title: 'Schedule Pickup', desc: 'Choose a convenient time. Our agent comes to your doorstep.', step: '02' },
-            { icon: <IconSearch size={28} />, title: 'Device Inspection', desc: 'Quick on-spot inspection to verify the condition.', step: '03' },
-            { icon: <IconTag size={28} />, title: 'Instant Payment', desc: 'Get paid instantly via bank transfer or UPI.', step: '04' },
-          ].map(s => (
-            <div key={s.step} className="how-it-works-step bg-white border border-gray-100 hover:shadow-lg hover:-translate-y-1">
-              <div className="how-it-works-icon bg-primary/10">
-                {s.icon}
-              </div>
-              <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
-              <h3 className="font-bold text-gray-900">{s.title}</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Selling Services ── */}
-      <section className="bg-gray-50 section-pad">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">We Buy All Gadgets</h2>
-              <p className="text-sm text-gray-500 mt-1">Sell any device, get instant cash</p>
-            </div>
-            <Link href="/sell" className="text-sm font-semibold text-primary hover:underline">Sell Now →</Link>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-            {SERVICES.map(s => (
-              <Link key={s.label} href={s.href}
-                className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all card-hover-red">
-                <img src={s.icon} alt={s.label} className="w-16 h-16 object-contain" />
-                <span className="text-sm font-semibold text-gray-700">{s.label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Verified Refurbished ── */}
-      <section className="max-w-7xl mx-auto section-pad">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="badge-primary mb-4">Quality Promise</span>
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">
-              What is Verified<br />Refurbished?
-            </h2>
-            <p className="text-gray-500 mb-6 leading-relaxed">
-              How we ensure quality for you. Every device goes through a rigorous inspection process before it reaches your hands.
-            </p>
-            <ul className="space-y-3">
-              {QUALITY_POINTS.map(p => (
-                <li key={p} className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-primary/[0.15] text-primary">✓</span>
-                  {p}
-                </li>
-              ))}
-            </ul>
-            <Link href="/products" className="inline-block mt-8 px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-colors">
-              Shop Verified Phones →
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+      {/* ════════════════════════════════════════
+          TRUST STRIP
+          ════════════════════════════════════════ */}
+      <section className="bg-surface-50 border-y border-surface-100">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="trust-strip justify-center">
             {[
-              { icon: <IconSearch size={28} />, title: '20-Point Check', desc: 'Battery, screen, camera, speakers — all tested.' },
-              { icon: <IconFile size={28} />, title: 'Quality Charter', desc: 'Strict standards every device must pass.' },
-              { icon: <IconShield size={28} />, title: 'Free Warranty', desc: 'Every purchase comes with warranty coverage.' },
-              { icon: <IconRotateCcw size={28} />, title: '30-Day Returns', desc: 'Not happy? Return within 30 days, no questions.' },
-            ].map(c => (
-              <div key={c.title} className="bg-surface-950 rounded-2xl p-5 border border-gray-800">
-                <span className="mb-3 block text-white/80">{c.icon}</span>
-                <h3 className="font-bold text-white text-sm mb-1">{c.title}</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
+              { icon: '🛡️', label: '6-Month Warranty' },
+              { icon: '🔬', label: '20-Point Inspection' },
+              { icon: '📦', label: 'Free Delivery' },
+              { icon: '↩️', label: '7-Day Returns' },
+              { icon: '💳', label: 'No Cost EMI' },
+              { icon: '🔋', label: '90%+ Battery Health' },
+            ].map(t => (
+              <div key={t.label} className="trust-badge">
+                <span className="text-base">{t.icon}</span>
+                <span>{t.label}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className="section-pad bg-surface-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10">
-            <span className="badge-primary mb-3">★★★★★</span>
-            <h2 className="text-2xl font-bold text-white">What Our Customers Say</h2>
-            <p className="text-sm text-gray-400 mt-2">Real reviews from real people</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {TESTIMONIALS.slice(0, 3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border border-primary/30 card-hover-red bg-surface-900">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 bg-primary shadow-glow-red">
-                    {t.initials}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white text-sm">{t.name}, {t.city}</p>
-                    <p className="text-xs text-gray-400">Sold {t.device}</p>
-                  </div>
+      {/* ════════════════════════════════════════
+          BRANDS CAROUSEL
+          ════════════════════════════════════════ */}
+      <section className="py-14 md:py-20 container-page">
+        <div className="commonHdn">
+          <h3><span>Shop</span> by Brand</h3>
+          <Link href="/products" className="viewBtn">View All →</Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          {BRAND_NAMES.map(b => (
+            <Link
+              key={b}
+              href={`/products?brand=${b}`}
+              className="mobi-brand-item"
+            >
+              <div className="mobi-brand-item-img">
+                <div className="w-[70px] h-[70px] rounded-xl bg-gradient-to-br from-surface-50 to-surface-100 flex items-center justify-center text-2xl font-bold text-surface-300">
+                  {b.charAt(0)}
                 </div>
-                <div className="text-sm mb-2 text-primary">★★★★★</div>
-                <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
               </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5 max-w-2xl mx-auto">
-            {TESTIMONIALS.slice(3).map(t => (
-              <div key={t.name} className="rounded-2xl p-6 shadow-sm border border-primary/30 card-hover-red bg-surface-900">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 bg-primary shadow-glow-red">
-                    {t.initials}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white text-sm">{t.name}, {t.city}</p>
-                    <p className="text-xs text-gray-400">Sold {t.device}</p>
-                  </div>
-                </div>
-                <div className="text-sm mb-2 text-primary">★★★★★</div>
-                <p className="text-sm text-gray-300 leading-relaxed">{t.review}</p>
+              <div className="mobi-brand-item-dtls">
+                <h4>{b}</h4>
+                <p className="text-xs text-surface-400">Shop {b}</p>
               </div>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <Link href="/testimonials" className="text-sm text-primary hover:underline font-medium">
-              Read more reviews →
             </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          TRENDING PRODUCTS
+          ════════════════════════════════════════ */}
+      <section className="pb-14 md:pb-20 container-page">
+        <div className="commonHdn">
+          <h3><span>Trending</span> Products</h3>
+          <Link href="/products" className="viewBtn">View All →</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {trending.map((p: any, i: number) => {
+            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
+            const origPrice = p.original_price ? Number(p.original_price) : undefined;
+            const discount = computeDiscount(price, origPrice);
+            const img = getProductImage(p);
+            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
+            const quality = getQualityClass(p.condition);
+            return (
+              <Link
+                key={p.id || i}
+                href={`/products/${p.id}`}
+                className="group relative bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="relative aspect-[4/3] bg-gradient-to-br from-surface-50 to-surface-100 overflow-hidden">
+                  {discount && (
+                    <span className="absolute top-3 right-3 z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+                      -{discount}%
+                    </span>
+                  )}
+                  {img ? (
+                    <img src={img} alt={name} className="w-full h-full object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-110" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg className="w-20 h-20 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+                <div className="p-4 md:p-5">
+                  <span className="inline-block text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full mb-2 capitalize">
+                    {quality}
+                  </span>
+                  <h3 className="text-sm md:text-base font-semibold text-surface-900 line-clamp-2 leading-snug mb-2 group-hover:text-primary transition-colors">
+                    {name}
+                  </h3>
+                  {p.branch_name && (
+                    <p className="text-xs text-surface-400 mb-2">{p.branch_name}</p>
+                  )}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-extrabold text-surface-900">{formatPrice(price)}</span>
+                    {origPrice && <span className="text-sm text-surface-400 line-through">{formatPrice(origPrice)}</span>}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          DEAL OF THE DAY
+          ════════════════════════════════════════ */}
+      <section className="mobi-deal-of-the-day">
+        <div className="container-page">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="md:col-span-1 flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-primary text-xs font-semibold mb-3 w-fit">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Limited Time
+              </div>
+              <h3 className="text-3xl md:text-4xl font-extrabold text-surface-900 leading-tight mb-2">
+                Deal of<br />
+                <span className="text-primary">the Day</span>
+              </h3>
+              <p className="text-sm text-surface-400 mb-4">Best offers on premium phones. Grab yours before they&apos;re gone!</p>
+              <Link href="/products?sort=discount" className="inline-flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+                View All Deals
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            </div>
+            <div className="md:col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dealOfDay.map((p: any, i: number) => {
+                  const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
+                  const origPrice = p.original_price ? Number(p.original_price) : undefined;
+                  const discount = computeDiscount(price, origPrice);
+                  const img = getProductImage(p);
+                  const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
+                  const quality = getQualityClass(p.condition);
+                  return (
+                    <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
+                      <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
+                        {discount && (
+                          <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                            -{discount}%
+                          </span>
+                        )}
+                        {img ? (
+                          <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                              <line x1="12" y1="18" x2="12.01" y2="18" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
+                        <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
+                          {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Eco Impact ── */}
-      <section className="max-w-7xl mx-auto section-pad">
-        <div className="text-center mb-10">
-          <span className="badge-primary mb-4">🌍 Environmental Impact</span>
-          <h2 className="text-2xl font-bold text-gray-900">Used vs. Brand New</h2>
-          <p className="text-gray-500 mt-2 text-sm max-w-xl mx-auto">
-            Here&apos;s what you help prevent on average by choosing a refurbished smartphone over a brand new one.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {ECO_STATS.map(e => (
-            <div key={e.label} className="bg-surface-950 border border-gray-800 rounded-2xl p-6 text-center card-hover">
-              <span className="mb-3 block text-red-400 flex justify-center">{e.icon}</span>
-              <p className="text-2xl font-extrabold text-red-400 mb-1">{e.value}</p>
-              <p className="font-bold text-white text-sm mb-2">{e.label}</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{e.desc}</p>
+      {/* ════════════════════════════════════════
+          FEATURES GRID
+          ════════════════════════════════════════ */}
+      <section className="py-16 md:py-20 container-page">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[
+            { icon: '🔒', title: 'Secured Payment', desc: '100% safe & secure transactions' },
+            { icon: '💰', title: 'Best Price Guarantee', desc: 'Highest market price for your device' },
+            { icon: '📞', title: '24/7 Support', desc: 'Dedicated support team always available' },
+            { icon: '📍', title: 'Store Pickup', desc: 'Pick up from your nearest store' },
+          ].map(f => (
+            <div key={f.title} className="flex flex-col items-center text-center p-6 rounded-2xl bg-gradient-card border border-surface-100 hover:shadow-elevation-2 hover:-translate-y-0.5 transition-all duration-200">
+              <span className="text-3xl mb-3">{f.icon}</span>
+              <h4 className="text-sm font-bold text-surface-900 mb-1">{f.title}</h4>
+              <p className="text-xs text-surface-400">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Blog ── */}
-      <section className="bg-gray-50 section-pad">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Our Blog</h2>
-              <p className="text-sm text-gray-500 mt-1">Tips, news & tech insights</p>
-            </div>
-            <Link href="/blog" className="text-sm font-semibold text-primary hover:underline">View All →</Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {BLOGS.map(b => (
-              <Link key={b.slug} href={`/blog/${b.slug}`}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all card-hover-red">
-                <div className="h-40 flex items-center justify-center text-5xl bg-primary/[0.04]">
-                  📰
+      {/* ════════════════════════════════════════
+          HOT DEALS
+          ════════════════════════════════════════ */}
+      <section className="pb-14 md:pb-20 container-page">
+        <div className="commonHdn">
+          <h3><span>Hot</span> Deals</h3>
+          <Link href="/products?sort=discount" className="viewBtn">View All →</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {hotDeals.map((p: any, i: number) => {
+            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
+            const origPrice = p.original_price ? Number(p.original_price) : undefined;
+            const discount = computeDiscount(price, origPrice);
+            const img = getProductImage(p);
+            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
+            const quality = getQualityClass(p.condition);
+            return (
+              <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
+                <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
+                  {discount && (
+                    <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">-{discount}%</span>
+                  )}
+                  {img ? (
+                    <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
-                <div className="p-5">
-                  <p className="text-xs text-gray-400 mb-2">By Dream Gadgets · {b.date}</p>
-                  <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{b.title}</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{b.excerpt}</p>
-                  <span className="inline-block mt-3 text-xs font-semibold text-primary">Read more →</span>
+                <div className="p-4">
+                  <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
+                  <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
+                    {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
+                  </div>
                 </div>
               </Link>
-            ))}
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          APP BANNER
+          ════════════════════════════════════════ */}
+      <section className="container-page mb-14 md:mb-20">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-hero-alt border border-white/5 min-h-[220px] md:min-h-[300px] flex items-center justify-center">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="relative z-10 text-center p-8 md:p-12">
+            <span className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-white/60 text-xs font-semibold mb-4">
+              Coming Soon
+            </span>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-2">📱 Dream Gadgets App</h2>
+            <p className="text-white/50 text-sm md:text-base mb-6">Sell & Buy on the go. Download now for the best experience!</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <span className="px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white/60 rounded-xl text-sm font-semibold border border-white/10 cursor-not-allowed">
+                App Store
+              </span>
+              <span className="px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white/60 rounded-xl text-sm font-semibold border border-white/10 cursor-not-allowed">
+                Play Store
+              </span>
+              <Link href="/sell" className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/25">
+                Start Selling →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Newsletter ── */}
-      <section className="max-w-7xl mx-auto section-pad">
-        <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative">
-            <p className="text-3xl mb-1">💌</p>
-            <h2 className="text-2xl font-extrabold mb-2">Love gadgets? We do too.</h2>
-            <p className="text-white/80 text-sm mb-6">Fresh deals, cool tech drops, and zero spam. Promise!</p>
-            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <input
-                id="newsletter-email"
-                name="email"
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-xl text-white text-sm bg-surface-950 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <button type="submit" className="px-6 py-3 text-white font-bold text-sm rounded-xl btn-red whitespace-nowrap transition-all">
-                Subscribe
-              </button>
-            </form>
+      {/* ════════════════════════════════════════
+          RECOMMENDED PRODUCTS
+          ════════════════════════════════════════ */}
+      <section className="pb-14 md:pb-20 container-page">
+        <div className="commonHdn">
+          <h3><span>Recommended</span> Products</h3>
+          <Link href="/products" className="viewBtn">View All →</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {recommended.map((p: any, i: number) => {
+            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
+            const origPrice = p.original_price ? Number(p.original_price) : undefined;
+            const discount = computeDiscount(price, origPrice);
+            const img = getProductImage(p);
+            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
+            const quality = getQualityClass(p.condition);
+            return (
+              <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
+                <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
+                  {discount && (
+                    <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">-{discount}%</span>
+                  )}
+                  {img ? (
+                    <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
+                  <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
+                    {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          PRICE RANGE SECTION
+          ════════════════════════════════════════ */}
+      <section className="py-14 md:py-20 bg-surface-50">
+        <div className="container-page">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            <div className="pricerangeleft">
+              <h5>Dream Gadgets – Trusted Source for Premium Pre-Owned Mobiles.</h5>
+              <p>Dream Gadgets, known as smartphone expert and leading industry, focused on delivering quality products at most affordable prices along with continued customer support services. We ensure best quality products passed from strict quality checks.</p>
+              <Link href="/about" className="inline-flex items-center gap-2 mt-4 text-primary font-semibold text-sm border border-primary px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all">
+                Learn More
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            </div>
+            <div className="pricerangemdl">
+              <div className="w-40 h-40 md:w-48 md:h-48 mx-auto rounded-2xl bg-gradient-to-br from-surface-900 to-surface-950 flex items-center justify-center border border-surface-800">
+                <svg className="w-20 h-20 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+                </svg>
+              </div>
+            </div>
+            <div className="pricerangeRight">
+              <ul>
+                {[
+                  { label: 'Between', range: '₹ 0 & ₹ 7,999' },
+                  { label: 'Between', range: '₹ 8,000 & ₹ 14,999' },
+                  { label: 'Between', range: '₹ 15,000 & ₹ 29,999' },
+                  { label: 'Between', range: '₹ 30,000 & ₹ 49,999' },
+                  { label: 'Between', range: '₹ 50,000 & ₹ 79,999' },
+                  { label: 'Between', range: '₹ 80,000 & ₹ 1,50,000' },
+                ].map((r, i) => (
+                  <li key={i}>
+                    <Link href={`/products?minPrice=${r.range.split('&')[0].replace(/[^0-9]/g, '') || '0'}&maxPrice=${r.range.split('&')[1]?.replace(/[^0-9]/g, '') || '150000'}`}>
+                      <label>{r.label}</label>
+                      <span>{r.range}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── About blurb ── */}
-      <section className="bg-gray-50 section-pad">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Sell/Buy Your Old Mobile Phone Online with Dream Gadgets</h2>
-          <p className="text-sm text-gray-600 leading-relaxed mb-4">
+      {/* ════════════════════════════════════════
+          OUR BRANCHES
+          ════════════════════════════════════════ */}
+      <section className="py-14 md:py-20 container-page">
+        <div className="commonHdn">
+          <h3><span>Our</span> Branches</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {BRANCHES.map(b => (
+            <div key={b.name} className="mobi-branch-item">
+              <div className="mobi-branch-item-img bg-gradient-to-br from-surface-100 to-surface-200 flex items-center justify-center">
+                <span className="brnchstatus">{b.status}</span>
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <span className="branchTime">
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  {b.hours}
+                </span>
+              </div>
+              <div className="mobi-branch-item-details">
+                <h2>{b.name}</h2>
+                <p>
+                  <svg className="w-4 h-4 mt-0.5 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span>{b.address}</span>
+                </p>
+                <p>
+                  <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                  </svg>
+                  <a href={`tel:${b.phone}`} className="text-primary font-semibold hover:text-surface-600 transition-colors">{b.phone}</a>
+                </p>
+                <p>
+                  <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <a href={`mailto:${b.email}`} className="text-primary hover:text-surface-600 transition-colors truncate">{b.email}</a>
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          ABOUT / SEO TEXT
+          ════════════════════════════════════════ */}
+      <section className="bg-surface-50 border-t border-surface-100 py-14 md:py-20">
+        <div className="container-narrow text-center">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-surface-900 mb-4">
+            Sell/Buy Your Old Mobile Phone Online with Dream Gadgets
+          </h2>
+          <p className="text-sm text-surface-500 leading-relaxed mb-4 max-w-3xl mx-auto">
             Dream Gadgets is one of the most trusted online platforms in India for selling old mobile phones, buying refurbished mobiles, and mobile phone repairs — all in one place. We offer a process that is 100% transparent, secure, and fast.
           </p>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-surface-500 leading-relaxed mb-6 max-w-3xl mx-auto">
             In the current digital era, everyone seeks the latest smartphone at the most competitive price. Dream Gadgets enables you to determine the value of your phone online, sell it at the best market price, or purchase a high-quality refurbished smartphone at a reasonable price.
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-6">
-            {['Sell Old Apple Mobile', 'Sell Old Samsung Mobile', 'Sell Old OnePlus Mobile', 'Sell Old Xiaomi Mobile', 'Sell Old Vivo Mobile'].map(l => (
-              <Link key={l} href="/sell" className="text-xs text-primary border border-primary/20 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 transition-colors">
-                {l}
+          <div className="flex flex-wrap justify-center gap-2">
+            {['Apple', 'Samsung', 'OnePlus', 'Oppo', 'Vivo', 'Xiaomi'].map(b => (
+              <Link
+                key={b}
+                href={`/products?brand=${b}`}
+                className="text-xs text-primary border border-primary/20 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all"
+              >
+                Sell Old {b} Mobile
               </Link>
             ))}
           </div>

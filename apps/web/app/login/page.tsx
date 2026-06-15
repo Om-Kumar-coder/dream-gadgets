@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gray-50/50">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -42,15 +42,15 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your Dream Gadgets account</p>
+          <h1 className="text-2xl font-bold text-surface-900">Welcome Back</h1>
+          <p className="text-sm text-surface-500 mt-1">Sign in to your Dream Gadgets account</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="card p-6 sm:p-8">
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="login-identifier" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="login-identifier" className="block text-sm font-medium text-surface-700 mb-1.5">
                 Email or Phone Number
               </label>
               <input
@@ -59,13 +59,13 @@ export default function LoginPage() {
                 type="text"
                 value={form.identifier}
                 onChange={e => setForm(p => ({ ...p, identifier: e.target.value }))}
-                className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                className="input"
                 placeholder="Enter your email or phone"
                 required
               />
             </div>
             <div>
-              <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="login-password" className="block text-sm font-medium text-surface-700 mb-1.5">
                 Password
               </label>
               <input
@@ -74,25 +74,23 @@ export default function LoginPage() {
                 type="password"
                 value={form.password}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-primary focus:ring-primary/20 transition-all"
+                className="input"
                 placeholder="Enter your password"
                 required
               />
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2.5">
-                <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <span>⚠️</span>
+                <span>{error}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 btn-red rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full py-3"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -111,13 +109,13 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-surface-500">
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary font-semibold hover:underline">
               Create Account
             </Link>
           </p>
-          <Link href="/" className="inline-block mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+          <Link href="/" className="inline-block mt-3 text-xs text-surface-400 hover:text-surface-600 transition-colors">
             Back to Home
           </Link>
         </div>

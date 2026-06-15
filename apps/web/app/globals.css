@@ -122,6 +122,9 @@
   .badge-info {
     @apply badge bg-blue-50 text-blue-700;
   }
+  .badge-purple {
+    @apply badge bg-purple-50 text-purple-700;
+  }
 
   /* ── Skeleton ── */
   .skeleton {
@@ -466,4 +469,664 @@
 }
 .scroll-x > * {
   @apply snap-start shrink-0;
+}
+
+/* ── MobiXpress-style Section Header ── */
+.commonHdn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+.commonHdn h3 {
+  margin: 0;
+  font-size: 30px;
+  color: #333;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.commonHdn h3 span {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+.commonHdn a.viewBtn,
+.commonHdn .viewBtn {
+  display: inline-flex;
+  align-items: center;
+  color: hsl(var(--primary));
+  font-size: 14px;
+  transition: all 0.3s;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid hsl(var(--primary));
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.commonHdn a.viewBtn:hover,
+.commonHdn .viewBtn:hover {
+  background: hsl(var(--primary));
+  color: #fff;
+}
+
+/* ── MobiXpress-style Product Card ── */
+.mobi-product-item {
+  border: 1px solid rgba(204, 204, 204, 0.4);
+  border-radius: 10px;
+  background: #fff;
+  position: relative;
+  margin-bottom: 24px;
+  transition: all 0.3s;
+  transform: scale(1);
+  cursor: pointer;
+}
+.mobi-product-item:hover {
+  transform: scale(1.01);
+}
+.mobi-product-item .mobi-product-item-img {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  padding: 25px;
+}
+.mobi-product-item .mobi-product-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.mobi-product-item .mobi-product-item-img .discount-badge {
+  position: absolute;
+  right: 0;
+  color: #fff;
+  font-size: 12px;
+  line-height: 17px;
+  padding: 1px 8px;
+  top: 17px;
+  background: linear-gradient(90deg, #009688, #4caf50);
+}
+.mobi-product-item .mobi-product-item-details {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  align-items: flex-start;
+}
+.mobi-product-item .mobi-product-item-details h2 {
+  font-size: 15px;
+  color: #000;
+  font-weight: 600;
+  margin: 0 0 8px;
+  text-transform: capitalize;
+  min-height: 36px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.mobi-product-item .mobi-product-item-details .alrdsold {
+  font-size: 13px;
+  display: inline-block;
+  width: auto;
+  background: linear-gradient(90deg, #ffc107, #ff9800);
+  line-height: 17px;
+  padding: 2px 6px;
+  color: #3a1717;
+  font-weight: 600;
+  height: 21px;
+}
+.mobi-product-item .mobi-product-item-details .quality {
+  display: inline-flex;
+  align-items: center;
+  color: #333;
+  font-size: 12px;
+  text-transform: capitalize;
+  margin: 5px 0;
+}
+.mobi-product-item .mobi-product-item-details .quality label {
+  color: #333;
+  font-weight: 600;
+  margin: 0 10px 0 0;
+}
+.mobi-product-item .mobi-product-item-details p {
+  margin: 0;
+  font-size: 16px;
+}
+.mobi-product-item .mobi-product-item-details p b {
+  color: hsl(var(--primary));
+}
+.mobi-product-item .mobi-product-item-details p small {
+  display: inline-block;
+  margin-left: 8px;
+  text-decoration: line-through;
+  color: #888;
+  font-size: 11px;
+}
+.store-badge {
+  background: #e71131;
+  font-size: 11px;
+  color: #fff;
+  display: inline-block;
+  padding: 0 5px;
+}
+
+/* ── Feature Box ── */
+.featureBox ul {
+  margin: 0;
+  list-style: none;
+  padding: 0;
+  width: 100%;
+  flex-wrap: wrap;
+  display: flex;
+}
+.featureBox ul li {
+  width: 25%;
+}
+.featureBox ul li .featureBoxItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.featureBox ul li .featureBoxItem img {
+  width: 40px;
+}
+.featureBox ul li .featureBoxItem .featureBoxItemDetails {
+  padding-left: 15px;
+  width: calc(100% - 40px);
+}
+.featureBox ul li .featureBoxItem .featureBoxItemDetails h4 {
+  font-size: 14px;
+  margin: 0 0 4px;
+  color: #000;
+  font-weight: 700;
+}
+.featureBox ul li .featureBoxItem .featureBoxItemDetails p {
+  font-size: 13px;
+  margin: 0;
+  color: #888;
+}
+
+/* ── Price Range Section ── */
+.pricerangeleft h5 {
+  margin: 0 0 15px;
+  font-size: 25px;
+  font-weight: 600;
+  color: #000;
+}
+.pricerangeleft p {
+  font-size: 14px;
+  line-height: 20px;
+  color: #333;
+  text-align: justify;
+}
+.pricerangeRight ul {
+  margin: 0;
+  list-style: none;
+  padding: 0;
+}
+.pricerangeRight ul li {
+  border: 1px solid rgba(158, 158, 158, 0.38);
+  width: 100%;
+  display: block;
+  background: #a5a5a503;
+  padding: 8px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  transition: all 0.3s;
+  position: relative;
+  left: 0;
+  color: #000;
+}
+.pricerangeRight ul li:hover {
+  background: linear-gradient(90deg, hsl(var(--primary)), #e7114e);
+  box-shadow: 0 2px 5px #fe000059;
+  left: 20px;
+}
+.pricerangeRight ul li:hover a {
+  color: #fff !important;
+}
+.pricerangeRight ul li a {
+  display: block;
+  font-size: 14px;
+  transition: all 0.3s;
+  cursor: pointer;
+  color: #000;
+}
+.pricerangeRight ul li a label {
+  margin: 0 10px 0 0;
+}
+.pricerangemdl {
+  text-align: center;
+}
+.pricerangemdl img {
+  width: 200px;
+  max-width: 100%;
+}
+
+/* ── Brand Item ── */
+.mobi-brand-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  background-image: linear-gradient(to left, #fff, 37%, rgba(231, 17, 45, 0.1));
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+.mobi-brand-item .mobi-brand-item-img {
+  width: 70px;
+  height: 70px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.mobi-brand-item .mobi-brand-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mobi-brand-item .mobi-brand-item-dtls {
+  padding-left: 15px;
+  width: calc(100% - 70px);
+}
+.mobi-brand-item .mobi-brand-item-dtls h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+}
+
+/* ── Branch Card ── */
+.mobi-branch-item {
+  border: 1px solid rgba(204, 204, 204, 0.4);
+  border-radius: 10px;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.mobi-branch-item .mobi-branch-item-img {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+.mobi-branch-item .mobi-branch-item-img::before {
+  position: absolute;
+  content: '';
+  inset: 0;
+  background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.7));
+  z-index: 1;
+}
+.mobi-branch-item .mobi-branch-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mobi-branch-item .mobi-branch-item-img .brnchstatus {
+  position: absolute;
+  left: 0;
+  color: #fff;
+  font-size: 13px;
+  line-height: 17px;
+  padding: 1px 8px;
+  top: 0;
+  background: linear-gradient(90deg, #009688, #4caf50);
+  z-index: 2;
+}
+.mobi-branch-item .mobi-branch-item-img .branchTime {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  background-image: linear-gradient(to right, #e7112f, #e7114b);
+}
+.mobi-branch-item .mobi-branch-item-details {
+  padding: 20px 20px 10px;
+}
+.mobi-branch-item .mobi-branch-item-details h2 {
+  margin: 0 0 15px;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
+}
+.mobi-branch-item .mobi-branch-item-details p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Deal of the Day Section ── */
+.mobi-deal-of-the-day {
+  background: #f7f7f7;
+  padding: 50px 0;
+  overflow: hidden;
+  position: relative;
+  margin-top: 60px;
+}
+.mobi-deal-of-the-day .commonHdn {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+}
+.mobi-deal-of-the-day .commonHdn h3 {
+  margin-bottom: 20px;
+}
+.mobi-deal-of-the-day .mobi-product-item {
+  margin-bottom: 0;
+}
+
+/* ── Hot Deal / Recommended Section ── */
+.mobi-hot-deal {
+  margin: 80px 0;
+}
+.mobi-hot-deal .mobi-product-item {
+  margin-bottom: 0;
+}
+
+/* ── slider-box ── */
+.mobi-slider-box {
+  margin-bottom: 80px;
+}
+
+/* ── Swiper controls ── */
+.swiper-controls button {
+  background: transparent;
+  font-size: 40px;
+  color: #888;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  line-height: 1;
+}
+.swiper-controls button:hover {
+  color: hsl(var(--primary));
+}
+.swiper-controls {
+  margin-top: 22px;
+}
+
+/* ── Footer Styles ── */
+.mobi-footer {
+  padding-top: 70px;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  border-top: 1px solid rgba(204, 204, 204, 0.25);
+}
+.footerItem p {
+  font-size: 13px;
+  color: #333;
+  line-height: 20px;
+}
+.footerItem h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #333;
+}
+.footerItem ul {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+.footerItem ul li {
+  font-size: 13px;
+  width: 50%;
+  cursor: pointer;
+  display: block;
+  padding: 7px 0;
+  transition: all 0.3s;
+  color: #333;
+}
+.footerItem ul li:hover {
+  color: hsl(var(--primary));
+}
+.buttmFooter {
+  background: #333;
+  overflow: hidden;
+  padding: 10px 0;
+  margin-top: 50px;
+}
+.mobisocial {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mobisocial a {
+  color: hsl(var(--primary));
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  background: rgba(254, 0, 0, 0.08);
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: all 0.3s;
+  cursor: pointer;
+  text-decoration: none;
+}
+.mobisocial a:hover {
+  background: hsl(var(--primary));
+  color: #fff;
+}
+.liveChat {
+  background: #4caf50;
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 5px;
+  align-items: center;
+  transition: all 0.3s;
+  cursor: pointer;
+  color: #fff;
+  gap: 6px;
+  font-size: 13px;
+}
+.liveChat:hover {
+  background: #3b923e;
+}
+
+/* ── Mobile Bottom Nav ── */
+.btomMenu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 5px #ccc;
+}
+.btomMenu ul li {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  padding: 10px;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #333;
+  gap: 2px;
+}
+.btomMenu ul li:hover {
+  color: hsl(var(--primary));
+}
+.btomMenu ul li span small {
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--primary));
+  border-radius: 100%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* ── Account / Login Button ── */
+.mobi-account {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  background: hsl(var(--primary));
+  background: linear-gradient(90deg, hsl(var(--primary)), #e7114e);
+  text-decoration: none;
+  box-shadow: 0 2px 5px rgba(254, 0, 0, 0.35);
+  transition: all 0.3s;
+  cursor: pointer;
+  gap: 6px;
+}
+.mobi-account:hover {
+  background: linear-gradient(90deg, #e7114e, hsl(var(--primary)));
+}
+
+/* ── Product page ad banner ── */
+.mobi-ads {
+  margin: 80px 0;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 300px;
+}
+.mobi-ads img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s;
+  transform: scale(1);
+}
+.mobi-ads:hover img {
+  transform: scale(1.1);
+}
+
+/* ── Hero Slider ── */
+.hero-slider .mobiSlider {
+  background: #f5f5f5;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 300px;
+}
+.hero-slider .mobiSliderLastSale {
+  width: 100%;
+  height: 300px;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid hsl(var(--primary));
+}
+.hero-slider .lastSoldItem {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  padding: 20px;
+  background: #fff;
+  border-radius: 20px;
+}
+.hero-slider .lastSoldItem img {
+  width: 200px;
+  max-width: 100%;
+  height: 150px;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+.hero-slider .lastSoldItem h2 {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+}
+.hero-slider .lastSoldItem h1 {
+  margin: 0;
+  position: absolute;
+  background: rgba(231, 17, 45, 0.7);
+  color: #fff;
+  font-size: 18px;
+  padding: 4px 15px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  top: 87px;
+  left: 50%;
+  transform: translate(-50%);
+  white-space: nowrap;
+}
+.hero-slider .lastSoldItem span {
+  display: block;
+  text-align: center;
+  margin-bottom: 5px;
+  color: #333;
+}
+.hero-slider .lastSoldItem b {
+  display: inline-block;
+  background: hsl(var(--primary));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 1px 28px 1px 10px;
+  position: relative;
+}
+
+/* ── Offer Bar ── */
+.mobi-offer-bar {
+  background: hsl(var(--primary)) !important;
+  padding: 10px !important;
+  position: relative;
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 991.98px) {
+  .featureBox ul li { width: 50% !important; }
+  .featureBox ul li .featureBoxItem { flex-direction: column; }
+  .featureBox ul li .featureBoxItem .featureBoxItemDetails { padding-left: 0; width: 100%; text-align: center; margin-top: 10px; }
+  .commonHdn h3 { font-size: 22px; }
+  .commonHdn a.viewBtn { font-size: 13px; padding: 4px 11px; }
+  .mobi-deal-of-the-day .commonHdn { flex-direction: row; justify-content: space-between; }
+  .pricerangeRight ul { display: flex; flex-wrap: wrap; justify-content: space-between; }
+  .pricerangeRight ul li { width: 45%; }
+  .pricerangeleft { text-align: center; margin-bottom: 30px; }
+  .pricerangemdl { margin-bottom: 30px; }
+  .hero-slider .mobiSlider, .hero-slider .mobiSliderLastSale { height: 230px; }
+  .hero-slider .lastSoldItem img { width: 100%; height: 100px; }
+  .swiper-controls button { font-size: 30px !important; }
+}
+@media (max-width: 767.98px) {
+  .featureBox ul li { width: 50% !important; }
+  .featureBox ul li .featureBoxItem { margin-bottom: 20px; }
+  .mobi-product-item .mobi-product-item-img { padding: 15px; height: 100px; }
+  .mobi-product-item { margin-bottom: 10px; }
+  .mobi-product-item .mobi-product-item-details { padding: 10px !important; }
+  .mobi-product-item .mobi-product-item-details .alrdsold { font-size: 11px !important; }
+  .mobi-product-item .mobi-product-item-details p { margin: 0; font-size: 12px; }
+  .mobi-slider-box { margin-bottom: 22px !important; }
+  .mobi-hot-deal { margin-top: 30px !important; margin-bottom: 50px !important; }
+  .mobi-deal-of-the-day { margin-top: 30px !important; }
+  .mobi-ads { margin: 50px 0 !important; height: 150px; }
+  .pricerangeRight ul li { width: 48% !important; text-align: center; }
+  .pricerangeleft h5 { font-size: 20px; }
+  .mobi-branch-item .mobi-branch-item-img { height: 120px !important; }
+  .mobi-branch-item .mobi-branch-item-details h2 { font-size: 15px !important; margin-bottom: 8px !important; }
+  .pricerangeRight { display: none !important; }
+  .hero-slider .lastSoldItem h1 { inset: auto 0 0 auto; font-size: 13px; transform: initial; }
+  .hero-slider .lastSoldItem { display: flex; flex-wrap: wrap; }
+  .hero-slider .mobiSliderLastSale { height: auto; width: 100%; margin: 20px auto 0; border: 0px; background: rgba(255, 152, 0, 0.12); }
+  .hero-slider .mobiSlider { height: 157px !important; }
+  .btomMenu ul { padding: 0 10px !important; }
 }

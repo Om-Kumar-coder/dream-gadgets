@@ -25,27 +25,27 @@ Cookies typically contain a unique identifier — a string of letters and number
     list: [
       {
         title: 'Essential / Strictly Necessary Cookies',
-        desc: 'These cookies are required for the website to function properly. They enable core features such as security, network management, and account authentication. Without these cookies, services like checkout and account login cannot function.',
+        desc: 'These cookies are required for the website to function properly. They enable core features such as security, network management, and account authentication.',
         alwaysOn: true,
       },
       {
         title: 'Preference / Functionality Cookies',
-        desc: 'These cookies remember your settings and preferences, such as language, currency, and product wishlist items. They enhance your experience by personalizing content and remembering your choices.',
+        desc: 'These cookies remember your settings and preferences, such as language, currency, and product wishlist items.',
       },
       {
         title: 'Analytics / Performance Cookies',
-        desc: 'These cookies help us understand how visitors interact with our website by collecting anonymous information about page visits, time spent, and error messages. We use this data to improve our website performance and user experience.',
+        desc: 'These cookies help us understand how visitors interact with our website by collecting anonymous information.',
       },
       {
         title: 'Authentication Cookies',
-        desc: 'These cookies keep you logged in to your account across pages and sessions. They ensure secure access to your order history, account settings, and personal information.',
+        desc: 'These cookies keep you logged in to your account across pages and sessions.',
       },
     ],
   },
   {
     id: 'managing-cookies',
     title: 'Managing Cookies',
-    content: `You have full control over cookies. Most web browsers allow you to manage cookie preferences, including blocking or deleting cookies entirely. Here's how you can manage cookies in popular browsers:`,
+    content: `You have full control over cookies. Most web browsers allow you to manage cookie preferences, including blocking or deleting cookies entirely.`,
     list: [
       { title: 'Google Chrome', desc: 'Settings → Privacy and Security → Cookies and other site data' },
       { title: 'Mozilla Firefox', desc: 'Options → Privacy & Security → Cookies and Site Data' },
@@ -67,43 +67,35 @@ Cookies typically contain a unique identifier — a string of letters and number
   {
     id: 'updates',
     title: 'Updates to This Policy',
-    content: `We may update this Cookies Policy from time to time to reflect changes in technology, regulation, or our business practices. Any changes will be posted on this page with an updated effective date. We encourage you to review this policy periodically.
-
-If we make material changes, we will notify you through our website or via email.`,
+    content: `We may update this Cookies Policy from time to time to reflect changes in technology, regulation, or our business practices. Any changes will be posted on this page with an updated effective date.`,
   },
   {
     id: 'contact',
     title: 'Contact Us',
-    content: `If you have any questions about our use of cookies, please contact us:
-• Email: support@dreamgadgets.in
-• Phone: +91 98765 43210
-• Address: Mumbai, Maharashtra, India`,
+    content: `If you have any questions about our use of cookies, please contact us:\n• Email: support@dreamgadgets.in\n• Phone: +91 98765 43210\n• Address: Mumbai, Maharashtra, India`,
   },
 ];
 
 export default function CookiesPage() {
   return (
-    <main>
+    <main className="animate-fade-in">
       {/* Hero */}
-      <section className="text-white py-16 px-4 text-center relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)',
-      }}>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
           <h1 className="text-4xl font-extrabold mb-3">Cookies Policy</h1>
           <p className="text-white/60 text-sm">Last updated: January 2025</p>
         </div>
       </section>
 
-      {/* Content */}
       <section className="max-w-3xl mx-auto px-4 py-12">
         <div className="space-y-10">
           {SECTIONS.map((section) => (
             <div key={section.id} id={section.id}>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">{section.title}</h2>
+              <h2 className="heading-sm text-surface-900 mb-4">{section.title}</h2>
 
               {typeof section.content === 'string' && (
-                <div className="text-gray-600 leading-relaxed text-sm space-y-3 whitespace-pre-line">
+                <div className="text-surface-600 leading-relaxed text-sm space-y-3 whitespace-pre-line">
                   {section.content.split('\n\n').map((para, i) => (
                     <p key={i}>{para}</p>
                   ))}
@@ -111,18 +103,18 @@ export default function CookiesPage() {
               )}
 
               {section.list && (
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-3">
                   {section.list.map((item, i) => (
-                    <div key={i} className="bg-gray-50 rounded-xl p-4">
+                    <div key={i} className="card p-4 hover:shadow-card-hover transition-all">
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                          <h3 className="font-semibold text-surface-900 text-sm flex items-center gap-2">
                             {item.title}
                             {'alwaysOn' in item && item.alwaysOn && (
-                              <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">Always Active</span>
+                              <span className="badge-info">Always Active</span>
                             )}
                           </h3>
-                          <p className="text-sm text-gray-600 mt-1">{item.desc}</p>
+                          <p className="text-sm text-surface-600 mt-1">{item.desc}</p>
                         </div>
                       </div>
                     </div>
@@ -131,7 +123,7 @@ export default function CookiesPage() {
               )}
 
               {'note' in section && section.note && (
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-xs text-amber-700 flex items-start gap-2">
                     <span className="text-amber-500 shrink-0">⚠</span>
                     {section.note}
@@ -142,18 +134,12 @@ export default function CookiesPage() {
           ))}
         </div>
 
-        {/* Navigation links */}
-        <div className="mt-12 pt-8 border-t border-gray-100">
+        {/* Navigation */}
+        <div className="divider mt-12 pt-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Link href="/privacy" className="text-sm text-primary hover:underline font-medium">
-              Privacy Policy →
-            </Link>
-            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">
-              Terms & Conditions →
-            </Link>
-            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">
-              Contact Us →
-            </Link>
+            <Link href="/privacy" className="text-sm text-primary hover:underline font-medium">Privacy Policy →</Link>
+            <Link href="/terms" className="text-sm text-primary hover:underline font-medium">Terms & Conditions →</Link>
+            <Link href="/contact" className="text-sm text-primary hover:underline font-medium">Contact Us →</Link>
           </div>
         </div>
       </section>

@@ -83,7 +83,7 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
   if (!hasResults && !loading) return null;
 
   return (
-    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-black/5 overflow-hidden animate-dropdown-fade-in z-50">
+    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-surface-100 shadow-xl shadow-black/5 overflow-hidden animate-dropdown z-50">
       {loading && (
         <div className="p-4 text-center">
           <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -95,7 +95,7 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
           {/* API results first */}
           {apiResults.length > 0 && (
             <div>
-              <p className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Products</p>
+              <p className="px-3 py-2 text-xs font-semibold text-surface-400 uppercase tracking-wider">Products</p>
               {apiResults.map((r, i) => (
                 <button
                   key={`api-${i}`}
@@ -103,11 +103,11 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
                   onClick={() => onSelect(r.label)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors group"
                 >
-                  <svg className="w-4 h-4 text-gray-300 shrink-0 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-surface-300 shrink-0 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <span className="flex-1 text-left">{r.label}</span>
-                  <span className="text-[10px] text-gray-400">{r.category}</span>
+                  <span className="text-[10px] text-surface-400">{r.category}</span>
                 </button>
               ))}
             </div>
@@ -116,8 +116,8 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
           {/* Static suggestions */}
           {filteredStatic.length > 0 && (
             <div>
-              {apiResults.length > 0 && <div className="border-t border-gray-100 my-1" />}
-              <p className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Popular</p>
+              {apiResults.length > 0 && <div className="border-t border-surface-100 my-1" />}
+              <p className="px-3 py-2 text-xs font-semibold text-surface-400 uppercase tracking-wider">Popular</p>
               {filteredStatic.slice(0, 5).map((s, i) => (
                 <button
                   key={`static-${i}`}
@@ -137,14 +137,14 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
           {/* Brand suggestions */}
           {filteredBrands.length > 0 && (
             <div>
-              <div className="border-t border-gray-100 my-1" />
-              <p className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Brands</p>
+              <div className="border-t border-surface-100 my-1" />
+              <p className="px-3 py-2 text-xs font-semibold text-surface-400 uppercase tracking-wider">Brands</p>
               {filteredBrands.map((b, i) => (
                 <button
                   key={`brand-${i}`}
                   type="button"
                   onClick={() => onSelect(b.label)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-colors"
                 >
                   <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -156,7 +156,7 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
           )}
 
           {/* View all result */}
-          <div className="border-t border-gray-100 mt-1 pt-1">
+          <div className="border-t border-surface-100 mt-1 pt-1">
             <button
               type="button"
               onClick={() => onSelect(query)}

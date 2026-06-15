@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { TableToolbar } from './TableToolbar';
 import { TablePagination } from './TablePagination';
+import { AlertTriangle, Search, RefreshCw } from 'lucide-react';
 
 interface DataTableProps<TData, TFilter> {
   columns: ColumnDef<TData, any>[];
@@ -66,7 +67,7 @@ export function DataTable<TData, TFilter>({
     pageSize,
   });
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       ...queryKey,
       pagination.pageIndex,
@@ -102,8 +103,6 @@ export function DataTable<TData, TFilter>({
   });
 
   const tableData = useMemo(() => {
-    // After TransformInterceptor: { status, data: [...], meta: { total } }
-    // axios wraps in response.data, so we get: data = { status, data: [...], meta }
     const payload = data;
     if (!payload) return [];
     if (Array.isArray(payload.data)) return payload.data;
@@ -137,12 +136,20 @@ export function DataTable<TData, TFilter>({
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="text-red-500 mb-2">⚠️</div>
-        <h3 className="text-lg font-medium text-gray-900">Failed to load data</h3>
-        <p className="text-gray-500 text-sm mt-1">
-          {error instanceof Error ? error.message : 'Please try again'}
-        </p>
+      <div className="card p-8">
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-3">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+          </div>
+          <h3 className="text-base font-semibold text-surface-900">Failed to load data</h3>
+          <p className="text-surface-500 text-sm mt-1">
+            {error instanceof Error ? error.message : 'An unexpected error occurred'}
+          </p>
+          <button onClick={() => refetch()} className="btn-outline btn-sm mt-4">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -157,10 +164,10 @@ export function DataTable<TData, TFilter>({
         onGlobalFilterChange={setGlobalFilter}
       />
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+          <table className="w-full">
+            <thead className="table-header">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {enableRowSelection && (
@@ -169,38 +176,40 @@ export function DataTable<TData, TFilter>({
                         type="checkbox"
                         checked={table.getIsAllRowsSelected()}
                         onChange={table.getToggleAllRowsSelectedHandler()}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-surface-300 text-primary focus:ring-primary/30"
                       />
                     </th>
                   )}
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none"
+                      className="px-4 py-3 text-left cursor-pointer hover:bg-surface-100 select-none"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       <div className="flex items-center gap-1">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
+                        <span className="text-xs font-semibold uppercase tracking-wider text-surface-500">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                        </span>
                         {enableSorting && header.column.getIsSorted() && (
-                          <span className="text-gray-400">
-                            {header.column.getIsSorted() === 'desc'
-                              ? '▼'
-                              : '▲'}
+                          <span className="text-surface-400 text-[10px]">
+                            {header.column.getIsSorted() === 'desc' ? '▼' : '▲'}
                           </span>
                         )}
                       </div>
                     </th>
                   ))}
                   {actions.length > 0 && (
-                    <th className="px-4 py-3 text-left w-32">Actions</th>
+                    <th className="px-4 py-3 text-left w-24">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-surface-500">Actions</span>
+                    </th>
                   )}
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-surface-100">
               {isLoading ? (
                 <tr>
                   <td
@@ -209,9 +218,12 @@ export function DataTable<TData, TFilter>({
                       (enableRowSelection ? 1 : 0) +
                       (actions.length > 0 ? 1 : 0)
                     }
-                    className="px-4 py-8 text-center text-gray-400"
+                    className="px-4 py-12 text-center"
                   >
-                    Loading...
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-surface-400">Loading data...</span>
+                    </div>
                   </td>
                 </tr>
               ) : table.getRowModel().rows.length === 0 ? (
@@ -226,14 +238,16 @@ export function DataTable<TData, TFilter>({
                   >
                     {renderNoResults ? renderNoResults(table) : (
                       <div className="space-y-2">
-                        <div className="text-gray-400 text-4xl mb-2">🔍</div>
-                        <p className="text-gray-500">No results found</p>
+                        <div className="w-12 h-12 rounded-xl bg-surface-50 flex items-center justify-center mx-auto mb-2">
+                          <Search className="w-6 h-6 text-surface-400" />
+                        </div>
+                        <p className="text-surface-500 font-medium">No results found</p>
                         <button
                           onClick={() => {
                             table.resetGlobalFilter();
                             table.resetColumnFilters();
                           }}
-                          className="text-blue-600 hover:underline text-sm"
+                          className="text-primary hover:underline text-sm"
                         >
                           Clear filters
                         </button>
@@ -243,19 +257,19 @@ export function DataTable<TData, TFilter>({
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
+                  <tr key={row.id} className="table-row">
                     {enableRowSelection && (
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
                           checked={row.getIsSelected()}
                           onChange={row.getToggleSelectedHandler()}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-surface-300 text-primary focus:ring-primary/30"
                         />
                       </td>
                     )}
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
+                      <td key={cell.id} className="table-cell">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -264,7 +278,7 @@ export function DataTable<TData, TFilter>({
                     ))}
                     {actions.length > 0 && (
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           {actions.map((action, idx) => {
                             const isVisible = action.visible
                               ? action.visible(row.original)
@@ -274,7 +288,7 @@ export function DataTable<TData, TFilter>({
                               <button
                                 key={idx}
                                 onClick={() => action.onClick(row.original)}
-                                className="text-gray-600 hover:text-blue-600 transition-colors"
+                                className="p-1.5 rounded-lg text-surface-400 hover:text-primary hover:bg-primary/5 transition-all"
                                 title={action.label}
                               >
                                 {action.icon ?? '•••'}
@@ -292,7 +306,7 @@ export function DataTable<TData, TFilter>({
         </div>
 
         {enablePagination && total > 0 && (
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-surface-100">
             <TablePagination table={table} total={total} />
           </div>
         )}

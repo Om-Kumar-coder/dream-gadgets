@@ -133,7 +133,7 @@ export function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={() => setDropdownOpen(o => !o)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
+        className="relative flex items-center justify-center w-9 h-9 rounded-lg text-surface-500 hover:bg-surface-50 hover:text-surface-700 transition-colors focus:outline-none focus:ring-2 focus:ring-surface-200"
         aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ''}`}
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
@@ -149,7 +149,7 @@ export function NotificationBell() {
 
         {/* Unread badge */}
         {hasUnread && (
-          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm border-2 border-white animate-dropdown-fade-in">
+          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm border-2 border-white animate-dropdown">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -158,13 +158,13 @@ export function NotificationBell() {
       {/* Dropdown */}
       {dropdownOpen && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 origin-top-right animate-dropdown-fade-in"
+          className="absolute right-0 top-full mt-2 w-80 origin-top-right animate-dropdown"
           role="menu"
         >
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/5 overflow-hidden">
+          <div className="bg-white border border-surface-100 rounded-2xl shadow-xl shadow-black/5 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-              <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-50">
+              <h3 className="text-sm font-semibold text-surface-900">Notifications</h3>
               {hasUnread && (
                 <button
                   onClick={() => markAllReadMut.mutate()}
@@ -182,10 +182,10 @@ export function NotificationBell() {
                 <div className="px-4 py-8 space-y-3">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full animate-pulse shrink-0" />
+                      <div className="w-8 h-8 bg-surface-100 rounded-full animate-pulse shrink-0" />
                       <div className="flex-1 space-y-1.5">
-                        <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
-                        <div className="h-2.5 bg-gray-50 rounded animate-pulse w-1/2" />
+                        <div className="h-3 bg-surface-100 rounded animate-pulse w-3/4" />
+                        <div className="h-2.5 bg-surface-50 rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
@@ -193,14 +193,14 @@ export function NotificationBell() {
               ) : isError ? (
                 <div className="px-4 py-10 text-center">
                   <div className="text-3xl mb-2">⚠️</div>
-                  <p className="text-sm text-gray-400 font-medium">Couldn&apos;t load notifications</p>
-                  <p className="text-xs text-gray-300 mt-1">Pull down to try again</p>
+                  <p className="text-sm text-surface-400 font-medium">Couldn&apos;t load notifications</p>
+                  <p className="text-xs text-surface-300 mt-1">Pull down to try again</p>
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <div className="text-3xl mb-2">🔔</div>
-                  <p className="text-sm text-gray-400 font-medium">No notifications yet</p>
-                  <p className="text-xs text-gray-300 mt-1">We&apos;ll notify you when something arrives</p>
+                  <p className="text-sm text-surface-400 font-medium">No notifications yet</p>
+                  <p className="text-xs text-surface-300 mt-1">We&apos;ll notify you when something arrives</p>
                 </div>
               ) : (
                 notifications.map(n => (
@@ -209,7 +209,7 @@ export function NotificationBell() {
                     onClick={() => handleClick(n)}
                     className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors ${
                       n.isRead
-                        ? 'hover:bg-gray-50'
+                        ? 'hover:bg-surface-50'
                         : 'bg-primary/5 hover:bg-primary/10'
                     }`}
                   >
@@ -220,7 +220,7 @@ export function NotificationBell() {
                       <div className="flex items-start justify-between gap-2">
                         <p
                           className={`text-sm ${
-                            n.isRead ? 'text-gray-600' : 'text-gray-900 font-semibold'
+                            n.isRead ? 'text-surface-600' : 'text-surface-900 font-semibold'
                           }`}
                         >
                           {n.subject ? truncateText(n.subject, 60) : 'Notification'}
@@ -230,11 +230,11 @@ export function NotificationBell() {
                         )}
                       </div>
                       {n.body && (
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
+                        <p className="text-xs text-surface-400 mt-0.5 line-clamp-2">
                           {n.body.replace(/<[^>]*>/g, '')}
                         </p>
                       )}
-                      <p className="text-[10px] text-gray-300 mt-1">
+                      <p className="text-[10px] text-surface-300 mt-1">
                         {timeAgo(n.createdAt)}
                       </p>
                     </div>

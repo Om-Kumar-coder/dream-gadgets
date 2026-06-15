@@ -27,7 +27,7 @@ export function ColumnFilter({
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder ?? `Filter ${columnId}`}
-            className="w-full"
+            className="w-full text-sm"
           >
             <option value="">All</option>
             {options.map((opt) => (
@@ -64,7 +64,7 @@ export function ColumnFilter({
       default:
         return (
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
             <Input
               type="text"
               value={value ?? ''}
@@ -79,7 +79,7 @@ export function ColumnFilter({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium text-gray-500 w-24">{columnId}</span>
+      <span className="text-xs font-medium text-surface-500 w-24 truncate">{columnId}</span>
       <div className="flex-1 min-w-[120px]">{renderInput()}</div>
     </div>
   );

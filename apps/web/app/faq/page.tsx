@@ -52,12 +52,12 @@ export default function FaqPage() {
 
       <section className="max-w-3xl mx-auto px-4 py-16 space-y-4">
         {FAQS.map((f, i) => (
-          <details key={i} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden">
-            <summary className="flex items-center justify-between px-6 py-4 cursor-pointer font-semibold text-gray-900 text-sm list-none">
+          <details key={i} className="group card overflow-hidden">
+            <summary className="flex items-center justify-between px-6 py-4 cursor-pointer font-semibold text-surface-900 text-sm list-none">
               {f.q}
-              <span className="group-open:rotate-180 transition-transform shrink-0 ml-4" style={{ color: '#E50914' }}>▼</span>
+              <span className="group-open:rotate-180 transition-transform shrink-0 ml-4 text-primary">▼</span>
             </summary>
-            <div className="px-6 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-50 pt-3">
+            <div className="px-6 pb-5 text-sm text-surface-600 leading-relaxed border-t border-surface-100 pt-3">
               {f.a}
             </div>
           </details>
@@ -67,9 +67,9 @@ export default function FaqPage() {
           backgroundColor: 'rgba(229, 9, 20, 0.05)',
           borderColor: 'rgba(229, 9, 20, 0.2)'
         }}>
-          <p className="font-bold text-gray-900 mb-2">Still have questions?</p>
-          <p className="text-sm text-gray-500 mb-4">Our support team is happy to help.</p>
-          <a href="/contact" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm btn-red transition-all">
+          <p className="font-bold text-surface-900 mb-2">Still have questions?</p>
+          <p className="text-sm text-surface-500 mb-4">Our support team is happy to help.</p>
+          <a href="/contact" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm btn-primary transition-all">
             Contact Us →
           </a>
         </div>
