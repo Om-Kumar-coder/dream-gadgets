@@ -46,7 +46,8 @@ export default function AdminRefundsPage() {
     queryKey: ['admin-refunds'],
     queryFn: async () => {
       const { data } = await apiClient.get('/admin/refunds');
-      return data as RefundItem[];
+      // TransformInterceptor wraps responses as { status: 'success', data: [...] }
+      return (data?.data ?? data ?? []) as RefundItem[];
     },
     refetchInterval: 30_000, // Auto-refresh every 30s
   });
