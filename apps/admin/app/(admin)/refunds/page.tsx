@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
-import { ArrowLeft, RefreshCw, Search, RotateCcw, Loader2, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Search, RotateCcw, Loader2, ShieldAlert } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 type RefundItem = {
@@ -67,21 +67,25 @@ export default function AdminRefundsPage() {
     },
   });
 
-  // Filter logic
+  // Filter logic — safe against null payments & missing fields
   const filteredRefunds = (refunds ?? []).filter((item) => {
+    const payments = item.payments ?? [];
+    const orderNumber = item.orderNumber ?? '';
+    const clientName = item.clientName ?? '';
+
     // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
-        item.orderNumber.toLowerCase().includes(q) ||
-        item.clientName.toLowerCase().includes(q) ||
-        item.payments.some((p) => p.razorpayPaymentId?.toLowerCase().includes(q));
+        orderNumber.toLowerCase().includes(q) ||
+        clientName.toLowerCase().includes(q) ||
+        payments.some((p) => p.razorpayPaymentId?.toLowerCase().includes(q));
       if (!matchesSearch) return false;
     }
 
     // Status filter — check across all payments
     if (refundFilter !== 'all') {
-      const anyMatch = item.payments.some((p) => {
+      const anyMatch = payments.some((p) => {
         const status = p.refundStatus ?? 'pending';
         if (refundFilter === 'pending') return status === 'pending' || (!p.razorpayRefundId && status === 'pending');
         if (refundFilter === 'failed') return status === 'failed';
@@ -132,7 +136,7 @@ export default function AdminRefundsPage() {
       </div>
 
       {/* Loading state */}
-      {isLoading && (
+      {isLoading && !isError && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-5 h-5 animate-spin text-surface-400" />
           <span className="ml-2 text-sm text-surface-400">Loading refunds...</span>
@@ -143,7 +147,9 @@ export default function AdminRefundsPage() {
       {isError && (
         <div className="flex flex-col items-center justify-center py-16">
           <ShieldAlert className="w-8 h-8 text-red-400 mb-2" />
-          <p className="text-sm text-surface-500">Failed to load refund data. Check server connection.</p>
+          <p className="text-sm text-surface-500">
+            Failed to load refund data. Check server connection or permissions.
+          </p>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-refunds'] })}
             className="mt-3 text-sm text-blue-600 hover:underline"
@@ -180,14 +186,14 @@ export default function AdminRefundsPage() {
                   <span className="font-mono text-sm font-medium">{item.orderNumber}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full badge-neutral">
                     Cancelled
-                  </span>
-                  <span className="text-xs text-surface-400">
-                    {new Date(item.cancelledAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </span>
+                  </span>                      <span className="text-xs text-surface-400">
+                        {(() => {
+                          try {
+                            const d = new Date(item.cancelledAt);
+                            return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                          } catch { return '—'; }
+                        })()}
+                      </span>
                 </div>
                 <span className="font-semibold text-sm">
                   ₹{Number(item.totalAmount).toLocaleString('en-IN')}
