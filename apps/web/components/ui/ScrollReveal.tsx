@@ -1,0 +1,79 @@
+'use client';
+
+import { useRef, useEffect, useState, type ReactNode } from 'react';
+
+interface ScrollRevealProps {
+  children: ReactNode;
+  className?: string;
+  /** Delay in ms before animation starts */
+  delay?: number;
+  /** Slide up from below (default true) */
+  slideUp?: boolean;
+  /** Fade in from left */
+  slideLeft?: boolean;
+  /** Fade in from right */
+  slideRight?: boolean;
+  /** Scale in */
+  scale?: boolean;
+  /** Only animate on desktop (lg+) */
+  desktopOnly?: boolean;
+}
+
+export function ScrollReveal({
+  children,
+  className = '',
+  delay = 0,
+  slideUp = true,
+  slideLeft = false,
+  slideRight = false,
+  scale = false,
+}: ScrollRevealProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Already in view? Show immediately
+    if (el.getBoundingClientRect().top < window.innerHeight - 60) {
+      setVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Start hidden on mount, animate when scrolled into view.
+  // SSR renders the initial state, JS adds the visible class on scroll.
+  let directionClass = '';
+  if (slideUp) directionClass += 'translate-y-8 ';
+  if (slideLeft) directionClass += '-translate-x-8 ';
+  if (slideRight) directionClass += 'translate-x-8 ';
+  if (scale) directionClass += 'scale-95 ';
+  if (directionClass) directionClass += 'opacity-0';
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${visible ? 'translate-y-0 !translate-x-0 scale-100 opacity-100' : directionClass} ${className}`}
+      style={{
+        transitionDelay: `${delay}ms`,
+        willChange: directionClass ? 'transform, opacity' : undefined,
+      }}
+    >
+      {children}
+    </div>
+  );
+}

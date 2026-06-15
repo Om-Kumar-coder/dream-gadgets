@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { BRANDS } from '../lib/brands';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
@@ -7,8 +8,6 @@ export const metadata: Metadata = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
-
-const BRAND_NAMES = ['Apple', 'Samsung', 'OnePlus', 'Oppo', 'Vivo', 'Realme', 'Xiaomi', 'Motorola', 'Google', 'Nothing'];
 
 const BRANCHES = [
   { name: 'Barrackpore', address: 'Kolkata, West Bengal', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
@@ -208,20 +207,23 @@ export default async function HomePage() {
           <Link href="/products" className="viewBtn">View All →</Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {BRAND_NAMES.map(b => (
+          {BRANDS.map(b => (
             <Link
-              key={b}
-              href={`/products?brand=${b}`}
+              key={b.name}
+              href={`/brands/${b.name.toLowerCase()}`}
               className="mobi-brand-item"
             >
               <div className="mobi-brand-item-img">
-                <div className="w-[70px] h-[70px] rounded-xl bg-gradient-to-br from-surface-50 to-surface-100 flex items-center justify-center text-2xl font-bold text-surface-300">
-                  {b.charAt(0)}
-                </div>
+                <img
+                  src={b.image}
+                  alt={b.name}
+                  loading="lazy"
+                  className="w-full h-full object-contain p-2"
+                />
               </div>
               <div className="mobi-brand-item-dtls">
-                <h4>{b}</h4>
-                <p className="text-xs text-surface-400">Shop {b}</p>
+                <h4>{b.name}</h4>
+                <p className="text-xs text-surface-400">Shop {b.name}</p>
               </div>
             </Link>
           ))}
@@ -607,7 +609,7 @@ export default async function HomePage() {
             {['Apple', 'Samsung', 'OnePlus', 'Oppo', 'Vivo', 'Xiaomi'].map(b => (
               <Link
                 key={b}
-                href={`/products?brand=${b}`}
+                href={`/brands/${b.toLowerCase()}`}
                 className="text-xs text-primary border border-primary/20 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all"
               >
                 Sell Old {b} Mobile

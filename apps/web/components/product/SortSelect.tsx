@@ -12,16 +12,17 @@ const SORT_OPTIONS = [
 
 interface SortSelectProps {
   defaultValue: string;
+  basePath?: string;
 }
 
-export function SortSelect({ defaultValue }: SortSelectProps) {
+export function SortSelect({ defaultValue, basePath = '/products' }: SortSelectProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParams?.toString() ?? '');
     params.set('sort', e.target.value);
-    router.push(`/products?${params}`);
+    router.push(`${basePath}?${params}`);
   };
 
   return (

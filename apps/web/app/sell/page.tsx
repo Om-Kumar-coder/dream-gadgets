@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SellWizard } from '../../components/sell/SellWizard';
+import { ScrollReveal } from '../../components/ui/ScrollReveal';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
@@ -29,16 +30,16 @@ export default function SellPage() {
       {/* ════════════════════════════════════
           HERO
           ════════════════════════════════════ */}
-      <section className="sell-hero py-20 md:py-24 px-4 text-center">
-        <div className="sell-hero-bg" />
-        <div className="sell-hero-glow top-0 right-0 w-96 h-96 bg-primary/10" />
-        <div className="sell-hero-glow bottom-0 left-0 w-80 h-80 bg-primary/10" />
-        <div className="relative max-w-3xl mx-auto">
+      <section className="relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-primary/20 py-20 md:py-24 px-4 text-center">
+        <div className="absolute inset-0 noise-bg" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="relative z-10 max-w-3xl mx-auto">
           <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 border border-white/10">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse-soft" />
             Sell in 60 Seconds
           </span>
-          <h1 className="heading-xl mb-4">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.1] mb-4">
             Sell Your Old Phone<br />
             <span className="text-gradient-brand">Get Best Price Today!</span>
           </h1>
@@ -87,20 +88,24 @@ export default function SellPage() {
           HOW IT WORKS
           ════════════════════════════════════ */}
       <section className="section-pad container-page">
-        <div className="text-center mb-12">
-          <h2 className="section-title">How It Works</h2>
-          <p className="section-subtitle mx-auto">Sell your phone in 4 simple steps</p>
-        </div>
+        <ScrollReveal>
+          <div className="text-center mb-12">
+            <h2 className="section-title">How It Works</h2>
+            <p className="section-subtitle mx-auto">Sell your phone in 4 simple steps</p>
+          </div>
+        </ScrollReveal>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {HOW_IT_WORKS.map(s => (
-            <div key={s.step} className="how-it-works-step bg-white border border-surface-100 hover:shadow-elevation-3 hover:-translate-y-1.5 transition-all duration-300">
-              <div className="how-it-works-icon bg-primary/10 text-primary">
-                <span className="text-2xl">{s.icon}</span>
+          {HOW_IT_WORKS.map((s, i) => (
+            <ScrollReveal key={s.step} delay={i * 100}>
+              <div className="how-it-works-step bg-white border border-surface-100 hover:shadow-elevation-3 hover:-translate-y-1.5 transition-all duration-300">
+                <div className="how-it-works-icon bg-primary/10 text-primary">
+                  <span className="text-2xl">{s.icon}</span>
+                </div>
+                <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
+                <h3 className="font-bold text-surface-900">{s.title}</h3>
+                <p className="text-xs text-surface-500 leading-relaxed">{s.desc}</p>
               </div>
-              <span className="text-xs font-bold text-primary tracking-widest">STEP {s.step}</span>
-              <h3 className="font-bold text-surface-900">{s.title}</h3>
-              <p className="text-xs text-surface-500 leading-relaxed">{s.desc}</p>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -110,16 +115,20 @@ export default function SellPage() {
           ════════════════════════════════════ */}
       <section className="bg-surface-50 section-pad">
         <div className="container-narrow">
-          <h2 className="section-title text-center mb-10">Why Sell with Dream Gadgets?</h2>
+          <ScrollReveal>
+            <h2 className="section-title text-center mb-10">Why Sell with Dream Gadgets?</h2>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {BENEFITS.map(b => (
-              <div key={b.title} className="card-hover flex gap-4 p-5">
-                <span className="text-2xl shrink-0 mt-0.5">{b.icon}</span>
-                <div>
-                  <h3 className="font-bold text-surface-900 mb-1 text-sm">{b.title}</h3>
-                  <p className="text-sm text-surface-500">{b.desc}</p>
+            {BENEFITS.map((b, i) => (
+              <ScrollReveal key={b.title} delay={i * 80} slideLeft={i % 2 === 0} slideRight={i % 2 === 1}>
+                <div className="card-hover flex gap-4 p-5">
+                  <span className="text-2xl shrink-0 mt-0.5">{b.icon}</span>
+                  <div>
+                    <h3 className="font-bold text-surface-900 mb-1 text-sm">{b.title}</h3>
+                    <p className="text-sm text-surface-500">{b.desc}</p>
+                  </div>
                 </div>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>

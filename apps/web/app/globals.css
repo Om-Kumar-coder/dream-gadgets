@@ -307,6 +307,32 @@
   .section-pad {
     @apply py-16 px-4;
   }
+  .section-pad-sm {
+    @apply py-10 px-4;
+  }
+
+  /* ── Narrow container ── */
+  .container-narrow {
+    @apply max-w-3xl mx-auto px-4;
+  }
+
+  /* ── Heading system ── */
+  .heading-md {
+    @apply text-xl sm:text-2xl font-bold tracking-tight;
+  }
+  .heading-sm {
+    @apply text-lg font-bold;
+  }
+
+  /* ── Input system ── */
+  .input {
+    @apply w-full rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm text-surface-900 placeholder:text-surface-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all;
+  }
+
+  /* ── Primary button with glow ── */
+  .btn-primary-glow {
+    @apply btn-primary shadow-[0_0_20px_rgba(229,9,20,0.25)];
+  }
 }
 
 @layer utilities {
@@ -368,6 +394,19 @@
   /* Hover underline effect */
   .hover-underline {
     @apply relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-current after:transition-all after:duration-300 hover:after:w-full;
+  }
+
+  /* Noise texture overlay */
+  .noise-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.5'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+    opacity: 0.03;
+    pointer-events: none;
+    mix-blend-mode: overlay;
   }
 
   /* Sell CTA glow */
