@@ -284,7 +284,7 @@ export class PublicController {
       position || 'slider',
       deviceType,
     );
-    return { data: banners };
+    return banners;
   }
 
   @Get('banners/all')
@@ -297,9 +297,7 @@ export class PublicController {
       this.adminService.getActiveBanners(pt, 'bottom'),
       this.adminService.getActiveBanners(pt, 'offer'),
     ]);
-    return {
-      data: { slider, middle, bottom, offer },
-    };
+    return { slider, middle, bottom, offer };
   }
 
   @Post('banners/:id/click')
@@ -336,10 +334,10 @@ export class PublicController {
       const setting = await this.adminService.getSetting('announcement_bar');
       const value = setting.value || {};
       // Only return if active, otherwise return empty
-      if (!value.isActive) return { data: null };
-      return { data: value };
+      if (!value.isActive) return null;
+      return value;
     } catch {
-      return { data: null };
+      return null;
     }
   }
 
@@ -349,7 +347,7 @@ export class PublicController {
   @ApiOperation({ summary: 'Get brand hero background image' })
   async getBrandHero(@Param('slug') slug: string) {
     const hero = await this.adminService.getBrandHero(slug);
-    return { data: hero };
+    return hero;
   }
 
   // ─── User Profile ─────────────────────────────────────────────────────────────
