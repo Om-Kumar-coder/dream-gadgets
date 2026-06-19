@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { BRANDS } from '../lib/brands';
+import { HomeBanners } from '../components/banner/HomeBanners';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
@@ -56,124 +57,13 @@ export default async function HomePage() {
   const hotDeals = products.slice(0, 4);
   const recommended = products.slice(2, 6);
 
-  const lastSoldProduct = products[0];
-  const lsPrice = lastSoldProduct ? Number(lastSoldProduct.online_price ?? lastSoldProduct.price ?? lastSoldProduct.selling_price ?? 0) : 0;
-  const lsName = lastSoldProduct ? (lastSoldProduct.item_name ?? `${lastSoldProduct.model ?? ''} ${lastSoldProduct.storage ?? ''}`.trim()) : 'APPLE IPHONE 16 PRO';
-  const lsBranch = lastSoldProduct?.branch_name ?? 'Barrackpore';
-  const lsImg = lastSoldProduct ? getProductImage(lastSoldProduct) : null;
 
   return (
     <main className="overflow-hidden">
       {/* ════════════════════════════════════════
-          HERO SECTION — Premium Banner + Last Sold
+          DYNAMIC BANNER SYSTEM
           ════════════════════════════════════════ */}
-      <section className="relative bg-gradient-hero overflow-hidden">
-        {/* Ambient Glow Effects */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-neon-amber/5 rounded-full blur-[120px] pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* ── Main Hero Banner ── */}
-            <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-primary/5 to-surface-950 border border-white/5 min-h-[320px] md:min-h-[400px] flex items-center">
-              <div className="absolute inset-0 noise-bg" />
-              <div className="relative z-10 p-8 md:p-12 lg:p-16">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white/80 text-xs font-semibold mb-5">
-                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse-soft" />
-                  Certified & Verified
-                </div>
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.1] mb-4">
-                  Premium Phones
-                  <br />
-                  <span className="text-gradient-brand">Best Prices</span>
-                </h1>
-                <p className="text-lg text-white/60 mb-6 max-w-lg">
-                  Certified pre-owned smartphones with warranty, quality checked, and delivered to your doorstep.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 active:scale-[0.97] transition-all shadow-lg shadow-primary/30"
-                  >
-                    Shop Now
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Link>
-                  <Link
-                    href="/sell"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-sm hover:bg-white/20 active:scale-[0.97] transition-all border border-white/10"
-                  >
-                    Sell Your Phone
-                  </Link>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
-                  <div>
-                    <p className="text-xl font-bold text-white">10K+</p>
-                    <p className="text-xs text-white/40">Phones Sold</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">4.8★</p>
-                    <p className="text-xs text-white/40">Avg Rating</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">50+</p>
-                    <p className="text-xs text-white/40">Cities</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Decorative element */}
-              <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64">
-                <div className="w-full h-full rounded-full border border-white/5" />
-                <div className="absolute inset-4 rounded-full border border-white/5" />
-                <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-2xl" />
-              </div>
-            </div>
-
-            {/* ── Last Sold Product Card ── */}
-            <div className="relative overflow-hidden rounded-3xl bg-white/5 backdrop-blur-sm border border-white/5 min-h-[320px] md:min-h-[400px] flex items-center">
-              <div className="p-6 md:p-8 w-full">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 rounded-full text-amber-400 text-xs font-semibold mb-4">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  Just Sold
-                </div>
-                <p className="text-xs text-white/40 uppercase tracking-wider font-semibold mb-1">Last Sold Product</p>
-
-                <div className="flex flex-col items-center text-center py-4">
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5">
-                    {lsImg ? (
-                      <img src={lsImg} alt={lsName} className="w-full h-full object-contain p-3" />
-                    ) : (
-                      <svg className="w-16 h-16 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                        <line x1="12" y1="18" x2="12.01" y2="18" />
-                      </svg>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1 line-clamp-2">{lsName}</h3>
-                  <p className="text-xs text-white/40 mb-3">{lsBranch}</p>
-                  <span className="inline-flex items-center gap-1 px-4 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-lg shadow-primary/25">
-                    {formatPrice(lsPrice)}
-                  </span>
-                </div>
-
-                <Link
-                  href="/products"
-                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 hover:bg-white/15 rounded-xl text-sm font-semibold text-white/80 hover:text-white transition-all"
-                >
-                  View All Products
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeBanners />
 
       {/* ════════════════════════════════════════
           TRUST STRIP
@@ -424,32 +314,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          APP BANNER
-          ════════════════════════════════════════ */}
-      <section className="container-page mb-14 md:mb-20">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-hero-alt border border-white/5 min-h-[220px] md:min-h-[300px] flex items-center justify-center">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="relative z-10 text-center p-8 md:p-12">
-            <span className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-white/60 text-xs font-semibold mb-4">
-              Coming Soon
-            </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-2">📱 Dream Gadgets App</h2>
-            <p className="text-white/50 text-sm md:text-base mb-6">Sell & Buy on the go. Download now for the best experience!</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <span className="px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white/60 rounded-xl text-sm font-semibold border border-white/10 cursor-not-allowed">
-                App Store
-              </span>
-              <span className="px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white/60 rounded-xl text-sm font-semibold border border-white/10 cursor-not-allowed">
-                Play Store
-              </span>
-              <Link href="/sell" className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/25">
-                Start Selling →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ════════════════════════════════════════
           RECOMMENDED PRODUCTS

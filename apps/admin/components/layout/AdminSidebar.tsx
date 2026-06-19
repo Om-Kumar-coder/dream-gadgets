@@ -23,6 +23,12 @@ import {
   FileText,
   Receipt,
   ChevronDown,
+  Image as ImageIcon,
+  PanelTop,
+  Home,
+  Store,
+  Megaphone,
+  Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -43,6 +49,21 @@ const navItems = [
   { href: '/gst', label: 'GST Reports', icon: Receipt },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/users', label: 'Users & Roles', icon: UserCog },
+  { href: '/brands', label: 'Brand Heroes', icon: Palette },
+  { href: '/announcement-bar', label: 'Announcement Bar', icon: Megaphone },
+];
+
+const bannerItems: Array<{
+  href: string;
+  label: string;
+  icon: any;
+  pageType: string | undefined;
+  isExact?: boolean;
+}> = [
+  { href: '/banners', label: 'All Banners', icon: PanelTop, pageType: undefined, isExact: true },
+  { href: '/banners', label: 'Home Banners', icon: Home, pageType: 'home' },
+  { href: '/banners', label: 'Shop Banners', icon: Store, pageType: 'shop' },
+  { href: '/banners', label: 'Promotional', icon: Megaphone, pageType: 'promotional' },
 ];
 
 const settingsItems = [
@@ -57,6 +78,9 @@ export function AdminSidebar() {
   const searchParams = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(
     pathname === '/settings' || pathname.startsWith('/settings')
+  );
+  const [bannersOpen, setBannersOpen] = useState(
+    pathname === '/banners' || pathname.startsWith('/banners')
   );
 
   const isActive = (href: string, tab?: string) => {
@@ -99,6 +123,53 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+
+        {/* Divider */}
+        <div className="my-3 mx-3 h-px bg-surface-800" />
+
+        {/* Banner Management dropdown */}
+        <div>
+          <button
+            onClick={() => setBannersOpen(!bannersOpen)}
+            className={cn(
+              'flex items-center justify-between w-full gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+              bannersOpen
+                ? 'bg-surface-900 text-white'
+                : 'text-surface-400 hover:bg-surface-900 hover:text-white',
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <ImageIcon className="w-4 h-4 shrink-0" />
+              <span>Banner Management</span>
+            </div>
+            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', bannersOpen && 'rotate-180')} />
+          </button>
+          {bannersOpen && (
+            <div className="ml-2 mt-0.5 space-y-0.5 pl-6 border-l border-surface-800">
+              {bannerItems.map((item) => {
+                const currentPageType = searchParams.get('pageType');
+                const active = item.isExact
+                  ? pathname === '/banners' && !currentPageType
+                  : pathname === '/banners' && (currentPageType || 'home') === (item.pageType || 'home');
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.pageType ? `/banners?pageType=${item.pageType}` : '/banners'}
+                    className={cn(
+                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200',
+                      active
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-surface-500 hover:text-white',
+                    )}
+                  >
+                    <item.icon className="w-3.5 h-3.5 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />

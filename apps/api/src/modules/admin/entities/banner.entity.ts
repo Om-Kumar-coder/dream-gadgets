@@ -17,17 +17,38 @@ export class Banner {
   @Column()
   title: string;
 
+  @Column({ nullable: true, type: 'varchar' })
+  subtitle: string;
+
   @Column({ name: 'image_url' })
   imageUrl: string;
 
+  @Column({ name: 'mobile_image_url', nullable: true, type: 'varchar' })
+  mobileImageUrl: string;
+
   @Column({ name: 'link_url', nullable: true, type: 'varchar' })
   linkUrl: string;
+
+  @Column({ name: 'cta_text', nullable: true, type: 'varchar' })
+  ctaText: string;
+
+  @Column({ name: 'page_type', default: 'home', type: 'varchar' })
+  pageType: string;
+
+  @Column({ name: 'position', default: 'slider', type: 'varchar' })
+  position: string;
+
+  @Column({ name: 'device_type', default: 'all', type: 'varchar' })
+  deviceType: string;
 
   @Column({ name: 'sort_order', default: 0 })
   sortOrder: number;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
+
+  @Column({ name: 'click_count', default: 0 })
+  clickCount: number;
 
   @Column({ name: 'starts_at', nullable: true, type: 'timestamptz' })
   startsAt: Date;

@@ -3,6 +3,7 @@ import { Inter, Open_Sans, Anton } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import { Providers } from './providers';
+import { AnnouncementBar } from '../components/layout/AnnouncementBar';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { WhatsAppButton } from '../components/layout/WhatsAppButton';
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${openSans.variable} ${anton.variable} pb-16 md:pb-0`}>
         <Providers>
+          <AnnouncementBar />
           <Suspense fallback={<HeaderFallback />}>
             <Header />
           </Suspense>

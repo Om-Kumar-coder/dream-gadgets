@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SellWizard } from '../../components/sell/SellWizard';
 import { ScrollReveal } from '../../components/ui/ScrollReveal';
+import { StaticOfferBanner, StaticMidBanner } from '../../components/banner/StaticPageBanners';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
@@ -135,6 +136,11 @@ export default function SellPage() {
       </section>
 
       {/* ════════════════════════════════════
+          MID-PAGE PROMOTIONAL BANNER
+          ════════════════════════════════════ */}
+      <StaticMidBanner />
+
+      {/* ════════════════════════════════════
           FAQ
           ════════════════════════════════════ */}
       <section className="section-pad container-narrow">
@@ -174,6 +180,11 @@ export default function SellPage() {
           </div>
         </div>
       </section>
+
+      {/* ════════════════════════════════════
+          PROMOTIONAL OFFER BANNER
+          ════════════════════════════════════ */}
+      <StaticOfferBanner />
     </main>
   );
 }

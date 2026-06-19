@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
 
 export const metadata: Metadata = {
   title: 'About Us — Dream Gadgets',
@@ -76,6 +77,9 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* Promotional Offer Banner */}
+      <StaticOfferBanner />
     </main>
   );
 }

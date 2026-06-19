@@ -3,6 +3,7 @@ dist
 !packages/shared-types/dist
 .next
 .turbo
+*.tsbuildinfo
 coverage
 *.env
 *.env.local

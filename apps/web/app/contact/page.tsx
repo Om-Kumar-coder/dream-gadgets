@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { apiClient } from '../../lib/api';
+import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', message: '' });
@@ -201,6 +202,9 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      {/* Promotional Offer Banner */}
+      <StaticOfferBanner />
     </main>
   );
 }

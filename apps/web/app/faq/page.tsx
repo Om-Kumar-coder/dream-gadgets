@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
 
 export const metadata: Metadata = {
   title: 'FAQ — Dream Gadgets',
@@ -74,6 +75,9 @@ export default function FaqPage() {
           </a>
         </div>
       </section>
+
+      {/* Promotional Offer Banner */}
+      <StaticOfferBanner />
     </main>
   );
 }

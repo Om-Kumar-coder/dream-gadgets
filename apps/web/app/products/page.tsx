@@ -3,6 +3,7 @@ import { ItemCondition } from '@dream-gadgets/shared-types';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FilterSheetClient } from './FilterSheetClient';
 import { SortSelect } from '../../components/product/SortSelect';
+import { ShopBannerSlider, ShopBannerOffer } from '../../components/banner/ShopBanners';
 
 export const metadata: Metadata = {
   title: 'All Phones',
@@ -93,6 +94,9 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-surface-50/50">
+      {/* Shop Banner — Hero Slider at top */}
+      <ShopBannerSlider />
+
       {/* Page header */}
       <div className="bg-white border-b border-surface-100/80">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -304,6 +308,9 @@ export default async function ProductsPage({ searchParams }: Props) {
               )}
             </>
           )}
+
+          {/* Shop Banner — Offer at bottom */}
+          <ShopBannerOffer />
         </div>
       </div>
     </div>

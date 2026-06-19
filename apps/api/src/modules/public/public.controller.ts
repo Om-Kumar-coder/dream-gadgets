@@ -17,6 +17,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { AdminService } from '../admin/admin.service';
 import { SearchService } from '../search/search.service';
 import { OnlineOrderService, CreateOnlineOrderDto } from '../sales/online-order.service';
 import { PaymentService } from '../payment/payment.service';
@@ -68,6 +69,7 @@ export class PublicController {
     private readonly searchService: SearchService,
     private readonly onlineOrderService: OnlineOrderService,
     private readonly paymentService: PaymentService,
+    private readonly adminService: AdminService,
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
@@ -268,6 +270,46 @@ export class PublicController {
     };
   }
 
+  // ─── Banners ─────────────────────────────────────────────────────────────────
+
+  @Get('banners')
+  @ApiOperation({ summary: 'Get active banners for frontend (filtered by page_type, position)' })
+  async getBanners(
+    @Query('pageType') pageType: string,
+    @Query('position') position: string,
+    @Query('device') deviceType?: string,
+  ) {
+    const banners = await this.adminService.getActiveBanners(
+      pageType || 'home',
+      position || 'slider',
+      deviceType,
+    );
+    return { data: banners };
+  }
+
+  @Get('banners/all')
+  @ApiOperation({ summary: 'Get all active banners grouped by position' })
+  async getAllActiveBanners(@Query('pageType') pageType: string) {
+    const pt = pageType || 'home';
+    const [slider, middle, bottom, offer] = await Promise.all([
+      this.adminService.getActiveBanners(pt, 'slider'),
+      this.adminService.getActiveBanners(pt, 'middle'),
+      this.adminService.getActiveBanners(pt, 'bottom'),
+      this.adminService.getActiveBanners(pt, 'offer'),
+    ]);
+    return {
+      data: { slider, middle, bottom, offer },
+    };
+  }
+
+  @Post('banners/:id/click')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track banner click' })
+  async trackBannerClick(@Param('id') id: string) {
+    await this.adminService.incrementBannerClicks(id);
+    return { status: 'ok' };
+  }
+
   // ─── Contact ────────────────────────────────────────────────────────────────────
 
   @Post('contact')
@@ -283,6 +325,31 @@ export class PublicController {
     );
 
     return { data: inquiry };
+  }
+
+  // ─── Announcement Bar ────────────────────────────────────────────────────────────
+
+  @Get('announcement')
+  @ApiOperation({ summary: 'Get active announcement bar' })
+  async getAnnouncement() {
+    try {
+      const setting = await this.adminService.getSetting('announcement_bar');
+      const value = setting.value || {};
+      // Only return if active, otherwise return empty
+      if (!value.isActive) return { data: null };
+      return { data: value };
+    } catch {
+      return { data: null };
+    }
+  }
+
+  // ─── Brand Heroes ──────────────────────────────────────────────────────────────
+
+  @Get('brand-hero/:slug')
+  @ApiOperation({ summary: 'Get brand hero background image' })
+  async getBrandHero(@Param('slug') slug: string) {
+    const hero = await this.adminService.getBrandHero(slug);
+    return { data: hero };
   }
 
   // ─── User Profile ─────────────────────────────────────────────────────────────

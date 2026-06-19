@@ -3,15 +3,23 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Delete,
   Body,
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { v4 as uuid } from 'uuid';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -144,8 +152,11 @@ export class AdminController {
   // ─── Banners ──────────────────────────────────────────────────────────────────
 
   @Get('banners')
-  async listBanners() {
-    const banners = await this.adminService.listBanners();
+  async listBanners(
+    @Query('pageType') pageType?: string,
+    @Query('position') position?: string,
+  ) {
+    const banners = await this.adminService.listBanners(pageType, position);
     return { status: 'success', data: banners };
   }
 
@@ -163,11 +174,89 @@ export class AdminController {
     return { status: 'success', data: banner };
   }
 
+  @Patch('banners/:id/toggle')
+  @RequirePermission('content.edit')
+  async toggleBanner(@Param('id') id: string) {
+    const banner = await this.adminService.toggleBanner(id);
+    return { status: 'success', data: banner };
+  }
+
+  @Patch('banners-order')
+  @RequirePermission('content.edit')
+  async updateBannerOrder(@Body() body: { banners: { id: string; sortOrder: number }[] }) {
+    await this.adminService.updateBannerOrder(body.banners);
+    return { status: 'success' };
+  }
+
   @Delete('banners/:id')
   @RequirePermission('content.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteBanner(@Param('id') id: string) {
     await this.adminService.deleteBanner(id);
+  }
+
+  // ─── File Upload ──────────────────────────────────────────────────────────────
+
+  @Post('upload/banner')
+  @RequirePermission('content.create')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const uploadDir = join(__dirname, '..', '..', '..', '..', 'uploads', 'banners');
+          if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true });
+          cb(null, uploadDir);
+        },
+        filename: (_req, file, cb) => {
+          const uniqueName = `${uuid()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      fileFilter: (_req, file, cb) => {
+        const allowed = /jpeg|jpg|png|webp|gif/;
+        const extOk = allowed.test(extname(file.originalname).toLowerCase());
+        const mimeOk = allowed.test(file.mimetype);
+        if (extOk && mimeOk) cb(null, true);
+        else cb(new Error('Only image files (jpg, png, webp, gif) are allowed'), false);
+      },
+    }),
+  )
+  async uploadBannerImage(@UploadedFile() file: { filename: string }) {
+    const url = `/uploads/banners/${file.filename}`;
+    return { status: 'success', data: { url, filename: file.filename } };
+  }
+
+  // ─── Brand Heroes ──────────────────────────────────────────────────────────────
+
+  @Get('brand-heroes')
+  @RequirePermission('settings.view')
+  async listBrandHeroes() {
+    const heroes = await this.adminService.listBrandHeroes();
+    return { status: 'success', data: heroes };
+  }
+
+  @Get('brand-heroes/:slug')
+  @RequirePermission('settings.view')
+  async getBrandHero(@Param('slug') slug: string) {
+    const hero = await this.adminService.getBrandHero(slug);
+    return { status: 'success', data: hero };
+  }
+
+  @Put('brand-heroes/:slug')
+  @RequirePermission('settings.edit')
+  async updateBrandHero(@Param('slug') slug: string, @Body() body: { imageUrl: string }) {
+    const hero = await this.adminService.upsertBrandHero(slug, body.imageUrl);
+    return { status: 'success', data: hero };
+  }
+
+  // ─── Banner Analytics ─────────────────────────────────────────────────────────
+
+  @Get('banners/analytics')
+  @RequirePermission('content.view')
+  async getBannerAnalytics() {
+    const analytics = await this.adminService.getBannerAnalytics();
+    return { status: 'success', data: analytics };
   }
 
   // ─── Content pages ────────────────────────────────────────────────────────────

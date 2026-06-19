@@ -16,6 +16,7 @@ import {
 import {
   TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock, MessageSquare, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
+import { BannerAnalyticsWidget } from '@/components/banners/BannerAnalyticsWidget';
 import { apiClient } from '@/lib/api';
 import { useSocket } from '@/lib/useSocket';
 
@@ -316,6 +317,9 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Banner Analytics Widget */}
+      <BannerAnalyticsWidget />
 
       {/* Buyback Leads Section */}
       <div className="card p-5">
