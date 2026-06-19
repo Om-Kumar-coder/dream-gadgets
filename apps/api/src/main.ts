@@ -19,7 +19,8 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Serve uploaded static files (prefix with /api/v1 so it works behind Nginx proxy)
-  const uploadsPath = join(__dirname, '..', 'uploads');
+  // Uploads are stored at apps/uploads/ (monorepo level, not apps/api/uploads/)
+  const uploadsPath = join(__dirname, '..', '..', 'uploads');
   app.useStaticAssets(uploadsPath, { prefix: '/api/v1/uploads' });
 
   // Security
