@@ -18,9 +18,9 @@ async function bootstrap() {
   // Trust proxy — Nginx reverse proxy in production
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
-  // Serve uploaded static files
+  // Serve uploaded static files (prefix with /api/v1 so it works behind Nginx proxy)
   const uploadsPath = join(__dirname, '..', 'uploads');
-  app.useStaticAssets(uploadsPath, { prefix: '/uploads' });
+  app.useStaticAssets(uploadsPath, { prefix: '/api/v1/uploads' });
 
   // Security
   app.use(helmet({ contentSecurityPolicy: false }));

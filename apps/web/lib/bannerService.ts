@@ -93,13 +93,22 @@ export function getDeviceType(): 'mobile' | 'desktop' {
 
 /**
  * Get the best image URL for the current device
+ * Prefixes relative URLs with the API base URL so they resolve correctly
+ * behind the Nginx proxy.
  */
 export function getBannerImage(banner: Banner): string {
   const device = getDeviceType();
-  if (device === 'mobile' && banner.mobileImageUrl) {
-    return banner.mobileImageUrl;
+  let url = device === 'mobile' && banner.mobileImageUrl
+    ? banner.mobileImageUrl
+    : banner.imageUrl;
+
+  // Prefix relative URLs with API base URL so they work through Nginx proxy
+  if (url && url.startsWith('/')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+    url = `${apiBase}${url}`;
   }
-  return banner.imageUrl;
+
+  return url;
 }
 
 /**
