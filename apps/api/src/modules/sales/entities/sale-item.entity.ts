@@ -22,6 +22,12 @@ export class SaleItem {
   @Column({ name: 'item_id', nullable: true, type: 'varchar' })
   itemId: string;
 
+  @Column({ name: 'accessory_id', nullable: true, type: 'varchar' })
+  accessoryId: string | null;
+
+  @Column({ type: 'int', nullable: true, default: 1 })
+  quantity: number;
+
   @Column({ length: 15 })
   imei: string;
 

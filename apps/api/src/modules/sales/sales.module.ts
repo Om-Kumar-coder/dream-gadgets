@@ -9,11 +9,12 @@ import { Payment } from './entities/payment.entity';
 import { OnlineOrder } from './entities/online-order.entity';
 import { OnlineOrderItem } from './entities/online-order-item.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
 import { OnlineOrderService } from './online-order.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sale, SaleItem, Payment, OnlineOrder, OnlineOrderItem, InventoryItem, Branch])],
+  imports: [TypeOrmModule.forFeature([Sale, SaleItem, Payment, OnlineOrder, OnlineOrderItem, InventoryItem, Accessory, Branch])],
   controllers: [SalesController, OrdersController],
   providers: [SalesService, OnlineOrderService],
   exports: [SalesService, OnlineOrderService],

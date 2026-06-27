@@ -41,6 +41,39 @@ export class SaleItemDto {
   hsnCode?: string;
 }
 
+export class SaleAccessoryItemDto {
+  @ApiProperty({ description: 'Accessory UUID' })
+  @IsUUID()
+  accessoryId: string;
+
+  @ApiProperty({ description: 'Quantity of this accessory', default: 1 })
+  @IsNumber()
+  @Min(1)
+  quantity: number = 1;
+
+  @ApiProperty({ description: 'Unit selling price' })
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  @ApiPropertyOptional({ description: 'Item-level discount amount', default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
+
+  @ApiPropertyOptional({ description: 'Tax rate percentage', default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  taxRate?: number;
+
+  @ApiPropertyOptional({ description: 'HSN code for GST' })
+  @IsOptional()
+  @IsString()
+  hsnCode?: string;
+}
+
 export class PaymentSplitDto {
   @ApiProperty({ description: 'Payment method', enum: ['cash', 'card', 'online', 'exchange', 'advance', 'bajaj_emi'] })
   @IsIn(['cash', 'card', 'online', 'exchange', 'advance', 'bajaj_emi'])
@@ -82,6 +115,13 @@ export class CreateSaleDto {
   @ValidateNested({ each: true })
   @Type(() => SaleItemDto)
   items: SaleItemDto[];
+
+  @ApiPropertyOptional({ description: 'Accessory items', type: [SaleAccessoryItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SaleAccessoryItemDto)
+  accessoryItems?: SaleAccessoryItemDto[];
 
   @ApiProperty({ description: 'Payment splits', type: [PaymentSplitDto] })
   @IsArray()

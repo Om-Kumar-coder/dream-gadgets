@@ -434,13 +434,15 @@ test_client_management() {
     branch_id="00000000-0000-0000-0000-000000000001"
   fi
 
+  local ts
+  ts=$(date +%s)
   local client_payload
   client_payload=$(cat <<EOF
 {
   "firstName": "Test",
-  "lastName": "Client $(date +%s)",
-  "email": "client_$(date +%s)@test.com",
-  "phone": "9876543210",
+  "lastName": "Client $ts",
+  "email": "client_${ts}@test.com",
+  "phone": "98765${ts: -5}",
   "address": "123 Test Street",
   "city": "Test City",
   "state": "TS",
@@ -742,8 +744,8 @@ test_crud_operations() {
 {
   "firstName": "CRUD",
   "lastName": "Test $test_id",
-  "email": "crud_test_$test_id@test.com",
-  "phone": "9999999999",
+  "email": "crud_test_${test_id}@test.com",
+  "phone": "99999${test_id: -5}",
   "address": "Test Address",
   "city": "Test City",
   "state": "TS",

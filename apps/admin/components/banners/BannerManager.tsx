@@ -15,8 +15,7 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
-  Monitor,
-  Smartphone,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -72,6 +71,7 @@ export function BannerManager() {
   const [defaultPosition, setDefaultPosition] = useState('slider');
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; mobileUrl?: string } | null>(null);
 
   // Fetch banners
   const { data: bannersData, isLoading, isError, error, refetch } = useQuery({
@@ -322,7 +322,17 @@ export function BannerManager() {
                           </div>
 
                           {/* Image Preview */}
-                          <div className="w-20 h-12 shrink-0 rounded-lg bg-surface-100 overflow-hidden">
+                          <div
+                            className="w-20 h-12 shrink-0 rounded-lg bg-surface-100 overflow-hidden cursor-pointer ring-1 ring-transparent hover:ring-primary/30 transition-all"
+                            onClick={() =>
+                              banner.imageUrl &&
+                              setPreviewImage({
+                                url: banner.imageUrl,
+                                title: banner.title,
+                                mobileUrl: banner.mobileImageUrl || undefined,
+                              })
+                            }
+                          >
                             {banner.imageUrl ? (
                               <img
                                 src={banner.imageUrl}
@@ -423,7 +433,64 @@ export function BannerManager() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] w-full animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-surface-50 transition-colors"
+            >
+              <X className="w-4 h-4 text-surface-600" />
+            </button>
+
+            {/* Images */}
+            <div className={`grid ${previewImage.mobileUrl ? 'grid-cols-2 gap-3' : 'grid-cols-1'} bg-white rounded-2xl overflow-hidden shadow-2xl`}>
+              <div className="relative">
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.title}
+                  className="w-full h-full object-contain max-h-[75vh]"
+                />
+                {previewImage.mobileUrl && (
+                  <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 text-white text-[10px] rounded-md">
+                    Desktop
+                  </div>
+                )}
+              </div>
+              {previewImage.mobileUrl && (
+                <div className="relative">
+                  <img
+                    src={previewImage.mobileUrl}
+                    alt={`${previewImage.title} (mobile)`}
+                    className="w-full h-full object-contain max-h-[75vh]"
+                  />
+                  <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 text-white text-[10px] rounded-md">
+                    Mobile
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Title & dimensions */}
+            <div className="mt-2 flex items-center justify-between">
+              {previewImage.title && (
+                <p className="text-sm text-white/80 truncate">{previewImage.title}</p>
+              )}
+              <p className="text-xs text-white/50">Click outside to close</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner Form Modal */}
       <BannerFormModal
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingBanner(null); }}

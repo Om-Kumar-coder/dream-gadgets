@@ -1,0 +1,12 @@
+{
+  "name": "Dream Gadgets Admin",
+  "short_name": "DG Admin",
+  "description": "Dream Gadgets POS & Inventory Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E50914",
+  "icons": [
+    { "src": "/Logo_Dream_Gadgets.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

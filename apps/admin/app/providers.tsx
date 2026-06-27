@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@dream-gadgets/ui';
 import { useState } from 'react';
+import { OfflineProvider } from '@/lib/offline/OfflineProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -16,8 +17,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <Toaster position="top-right" />
+      <OfflineProvider>
+        {children}
+        <Toaster position="top-right" />
+      </OfflineProvider>
     </QueryClientProvider>
   );
 }

@@ -11,6 +11,7 @@ import { Sale } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Payment } from './entities/payment.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { QuerySaleDto } from './dto/query-sale.dto';
@@ -46,6 +47,8 @@ export class SalesService {
     private paymentRepo: Repository<Payment>,
     @InjectRepository(InventoryItem)
     private itemRepo: Repository<InventoryItem>,
+    @InjectRepository(Accessory)
+    private accessoryRepo: Repository<Accessory>,
     @InjectRepository(Branch)
     private branchRepo: Repository<Branch>,
     private dataSource: DataSource,
@@ -71,7 +74,7 @@ export class SalesService {
   // ─── 7.3 Create sale ─────────────────────────────────────────────────────────
 
   async create(dto: CreateSaleDto, userId: string, userRole: string): Promise<Sale> {
-    const { items, payments, discountAmount = 0, isInterState = false } = dto;
+    const { items, accessoryItems = [], payments, discountAmount = 0, isInterState = false } = dto;
 
     // 1. Validate all items exist and are available/in_cart
     const itemIds = items.map((i) => i.itemId);
@@ -162,7 +165,67 @@ export class SalesService {
       });
     }
 
-    // 5. Generate invoice number
+    // 5. Process accessory items (validate stock, decrement)
+    const accessorySaleData: Array<{
+      accessoryId: string;
+      quantity: number;
+      description: string;
+      unitPrice: number;
+      discount: number;
+      taxRate: number;
+      taxAmount: number;
+      total: number;
+      hsnCode: string | null;
+    }> = [];
+
+    if (accessoryItems.length > 0) {
+      const accIds = accessoryItems.map((a) => a.accessoryId);
+      const accessories = await this.accessoryRepo.find({
+        where: accIds.map((id) => ({ id })),
+      });
+
+      if (accessories.length !== accIds.length) {
+        const foundIds = accessories.map((a) => a.id);
+        const missing = accIds.filter((id) => !foundIds.includes(id));
+        throw new NotFoundException(`Accessories not found: ${missing.join(', ')}`);
+      }
+
+      for (const accDto of accessoryItems) {
+        const acc = accessories.find((a) => a.id === accDto.accessoryId)!;
+
+        // Validate stock
+        if (acc.stockQuantity < accDto.quantity) {
+          throw new BadRequestException({
+            code: 'INSUFFICIENT_ACCESSORY_STOCK',
+            message: `Insufficient stock for ${acc.name}. Available: ${acc.stockQuantity}, Requested: ${accDto.quantity}`,
+          });
+        }
+
+        const discount = accDto.discount ?? 0;
+        const taxRate = accDto.taxRate ?? 0;
+        const priceAfterDiscount = accDto.unitPrice - discount;
+        const gst = calculateGST(priceAfterDiscount, taxRate, isInterState);
+        const itemTotal = priceAfterDiscount + gst.total;
+        const itemSubtotal = priceAfterDiscount * accDto.quantity;
+
+        subtotal += itemSubtotal;
+        totalTax += gst.total * accDto.quantity;
+
+        accessorySaleData.push({
+          accessoryId: acc.id,
+          quantity: accDto.quantity,
+          description: acc.name,
+          unitPrice: accDto.unitPrice,
+          discount,
+          taxRate,
+          taxAmount: gst.total * accDto.quantity,
+          total: itemTotal * accDto.quantity,
+          hsnCode: accDto.hsnCode ?? acc.hsnCode ?? null,
+        });
+      }
+    }
+
+    // 6. Generate invoice number
     const invoiceNumber = await this.generateInvoiceNumber(dto.branchId);
 
     // 6. Persist everything in a transaction
@@ -189,11 +252,37 @@ export class SalesService {
       });
       const savedSale = await queryRunner.manager.save(Sale, sale);
 
-      // Create sale items
+      // Create sale items (inventory items)
       for (const si of saleItemsData) {
         const saleItem = queryRunner.manager.create(SaleItem, {
           saleId: savedSale.id,
-          ...si,
+          itemId: si.itemId,
+          imei: si.imei,
+          description: si.description,
+          unitPrice: si.unitPrice,
+          discount: si.discount,
+          taxRate: si.taxRate,
+          taxAmount: si.taxAmount,
+          total: si.total,
+          hsnCode: si.hsnCode,
+        });
+        await queryRunner.manager.save(SaleItem, saleItem);
+      }
+
+      // Create sale items (accessories)
+      for (const si of accessorySaleData) {
+        const saleItem = queryRunner.manager.create(SaleItem, {
+          saleId: savedSale.id,
+          accessoryId: si.accessoryId,
+          quantity: si.quantity,
+          imei: '',
+          description: si.description,
+          unitPrice: si.unitPrice,
+          discount: si.discount,
+          taxRate: si.taxRate,
+          taxAmount: si.taxAmount,
+          total: si.total,
+          hsnCode: si.hsnCode,
         });
         await queryRunner.manager.save(SaleItem, saleItem);
       }
@@ -215,6 +304,13 @@ export class SalesService {
       // Update inventory items to 'sold'
       for (const inv of inventoryItems) {
         await queryRunner.manager.update(InventoryItem, inv.id, { status: 'sold' });
+      }
+
+      // Decrement accessory stock
+      for (const si of accessorySaleData) {
+        await queryRunner.manager.update(Accessory, si.accessoryId, {
+          stockQuantity: () => `stock_quantity - ${si.quantity}`,
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -451,7 +547,14 @@ ${itemRows}
       // Restore inventory items to 'available'
       const saleItems = await this.saleItemRepo.find({ where: { saleId: id } });
       for (const si of saleItems) {
-        await queryRunner.manager.update(InventoryItem, si.itemId, { status: 'available' });
+        if (si.itemId) {
+          await queryRunner.manager.update(InventoryItem, si.itemId, { status: 'available' });
+        }
+        if (si.accessoryId) {
+          await queryRunner.manager.update(Accessory, si.accessoryId, {
+            stockQuantity: () => `stock_quantity + ${si.quantity ?? 1}`,
+          });
+        }
       }
 
       // Write audit log
