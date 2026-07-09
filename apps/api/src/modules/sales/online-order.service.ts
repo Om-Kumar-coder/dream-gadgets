@@ -14,7 +14,7 @@ import { EventService } from '../../common/events/event.service';
 export interface CreateOnlineOrderDto {
   clientId?: string;
   branchId: string;
-  items: Array<{ itemId: string; imei: string; description: string; unitPrice: number; quantity?: number; taxRate?: number; taxAmount?: number; hsnCode?: string }>;
+  items: Array<{ itemId: string; imei?: string | null; description: string; unitPrice: number; quantity?: number; taxRate?: number; taxAmount?: number; hsnCode?: string }>;
   shippingAddress: {
     name: string;
     phone: string;
