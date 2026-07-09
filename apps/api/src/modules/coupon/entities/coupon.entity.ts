@@ -64,7 +64,7 @@ export class Coupon {
   applicableCategories: string | null;
 
   /** For BOGO: the accessory/product SKU that is free when buying a phone */
-  @Column({ name: 'free_item_sku', length: 100, nullable: true })
+  @Column({ name: 'free_item_sku', type: 'varchar', length: 100, nullable: true })
   freeItemSku: string | null;
 
   /** Internal description / admin notes */
