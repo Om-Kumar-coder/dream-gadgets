@@ -72,9 +72,15 @@ export class PaymentService {
         receipt: order.receipt,
       };
     } catch (err: any) {
+      this.logger.error(`Razorpay order creation failed: ${JSON.stringify({
+        message: err?.message,
+        statusCode: err?.statusCode,
+        error: err?.error,
+        name: err?.name,
+      })}`);
       throw new BadRequestException({
         code: 'RAZORPAY_ORDER_FAILED',
-        message: err?.message ?? 'Failed to create Razorpay order',
+        message: err?.error?.description ?? err?.message ?? 'Failed to create Razorpay order',
       });
     }
   }
