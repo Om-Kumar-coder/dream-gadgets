@@ -174,6 +174,7 @@ export default function ReturnsPage() {
         <div className="divider mt-12 pt-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Link href="/terms" className="text-sm text-primary hover:underline font-medium">Terms & Conditions →</Link>
+            <Link href="/cancellation" className="text-sm text-primary hover:underline font-medium">Cancellation Policy →</Link>
             <Link href="/privacy" className="text-sm text-primary hover:underline font-medium">Privacy Policy →</Link>
             <Link href="/contact" className="text-sm text-primary hover:underline font-medium">Contact Us →</Link>
           </div>

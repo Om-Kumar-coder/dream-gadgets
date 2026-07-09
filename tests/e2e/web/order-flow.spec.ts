@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const WEB_BASE = process.env.WEB_BASE_URL || 'http://187.127.165.229';
-const API_BASE = process.env.API_BASE_URL || 'http://187.127.165.229';
+const WEB_BASE = process.env.WEB_BASE_URL || 'https://dreamgadgets.in';
+const API_BASE = process.env.API_BASE_URL || 'https://dreamgadgets.in';
 
 /**
  * Full order flow E2E test:

@@ -20,6 +20,7 @@ import {
   calculateGST,
   getRequiredDiscountRole,
 } from '../../common/utils/business-logic';
+import { CouponService } from '../coupon/coupon.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { EventService } from '../../common/events/event.service';
 
@@ -55,6 +56,7 @@ export class SalesService {
     private configService: ConfigService,
     private redisService: RedisService,
     private eventService: EventService,
+    private couponService: CouponService,
   ) {}
 
   // ─── 7.2 Invoice number generation ──────────────────────────────────────────
@@ -74,7 +76,7 @@ export class SalesService {
   // ─── 7.3 Create sale ─────────────────────────────────────────────────────────
 
   async create(dto: CreateSaleDto, userId: string, userRole: string): Promise<Sale> {
-    const { items, accessoryItems = [], payments, discountAmount = 0, isInterState = false } = dto;
+    const { items, accessoryItems = [], payments, discountAmount = 0, isInterState = false, couponCode } = dto;
 
     // 1. Validate all items exist and are available/in_cart
     const itemIds = items.map((i) => i.itemId);
@@ -136,10 +138,39 @@ export class SalesService {
       });
     }
 
-    const totalAmount = subtotal + totalTax - discountAmount;
+    // 3. Apply coupon if provided (replaces manual discount)
+    let appliedCouponCode: string | null = null;
+    let finalDiscountAmount = discountAmount;
 
-    // 3. Validate discount authorization (7.5)
-    if (discountAmount > 0 && subtotal > 0) {
+    if (couponCode) {
+      const validation = await this.couponService.validate({
+        code: couponCode,
+        subtotal,
+        branchId: dto.branchId,
+      });
+
+      if (!validation.valid) {
+        throw new BadRequestException({
+          code: 'COUPON_INVALID',
+          message: validation.message,
+        });
+      }
+
+      // Coupon replaces manual discount (per user choice)
+      finalDiscountAmount = validation.discount ?? 0;
+      appliedCouponCode = couponCode.toUpperCase();
+
+      // If the manual discount was larger, keep manual discount instead
+      if (discountAmount > finalDiscountAmount) {
+        finalDiscountAmount = discountAmount;
+        appliedCouponCode = null;
+      }
+    }
+
+    const totalAmount = subtotal + totalTax - finalDiscountAmount;
+
+    // 4. Validate discount authorization (7.5)
+    if (finalDiscountAmount > 0 && subtotal > 0) {
       const discountPercent = (discountAmount / subtotal) * 100;
       const requiredRole = getRequiredDiscountRole(discountPercent);
       const userLevel = getUserRoleLevel(userRole);
@@ -153,7 +184,7 @@ export class SalesService {
       }
     }
 
-    // 4. Validate payment splits (7.4)
+    // 5. Validate payment splits (7.4)
     const valid = validatePaymentSplits(
       payments.map((p) => ({ amount: p.amount, method: p.method })),
       totalAmount,
@@ -165,7 +196,7 @@ export class SalesService {
       });
     }
 
-    // 5. Process accessory items (validate stock, decrement)
+    // 6. Process accessory items (validate stock, decrement)
     const accessorySaleData: Array<{
       accessoryId: string;
       quantity: number;
@@ -225,10 +256,10 @@ export class SalesService {
       }
     }
 
-    // 6. Generate invoice number
+    // 7. Generate invoice number
     const invoiceNumber = await this.generateInvoiceNumber(dto.branchId);
 
-    // 6. Persist everything in a transaction
+    // 8. Persist everything in a transaction
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -240,7 +271,7 @@ export class SalesService {
         clientId: dto.clientId ?? null,
         branchId: dto.branchId,
         subtotal,
-        discountAmount,
+        discountAmount: finalDiscountAmount,
         taxAmount: totalTax,
         totalAmount,
         paymentStatus: 'paid',
@@ -322,6 +353,15 @@ export class SalesService {
         }
       } catch {
         // Non-critical — log and continue
+      }
+
+      // Record coupon usage
+      if (appliedCouponCode) {
+        try {
+          await this.couponService.recordUsage(appliedCouponCode);
+        } catch (err: any) {
+          console.warn(`[Sales] Failed to record coupon usage: ${err?.message}`);
+        }
       }
 
       // Emit realtime events after successful commit

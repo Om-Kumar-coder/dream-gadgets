@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Tag } from 'lucide-react';
 import { useCartStore } from '../../store/cart.store';
 import { apiClient } from '../../lib/api';
+import { CouponInput } from '../../components/coupon/CouponInput';
 
 type Step = 'address' | 'review' | 'payment';
 
@@ -44,6 +46,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const scriptLoadedRef = useRef(false);
   const cartTotal = total();
@@ -102,6 +106,7 @@ export default function CheckoutPage() {
     setLoading(true);
     setError('');
     try {
+      const effectiveTotal = cartTotal - couponDiscount;
       const { data: orderRes } = await apiClient.post('/public/orders', {
         items: items.map(i => ({
           itemId: i.id,
@@ -111,12 +116,13 @@ export default function CheckoutPage() {
           quantity: i.quantity || 1,
         })),
         shippingAddress: address,
-        totalAmount: cartTotal,
+        totalAmount: effectiveTotal,
+        couponCode: couponCode || undefined,
       });
       const order = orderRes?.data ?? orderRes;
       setOrderId(order.id);
 
-      const amountPaise = Math.round(cartTotal * 100);
+      const amountPaise = Math.round(effectiveTotal * 100);
       const { data: rzpRes } = await apiClient.post('/payments/razorpay/order', {
         amount: amountPaise,
         receipt: order.orderNumber,
@@ -169,7 +175,7 @@ export default function CheckoutPage() {
       setError(err?.response?.data?.error?.message ?? 'Checkout failed. Please try again.');
       setLoading(false);
     }
-  }, [items, address, cartTotal, clearCart, router]);
+  }, [items, address, cartTotal, couponDiscount, couponCode, clearCart, router]);
 
   const inputClass = (key: string) =>
     `input ${
@@ -405,11 +411,35 @@ export default function CheckoutPage() {
                   <span className="text-surface-500">Shipping</span>
                   <span className="font-semibold text-emerald-600">Free</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      Coupon: {couponCode}
+                    </span>
+                    <span className="font-semibold">-₹{couponDiscount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 mb-3">
+                <CouponInput
+                  subtotal={cartTotal}
+                  onCouponApplied={(code, discount) => {
+                    setCouponCode(code);
+                    setCouponDiscount(discount);
+                  }}
+                  onCouponRemoved={() => {
+                    setCouponCode(null);
+                    setCouponDiscount(0);
+                  }}
+                  disabled={step !== 'review'}
+                />
               </div>
 
               <div className="divider mt-4 pt-4 flex justify-between items-baseline">
                 <span className="text-base font-bold text-surface-900">Total</span>
-                <span className="text-xl font-extrabold text-surface-900">₹{cartTotal.toLocaleString('en-IN')}</span>
+                <span className="text-xl font-extrabold text-surface-900">₹{Math.max(0, cartTotal - couponDiscount).toLocaleString('en-IN')}</span>
               </div>
 
               <div className="mt-5 flex items-center justify-center gap-2 text-xs text-surface-400">

@@ -16,6 +16,7 @@ set -e
 # --------------------------------------------------------------------------
 
 SERVER_IP="187.127.165.229"
+DOMAIN="dreamgadgets.in"
 APP_DIR="/var/www/dream-gadgets"
 API_PORT=3000
 WEB_PORT=3001
@@ -49,12 +50,23 @@ require_app_dir() {
 # --------------------------------------------------------------------------
 write_nginx_config() {
   info "Writing Nginx configuration..."
-  cat > /etc/nginx/sites-available/dream-gadgets <<EOF
-# Dream Gadgets – Nginx config for $SERVER_IP
 
+  SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+
+  if [ -f "$SSL_CERT" ]; then
+    # Full HTTPS config with SSL (Certbot certificates exist)
+    cat > /etc/nginx/sites-available/dream-gadgets <<EOF
+# Dream Gadgets – Nginx config for $DOMAIN
+
+# HTTPS server (main)
 server {
-  listen 80;
-  server_name $SERVER_IP;
+  listen 443 ssl http2;
+  server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+
+  ssl_certificate $SSL_CERT;
+  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_ciphers HIGH:!aNULL:!MD5;
 
   # API
   location /api/ {
@@ -129,7 +141,100 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
   }
 }
+
+# HTTP → HTTPS redirect
+server {
+  listen 80;
+  server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+  return 301 https://\$host\$request_uri;
+}
 EOF
+  else
+    # HTTP-only fallback (before Certbot has run)
+    cat > /etc/nginx/sites-available/dream-gadgets <<EOF
+# Dream Gadgets – Nginx config for $DOMAIN (HTTP, pre-Certbot)
+
+server {
+  listen 80;
+  server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+
+  # API
+  location /api/ {
+    client_max_body_size 25M;
+    proxy_request_buffering off;
+    proxy_pass http://localhost:$API_PORT/api/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;
+  }
+
+  # Swagger docs
+  location /api/docs {
+    proxy_pass http://localhost:$API_PORT/api/docs;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+  }
+
+  # Admin panel static assets
+  location /admin/_next/ {
+    proxy_pass http://localhost:$ADMIN_PORT;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
+  # Admin panel
+  location /admin {
+    proxy_pass http://localhost:$ADMIN_PORT;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+  }
+
+  # Web storefront
+  location / {
+    proxy_pass http://localhost:$WEB_PORT;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+  }
+
+  # Web static asset caching
+  location ~* ^(?!/admin/).*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    proxy_pass http://localhost:$WEB_PORT;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+  }
+}
+EOF
+    warn "⚠️ SSL certs not found at $SSL_CERT"
+    info "   Run 'certbot --nginx -d $DOMAIN -d www.$DOMAIN' after DNS propagates to enable HTTPS"
+  fi
 }
 
 # --------------------------------------------------------------------------
@@ -257,8 +362,8 @@ PSQL
 # App
 NODE_ENV=production
 PORT=$API_PORT
-WEB_URL=http://$SERVER_IP
-ADMIN_URL=http://$SERVER_IP/admin
+WEB_URL=https://$DOMAIN
+ADMIN_URL=https://$DOMAIN/admin
 
 # Database
 DATABASE_URL=postgresql://dg_user:${DB_PASS_ENCODED}@localhost:5432/dreamgadgets
@@ -279,7 +384,7 @@ AWS_ACCESS_KEY_ID=$AWS_KEY_ID
 AWS_SECRET_ACCESS_KEY=$AWS_SECRET
 AWS_REGION=ap-south-1
 S3_BUCKET=$S3_BUCKET
-CDN_BASE_URL=http://$SERVER_IP
+CDN_BASE_URL=https://$DOMAIN
 
 # Razorpay
 RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
@@ -302,15 +407,17 @@ EOF
 
   # Write web .env
   cat > "$APP_DIR/apps/web/.env.local" <<EOF
-NEXT_PUBLIC_API_URL=http://$SERVER_IP/api/v1
-NEXT_PUBLIC_APP_URL=http://$SERVER_IP
+NEXT_PUBLIC_API_URL=https://$DOMAIN/api/v1
+NEXT_PUBLIC_APP_URL=https://$DOMAIN
+NEXT_PUBLIC_RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
 EOF
 
   # Write admin .env
   cat > "$APP_DIR/apps/admin/.env.local" <<EOF
-NEXT_PUBLIC_API_URL=http://$SERVER_IP/api/v1
-NEXT_PUBLIC_APP_URL=http://$SERVER_IP
-NEXT_PUBLIC_ADMIN_URL=http://$SERVER_IP/admin
+NEXT_PUBLIC_API_URL=https://$DOMAIN/api/v1
+NEXT_PUBLIC_APP_URL=https://$DOMAIN
+NEXT_PUBLIC_ADMIN_URL=https://$DOMAIN/admin
+NEXT_PUBLIC_RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
 EOF
 
   # Install dependencies
@@ -395,11 +502,11 @@ EOFPM2
   run_health_checks
 
   info "------------------------------------------------"
-  info "🎉 Install complete! http://$SERVER_IP"
-  info "   Web:   http://$SERVER_IP"
-  info "   Admin: http://$SERVER_IP/admin"
-  info "   API:   http://$SERVER_IP/api/v1"
-  info "   Docs:  http://$SERVER_IP/api/docs"
+  info "🎉 Install complete! https://$DOMAIN"
+  info "   Web:   https://$DOMAIN"
+  info "   Admin: https://$DOMAIN/admin"
+  info "   API:   https://$DOMAIN/api/v1"
+  info "   Docs:  https://$DOMAIN/api/docs"
   info ""
   info "   DB password:      $DB_PASS"
   info "   JWT secret:       $JWT_SECRET"
@@ -444,7 +551,7 @@ cmd_update() {
 
   run_health_checks
   info "------------------------------------------------"
-  info "🎉 Update complete! http://$SERVER_IP"
+  info "🎉 Update complete! https://$DOMAIN"
   info "Rollback: rm -rf $APP_DIR && mv $BACKUP $APP_DIR && pm2 reload all"
   info "------------------------------------------------"
 }
@@ -495,7 +602,12 @@ cmd_nginx() {
   nginx -t && systemctl reload nginx
   info "✅ Nginx reloaded."
   sleep 2
-  curl -s http://$SERVER_IP/api/v1/health || warn "API health check failed – services may still be starting"
+  if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    curl -s https://$DOMAIN/api/v1/health || warn "API health check failed – services may still be starting"
+  else
+    curl -s http://$DOMAIN/api/v1/health || warn "API health check failed – services may still be starting"
+    info "ℹ️  HTTPS not yet configured. Run: certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+  fi
 }
 
 # --------------------------------------------------------------------------

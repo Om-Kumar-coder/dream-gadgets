@@ -69,6 +69,7 @@ export function Footer() {
                 { label: 'Privacy Policy', href: '/privacy' },
                 { label: 'Shipping Policy', href: '/shipping' },
                 { label: 'Warranty Policy', href: '/warranty' },
+                { label: 'Cancellation & Refunds', href: '/cancellation' },
               ].map(link => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-white/50 hover:text-white transition-colors">

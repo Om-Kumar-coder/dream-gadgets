@@ -2,7 +2,7 @@
 
 ## What's Done ✅
 
-The Dream Gadgets website is now **live and working** at **http://187.127.165.229**. Here's what's in place:
+The Dream Gadgets website is now **live and working** at **[https://dreamgadgets.in](https://dreamgadgets.in)**. Here's what's in place:
 
 ### Public Website (The Storefront)
 - Homepage is up with a basic layout
@@ -72,7 +72,7 @@ The site is built and working, but it looks basic because we're using **placehol
 
 | Area | Status |
 |------|--------|
-| Website is live | ✅ Working at http://187.127.165.229 |
+| Website is live | ✅ Working at [https://dreamgadgets.in](https://dreamgadgets.in) |
 | Core features built | ✅ 95% complete |
 | Looks professional | ⏳ Waiting for images & content |
 | Payments live | ⏳ Need Razorpay account setup |

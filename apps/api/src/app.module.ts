@@ -27,6 +27,7 @@ import { BuybackModule } from './modules/buyback/buyback.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { GstModule } from './modules/gst/gst.module';
 import { HealthModule } from './modules/health/health.module';
+import { CouponModule } from './modules/coupon/coupon.module';
 import { RedisModule } from './common/redis/redis.module';
 import { EventsModule } from './common/events/events.module';
 
@@ -110,6 +111,7 @@ import { EventsModule } from './common/events/events.module';
     ReviewsModule,
     GstModule,
     HealthModule,
+    CouponModule,
   ],
 })
 export class AppModule {}

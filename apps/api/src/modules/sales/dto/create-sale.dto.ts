@@ -146,6 +146,11 @@ export class CreateSaleDto {
   @IsIn(['in-store', 'online'])
   saleType?: string;
 
+  @ApiPropertyOptional({ description: 'Coupon code to apply' })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
   @ApiPropertyOptional({ description: 'Notes' })
   @IsOptional()
   @IsString()

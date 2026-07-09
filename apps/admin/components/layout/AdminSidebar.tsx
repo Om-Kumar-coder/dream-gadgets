@@ -29,6 +29,7 @@ import {
   Store,
   Megaphone,
   Palette,
+  Tag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -45,6 +46,7 @@ const navItems = [
   { href: '/orders', label: 'Online Orders', icon: ShoppingBag },
   { href: '/buyback', label: 'Buyback Leads', icon: DollarSign },
   { href: '/returns', label: 'Returns', icon: RotateCcw },
+  { href: '/coupons', label: 'Coupons', icon: Tag },
   { href: '/refunds', label: 'Refunds', icon: Undo2 },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
   { href: '/gst', label: 'GST Reports', icon: Receipt },
