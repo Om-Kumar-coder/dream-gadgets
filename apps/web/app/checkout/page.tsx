@@ -110,7 +110,7 @@ export default function CheckoutPage() {
       const { data: orderRes } = await apiClient.post('/public/orders', {
         items: items.map(i => ({
           itemId: i.id,
-          imei: i.imei || '',
+          imei: null,
           description: i.name || '',
           unitPrice: i.price,
           quantity: i.quantity || 1,
