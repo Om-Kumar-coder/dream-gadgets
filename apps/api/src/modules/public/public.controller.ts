@@ -46,7 +46,7 @@ class CreatePublicOrderDto {
   clientId?: string;
 
   @IsArray()
-  items: Array<{ itemId: string; imei: string; description: string; unitPrice: number; quantity?: number }>;
+  items: Array<{ itemId: string; imei?: string | null; description: string; unitPrice: number; quantity?: number }>;
 
   @IsObject()
   shippingAddress: {

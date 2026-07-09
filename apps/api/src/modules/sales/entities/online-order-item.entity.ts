@@ -22,7 +22,7 @@ export class OnlineOrderItem {
   @Column({ name: 'item_id', nullable: true, type: 'uuid' })
   itemId: string | null;
 
-  @Column({ length: 15, nullable: true })
+  @Column({ length: 50, nullable: true })
   imei: string | null;
 
   @Column({ nullable: true, type: 'varchar', length: 500 })
