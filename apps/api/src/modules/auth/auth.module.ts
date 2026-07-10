@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from './entities/user.entity';
+import { TwilioVerifyService } from './services/twilio-verify.service';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { User } from './entities/user.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, TwilioVerifyService],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

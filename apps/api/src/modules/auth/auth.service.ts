@@ -17,12 +17,12 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { RedisService } from '../../common/redis/redis.service';
+import { TwilioVerifyService } from './services/twilio-verify.service';
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_TTL_SECONDS = 15 * 60; // 15 minutes
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const RESET_TTL_SECONDS = 60 * 60; // 1 hour
-const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
 
 @Injectable()
 export class AuthService {
@@ -33,6 +33,7 @@ export class AuthService {
     private configService: ConfigService,
     private dataSource: DataSource,
     private redisService: RedisService,
+    private twilioVerifyService: TwilioVerifyService,
   ) {}
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -207,12 +208,11 @@ export class AuthService {
   // ─── 3.5 Register (customer) ────────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-    // Verify OTP
-    const storedOtp = await this.redisService.getOtp(dto.phone);
-    if (!storedOtp || storedOtp !== dto.otp) {
+    // Verify OTP via Twilio Verify
+    const verifyResult = await this.twilioVerifyService.verifyOtp(dto.phone, dto.otp);
+    if (!verifyResult.success) {
       throw new BadRequestException('Invalid or expired OTP');
     }
-    await this.redisService.delOtp(dto.phone);
 
     // Check duplicate phone
     const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
@@ -247,12 +247,9 @@ export class AuthService {
   // ─── 3.5 Send OTP (helper for registration) ─────────────────────────────────
 
   async sendOtp(phone: string): Promise<void> {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.redisService.setOtp(phone, otp, OTP_TTL_SECONDS);
-    // In production: enqueue SMS notification job
-    // For now, log it (dev only)
-    if (this.configService.get<string>('app.env') === 'development') {
-      console.log(`[DEV] OTP for ${phone}: ${otp}`);
+    const result = await this.twilioVerifyService.sendOtp(phone);
+    if (!result.success) {
+      throw new BadRequestException(`Failed to send OTP: ${result.error}`);
     }
   }
 

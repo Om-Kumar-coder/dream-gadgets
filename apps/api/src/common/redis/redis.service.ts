@@ -133,19 +133,6 @@ export class RedisService implements OnModuleDestroy {
     await this.del([`login:attempts:${identifier}`, `login:lockout:${identifier}`]);
   }
 
-  // OTP
-  async setOtp(phone: string, otp: string, ttlSeconds: number): Promise<void> {
-    await this.set(`otp:${phone}`, otp, { EX: ttlSeconds });
-  }
-
-  async getOtp(phone: string): Promise<string | null> {
-    return this.get(`otp:${phone}`);
-  }
-
-  async delOtp(phone: string): Promise<void> {
-    await this.del(`otp:${phone}`);
-  }
-
   // Password reset tokens
   async setResetToken(token: string, userId: string, ttlSeconds: number): Promise<void> {
     await this.set(`reset:${token}`, userId, { EX: ttlSeconds });
