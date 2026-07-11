@@ -17,6 +17,7 @@ conn.on('ready', () => {
     `echo "--- Git Pull ---" && cd ${PROJECT_DIR} && git pull 2>&1`,
     `echo "--- Installing dependencies ---" && cd ${PROJECT_DIR} && npm install 2>&1 | tail -5`,
     `echo "--- Building all apps ---" && cd ${PROJECT_DIR} && npm run build 2>&1 | tail -10`,
+    `echo "--- Updating Nginx config ---" && cd ${PROJECT_DIR} && bash deploy.sh nginx 2>&1`,
     `echo "--- Restarting PM2 ---" && cd ${PROJECT_DIR} && pm2 reload all 2>&1`,
     `echo "--- Waiting for services to stabilize ---" && sleep 5`,
     `echo "--- Health Check: API ---" && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health 2>/dev/null || echo "API not responding"`,
