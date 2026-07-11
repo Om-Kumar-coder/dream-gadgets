@@ -72,7 +72,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     namespace = '/',
     token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null,
     url = WS_URL,
-    autoConnect = true,
+    autoConnect = !!token, // only auto-connect when there's an auth token
   } = options;
 
   const cacheKey = getCacheKey(token, namespace);
