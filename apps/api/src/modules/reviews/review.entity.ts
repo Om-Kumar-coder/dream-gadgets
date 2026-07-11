@@ -17,7 +17,7 @@ export class Review {
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string | null;
 
-  @Column({ name: 'client_name' })
+  @Column({ name: 'client_name', type: 'varchar', length: 255 })
   clientName: string;
 
   @Column({ type: 'smallint' })
