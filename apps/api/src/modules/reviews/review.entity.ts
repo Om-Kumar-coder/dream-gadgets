@@ -26,7 +26,7 @@ export class Review {
   @Column({ nullable: true, type: 'text' })
   comment: string | null;
 
-  @Column({ name: 'is_verified', default: false })
+  @Column({ name: 'is_verified', type: 'boolean', default: false })
   isVerified: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
