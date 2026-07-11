@@ -20,7 +20,21 @@ interface UseSocketReturn {
   connected: boolean;
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+// Derive WS origin from the API URL so it works in both dev and production
+// NEXT_PUBLIC_API_URL is e.g. 'http://localhost:3000/api/v1' in dev or 'https://dreamgadgets.in/api/v1' in prod
+function getDefaultWsUrl(): string {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).origin;
+    } catch {
+      // fall through to default
+    }
+  }
+  return 'http://localhost:3000';
+}
+
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || getDefaultWsUrl();
 
 const socketCache = new Map<string, Socket>();
 

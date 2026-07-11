@@ -408,6 +408,7 @@ EOF
   # Write web .env
   cat > "$APP_DIR/apps/web/.env.local" <<EOF
 NEXT_PUBLIC_API_URL=https://$DOMAIN/api/v1
+NEXT_PUBLIC_WS_URL=https://$DOMAIN
 NEXT_PUBLIC_APP_URL=https://$DOMAIN
 NEXT_PUBLIC_RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
 EOF
@@ -415,6 +416,7 @@ EOF
   # Write admin .env
   cat > "$APP_DIR/apps/admin/.env.local" <<EOF
 NEXT_PUBLIC_API_URL=https://$DOMAIN/api/v1
+NEXT_PUBLIC_WS_URL=https://$DOMAIN
 NEXT_PUBLIC_APP_URL=https://$DOMAIN
 NEXT_PUBLIC_ADMIN_URL=https://$DOMAIN/admin
 NEXT_PUBLIC_RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
