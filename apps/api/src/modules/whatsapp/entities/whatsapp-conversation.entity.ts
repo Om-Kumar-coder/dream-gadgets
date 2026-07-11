@@ -16,7 +16,7 @@ export class WhatsappConversation {
   @Column({ name: 'customer_phone', length: 20 })
   customerPhone: string;
 
-  @Column({ name: 'customer_name', length: 200, nullable: true })
+  @Column({ name: 'customer_name', type: 'varchar', length: 200, nullable: true })
   customerName: string | null;
 
   @Column({ length: 50, default: 'general' })

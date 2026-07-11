@@ -40,16 +40,16 @@ export class WhatsappMessage {
   @Column({ name: 'media_url', type: 'text', nullable: true })
   mediaUrl: string | null;
 
-  @Column({ name: 'media_mime_type', length: 100, nullable: true })
+  @Column({ name: 'media_mime_type', type: 'varchar', length: 100, nullable: true })
   mediaMimeType: string | null;
 
-  @Column({ name: 'media_filename', length: 500, nullable: true })
+  @Column({ name: 'media_filename', type: 'varchar', length: 500, nullable: true })
   mediaFilename: string | null;
 
   @Column({ length: 20, default: 'sent' })
   status: string;
 
-  @Column({ name: 'provider_message_id', length: 255, nullable: true })
+  @Column({ name: 'provider_message_id', type: 'varchar', length: 255, nullable: true })
   providerMessageId: string | null;
 
   @Column({ name: 'error_message', type: 'text', nullable: true })

@@ -17,7 +17,7 @@ export class WhatsappAppointment {
   @Column({ length: 20 })
   phone: string;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   name: string | null;
 
   @Column({ length: 50 })

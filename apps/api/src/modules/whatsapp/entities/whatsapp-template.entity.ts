@@ -20,13 +20,13 @@ export class WhatsappTemplate {
   @Column({ length: 10, default: 'en' })
   language: string;
 
-  @Column({ name: 'template_id', length: 100, nullable: true })
+  @Column({ name: 'template_id', type: 'varchar', length: 100, nullable: true })
   templateId: string | null;
 
   @Column({ length: 30, default: 'pending' })
   status: string;
 
-  @Column({ name: 'header_type', length: 30, nullable: true })
+  @Column({ name: 'header_type', type: 'varchar', length: 30, nullable: true })
   headerType: string | null;
 
   @Column({ name: 'header_value', type: 'text', nullable: true })
