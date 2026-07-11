@@ -1,0 +1,1 @@
+{"version":3,"file":"011-create-product-reviews.d.ts","sourceRoot":"","sources":["011-create-product-reviews.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,iCAAkC,YAAW,kBAAkB;IAC1E,IAAI,SAAuC;IAE9B,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAmB3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAG3D"}

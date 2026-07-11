@@ -1,0 +1,1 @@
+{"version":3,"file":"027-create-whatsapp-extended-tables.d.ts","sourceRoot":"","sources":["027-create-whatsapp-extended-tables.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAsC,MAAM,SAAS,CAAC;AAE9F,qBAAa,yCAA0C,YAAW,kBAAkB;IAClF,IAAI,SAA+C;IAEtC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IA+M3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAU3D"}

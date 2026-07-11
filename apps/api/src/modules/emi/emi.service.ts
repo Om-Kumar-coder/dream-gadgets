@@ -76,8 +76,9 @@ export class EmiService {
 
     // Enrich with calculated EMI
     return plans.map((plan) => {
+      const effectiveAmount = amount ?? (plan.minAmount || 1);
       const calculation = EmiService.calculateEMI(
-        amount ?? plan.minAmount || 1,
+        effectiveAmount,
         Number(plan.annualRate),
         plan.tenureMonths,
         Number(plan.processingFee),

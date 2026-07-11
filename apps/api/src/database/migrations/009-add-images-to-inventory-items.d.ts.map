@@ -1,0 +1,1 @@
+{"version":3,"file":"009-add-images-to-inventory-items.d.ts","sourceRoot":"","sources":["009-add-images-to-inventory-items.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,sCAAuC,YAAW,kBAAkB;IAC/E,IAAI,SAA4C;IAEnC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAI3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAG3D"}

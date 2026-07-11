@@ -1,0 +1,65 @@
+'use client';
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, } from 'recharts';
+import { TrendingUp, Image as ImageIcon, MousePointerClick, Eye, EyeOff, Loader2, AlertTriangle, RefreshCw, } from 'lucide-react';
+const PAGE_LABELS = {
+    home: 'Home',
+    shop: 'Shop',
+    promotional: 'Promotional',
+};
+const POSITION_LABELS = {
+    slider: 'Hero Slider',
+    middle: 'Mid-page',
+    bottom: 'Bottom',
+    offer: 'Offer/CTA',
+};
+export function BannerAnalyticsWidget() {
+    const { data, isLoading, isError, error, refetch } = useQuery({
+        queryKey: ['banner-analytics'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/admin/banners/analytics');
+            return data.data;
+        },
+        refetchInterval: 60000, // auto-refresh every minute
+    });
+    if (isLoading) {
+        return (_jsx("div", { className: "card p-5", children: _jsxs("div", { className: "flex items-center gap-3 h-[120px] justify-center", children: [_jsx(Loader2, { className: "w-5 h-5 text-primary animate-spin" }), _jsx("span", { className: "text-sm text-surface-400", children: "Loading banner analytics\u2026" })] }) }));
+    }
+    if (isError || !data) {
+        return (_jsx("div", { className: "card p-5", children: _jsxs("div", { className: "flex flex-col items-center justify-center py-6 text-center", children: [_jsx("div", { className: "w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center mb-2", children: _jsx(AlertTriangle, { className: "w-5 h-5 text-red-500" }) }), _jsx("p", { className: "text-sm text-surface-500", children: "Failed to load banner analytics" }), _jsxs("button", { onClick: () => refetch(), className: "btn-outline btn-sm mt-3", children: [_jsx(RefreshCw, { className: "w-3.5 h-3.5" }), "Retry"] })] }) }));
+    }
+    const hasData = data.totalBanners > 0;
+    const barData = data.byPosition.map((p) => ({
+        name: POSITION_LABELS[p.position] || p.position,
+        clicks: p.clicks,
+        count: p.count,
+    }));
+    const pageClickData = data.byPageType.map((p) => ({
+        name: PAGE_LABELS[p.pageType] || p.pageType,
+        clicks: p.clicks,
+        banners: p.count,
+        avg: p.count > 0 ? (p.clicks / p.count).toFixed(1) : '0',
+    }));
+    return (_jsxs("div", { className: "card p-5", children: [_jsxs("div", { className: "flex items-center justify-between mb-5", children: [_jsxs("div", { className: "flex items-center gap-2", children: [_jsx("div", { className: "p-1.5 rounded-lg bg-primary/10", children: _jsx(TrendingUp, { className: "w-4 h-4 text-primary" }) }), _jsx("h2", { className: "text-sm font-semibold text-surface-700", children: "Banner Analytics" })] }), data.totalClicks > 0 && (_jsxs("span", { className: "badge-primary text-[10px]", children: [data.totalClicks, " total clicks"] }))] }), _jsxs("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5", children: [_jsxs("div", { className: "stat-card group", children: [_jsx("div", { className: "p-2.5 rounded-xl bg-primary shadow-sm", children: _jsx(ImageIcon, { className: "w-5 h-5 text-white" }) }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: "text-xs text-surface-500 font-medium uppercase tracking-wide", children: "Total Banners" }), _jsx("p", { className: "text-2xl font-bold text-surface-900 mt-0.5 group-hover:text-primary transition-colors", children: data.totalBanners })] })] }), _jsxs("div", { className: "stat-card group", children: [_jsx("div", { className: "p-2.5 rounded-xl bg-amber-500 shadow-sm", children: _jsx(MousePointerClick, { className: "w-5 h-5 text-white" }) }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: "text-xs text-surface-500 font-medium uppercase tracking-wide", children: "Total Clicks" }), _jsx("p", { className: "text-2xl font-bold text-surface-900 mt-0.5 group-hover:text-primary transition-colors", children: data.totalClicks }), data.totalBanners > 0 && (_jsxs("p", { className: "text-xs text-surface-400 mt-0.5", children: [(data.totalClicks / data.totalBanners).toFixed(1), " avg/banner"] }))] })] }), _jsxs("div", { className: "stat-card group", children: [_jsx("div", { className: "p-2.5 rounded-xl bg-emerald-500 shadow-sm", children: _jsx(Eye, { className: "w-5 h-5 text-white" }) }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: "text-xs text-surface-500 font-medium uppercase tracking-wide", children: "Active" }), _jsx("p", { className: "text-2xl font-bold text-surface-900 mt-0.5 group-hover:text-primary transition-colors", children: data.activeBanners }), data.totalBanners > 0 && (_jsxs("p", { className: "text-xs text-surface-400 mt-0.5", children: [Math.round((data.activeBanners / data.totalBanners) * 100), "%"] }))] })] }), _jsxs("div", { className: "stat-card group", children: [_jsx("div", { className: "p-2.5 rounded-xl bg-surface-400 shadow-sm", children: _jsx(EyeOff, { className: "w-5 h-5 text-white" }) }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: "text-xs text-surface-500 font-medium uppercase tracking-wide", children: "Inactive" }), _jsx("p", { className: "text-2xl font-bold text-surface-900 mt-0.5 group-hover:text-primary transition-colors", children: data.inactiveBanners })] })] })] }), !hasData ? (_jsxs("div", { className: "py-8 text-center", children: [_jsx("div", { className: "w-12 h-12 rounded-xl bg-surface-50 flex items-center justify-center mx-auto mb-2", children: _jsx(ImageIcon, { className: "w-6 h-6 text-surface-300" }) }), _jsx("p", { className: "text-sm text-surface-400", children: "No banners created yet" }), _jsx("p", { className: "text-xs text-surface-300 mt-1", children: "Create banners to see analytics" })] })) : (_jsxs(_Fragment, { children: [_jsx("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5", children: pageClickData.map((page) => (_jsxs("div", { className: `rounded-xl p-4 border ${page.clicks > 0 ? 'bg-white border-surface-200' : 'bg-surface-50 border-surface-100'}`, children: [_jsxs("div", { className: "flex items-center justify-between mb-2", children: [_jsx("span", { className: "text-xs font-semibold text-surface-700 uppercase tracking-wide", children: page.name }), _jsxs("span", { className: `text-xs font-bold ${page.clicks > 0 ? 'text-primary' : 'text-surface-400'}`, children: [page.clicks, " click", page.clicks !== 1 ? 's' : ''] })] }), _jsxs("div", { className: "flex items-end justify-between", children: [_jsxs("div", { className: "flex items-center gap-1.5 text-xs text-surface-500", children: [_jsx(ImageIcon, { className: "w-3 h-3" }), _jsxs("span", { children: [page.banners, " banner", page.banners !== 1 ? 's' : ''] })] }), _jsxs("div", { className: "text-right", children: [_jsx("span", { className: "text-[10px] text-surface-400", children: "avg " }), _jsxs("span", { className: "text-xs font-semibold text-surface-600", children: [page.avg, "/banner"] })] })] }), data.totalClicks > 0 && (_jsx("div", { className: "mt-2.5 h-1 bg-surface-100 rounded-full overflow-hidden", children: _jsx("div", { className: "h-full rounded-full transition-all duration-500", style: {
+                                            width: `${(page.clicks / data.totalClicks) * 100}%`,
+                                            backgroundColor: page.clicks > 0 ? 'hsl(357, 92.4%, 46.7%)' : 'transparent',
+                                        } }) }))] }, page.name))) }), _jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5", children: [_jsxs("div", { className: "bg-surface-50 rounded-xl p-4 border border-surface-100", children: [_jsx("p", { className: "text-xs font-medium text-surface-500 mb-3", children: "Clicks by Page" }), pageClickData.every((d) => d.clicks === 0) ? (_jsx("div", { className: "h-[180px] flex items-center justify-center text-xs text-surface-400", children: "No click data yet" })) : (_jsx(ResponsiveContainer, { width: "100%", height: 180, children: _jsxs(BarChart, { data: pageClickData, children: [_jsx(CartesianGrid, { strokeDasharray: "3 3", stroke: "hsl(0, 0%, 87%)" }), _jsx(XAxis, { dataKey: "name", tick: { fontSize: 10, fill: 'hsl(0, 0%, 55%)' } }), _jsx(YAxis, { tick: { fontSize: 10, fill: 'hsl(0, 0%, 55%)' } }), _jsx(Tooltip, { contentStyle: {
+                                                        borderRadius: '10px',
+                                                        border: '1px solid hsl(0, 0%, 93%)',
+                                                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                                        fontSize: '12px',
+                                                    }, formatter: (value, name) => [
+                                                        name === 'clicks' ? `${value} clicks` : value,
+                                                        name === 'clicks' ? 'Clicks' : name,
+                                                    ] }), _jsx(Bar, { dataKey: "clicks", fill: "hsl(357, 92.4%, 46.7%)", radius: [4, 4, 0, 0], name: "Clicks" })] }) }))] }), _jsxs("div", { className: "bg-surface-50 rounded-xl p-4 border border-surface-100", children: [_jsx("p", { className: "text-xs font-medium text-surface-500 mb-3", children: "Clicks by Position" }), barData.every((d) => d.clicks === 0) ? (_jsx("div", { className: "h-[180px] flex items-center justify-center text-xs text-surface-400", children: "No click data yet" })) : (_jsx(ResponsiveContainer, { width: "100%", height: 180, children: _jsxs(BarChart, { data: barData, children: [_jsx(CartesianGrid, { strokeDasharray: "3 3", stroke: "hsl(0, 0%, 87%)" }), _jsx(XAxis, { dataKey: "name", tick: { fontSize: 10, fill: 'hsl(0, 0%, 55%)' } }), _jsx(YAxis, { tick: { fontSize: 10, fill: 'hsl(0, 0%, 55%)' } }), _jsx(Tooltip, { contentStyle: {
+                                                        borderRadius: '10px',
+                                                        border: '1px solid hsl(0, 0%, 93%)',
+                                                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                                        fontSize: '12px',
+                                                    } }), _jsx(Bar, { dataKey: "clicks", fill: "hsl(357, 92.4%, 46.7%)", radius: [4, 4, 0, 0], name: "Clicks" })] }) }))] })] }), data.topBanners.length > 0 && (_jsxs("div", { children: [_jsx("p", { className: "text-xs font-medium text-surface-500 mb-2.5", children: "Top Performing Banners" }), _jsx("div", { className: "overflow-x-auto -mx-5", children: _jsxs("table", { className: "w-full text-xs", children: [_jsx("thead", { className: "bg-surface-50", children: _jsxs("tr", { children: [_jsx("th", { className: "px-4 py-2 text-left text-surface-500 font-semibold", children: "Banner" }), _jsx("th", { className: "px-4 py-2 text-left text-surface-500 font-semibold", children: "Page" }), _jsx("th", { className: "px-4 py-2 text-left text-surface-500 font-semibold", children: "Position" }), _jsx("th", { className: "px-4 py-2 text-right text-surface-500 font-semibold", children: "Clicks" }), _jsx("th", { className: "px-4 py-2 text-center text-surface-500 font-semibold", children: "Status" })] }) }), _jsx("tbody", { className: "divide-y divide-surface-100", children: data.topBanners.map((b) => (_jsxs("tr", { className: "hover:bg-surface-50/50 transition-colors", children: [_jsx("td", { className: "px-4 py-2.5", children: _jsxs("div", { className: "flex items-center gap-2.5", children: [_jsx("div", { className: "w-8 h-6 rounded-md bg-surface-100 overflow-hidden shrink-0", children: b.imageUrl ? (_jsx("img", { src: b.imageUrl, alt: "", className: "w-full h-full object-cover" })) : (_jsx("div", { className: "w-full h-full flex items-center justify-center", children: _jsx(ImageIcon, { className: "w-3 h-3 text-surface-300" }) })) }), _jsx("span", { className: "text-surface-700 font-medium truncate max-w-[160px]", children: b.title })] }) }), _jsx("td", { className: "px-4 py-2.5 text-surface-500 capitalize", children: PAGE_LABELS[b.pageType] || b.pageType }), _jsx("td", { className: "px-4 py-2.5 text-surface-500", children: POSITION_LABELS[b.position] || b.position }), _jsx("td", { className: "px-4 py-2.5 text-right font-semibold text-surface-900", children: b.clicks }), _jsx("td", { className: "px-4 py-2.5 text-center", children: _jsx("span", { className: `inline-block w-1.5 h-1.5 rounded-full ${b.isActive
+                                                                ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+                                                                : 'bg-surface-300'}` }) })] }, b.id))) })] }) })] }))] }))] }));
+}
+//# sourceMappingURL=BannerAnalyticsWidget.js.map

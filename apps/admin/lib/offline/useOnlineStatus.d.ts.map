@@ -1,0 +1,1 @@
+{"version":3,"file":"useOnlineStatus.d.ts","sourceRoot":"","sources":["useOnlineStatus.ts"],"names":[],"mappings":"AAIA,UAAU,YAAY;IACpB,QAAQ,EAAE,OAAO,CAAC;IAClB,UAAU,EAAE,OAAO,CAAC;IACpB,YAAY,EAAE,MAAM,GAAG,IAAI,CAAC;IAC5B,aAAa,EAAE,MAAM,GAAG,IAAI,CAAC;IAC7B,eAAe,EAAE,MAAM,OAAO,CAAC,OAAO,CAAC,CAAC;CACzC;AAED;;;;;;;;;;;;;GAaG;AACH,wBAAgB,eAAe,IAAI,YAAY,CA2E9C"}

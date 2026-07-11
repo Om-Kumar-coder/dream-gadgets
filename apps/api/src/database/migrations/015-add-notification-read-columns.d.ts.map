@@ -1,0 +1,1 @@
+{"version":3,"file":"015-add-notification-read-columns.d.ts","sourceRoot":"","sources":["015-add-notification-read-columns.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAe,MAAM,SAAS,CAAC;AAEvE,qBAAa,uCAAwC,YAAW,kBAAkB;IAChF,IAAI,SAA6C;IAEpC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAe3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAG3D"}

@@ -25,21 +25,10 @@ export class CreateWhatsappClickEvents1740000000028 implements MigrationInterfac
       CREATE INDEX "idx_whatsapp_click_created" ON "whatsapp_click_events"("created_at")
     `);
 
-    // Add WhatsApp click permissions to existing roles if they have whatsapp module
-    await queryRunner.query(`
-      UPDATE roles
-      SET permissions = jsonb_set(
-        COALESCE(permissions, '{}'::jsonb),
-        '{whatsapp}',
-        CASE
-          WHEN permissions->'whatsapp' IS NOT NULL
-          THEN (permissions->'whatsapp')::jsonb || '["analytics"]'::jsonb
-          ELSE '["view"]'::jsonb
-        END
-      )
-      WHERE permissions->'whatsapp' IS NOT NULL
-        AND NOT (permissions->'whatsapp' ?? 'analytics')
-    `);
+    // WhatsApp click analytics permissions are seeded via migration 030+ pattern.
+    // The roles table does not have a jsonb `permissions` column — permissions
+    // are managed through the `permissions` and `role_permissions` tables.
+    console.log('WhatsApp click events table created. Permissions seeded separately.');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

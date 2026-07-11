@@ -1,0 +1,1 @@
+{"version":3,"file":"007-create-accessories-table.d.ts","sourceRoot":"","sources":["007-create-accessories-table.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,mCAAoC,YAAW,kBAAkB;IAC5E,IAAI,SAAyC;IAEhC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAmC3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAG3D"}

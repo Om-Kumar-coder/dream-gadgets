@@ -1,0 +1,30 @@
+export declare class CreateInventoryItemDto {
+    imei: string;
+    imei2: string;
+    brandId: string;
+    modelId: string;
+    colour: string;
+    storage: string;
+    ram: string;
+    boxType: string;
+    pkuCode: string;
+    batteryHealth: number;
+    countryOfOrigin: string;
+    hsnCode: string;
+    condition: string;
+    itemName: string;
+    firstInvoiceDate: string;
+    purchasePrice: number;
+    wholesalePrice: number;
+    boxPrice: number;
+    taxRate: number;
+    taxAmount: number;
+    sellingPrice: number;
+    onlinePrice: number;
+    branchId: string;
+    notes: string;
+    accessories: object;
+    warrantyStatus: string;
+    birthdayOffer: boolean;
+}
+//# sourceMappingURL=create-inventory-item.dto.d.ts.map

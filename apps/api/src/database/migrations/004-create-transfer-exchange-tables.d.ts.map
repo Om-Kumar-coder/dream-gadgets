@@ -1,0 +1,1 @@
+{"version":3,"file":"004-create-transfer-exchange-tables.d.ts","sourceRoot":"","sources":["004-create-transfer-exchange-tables.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,yCAA0C,YAAW,kBAAkB;IAClF,IAAI,SAA+C;IAEtC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAqF3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAO3D"}

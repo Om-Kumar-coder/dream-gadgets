@@ -1,0 +1,1 @@
+{"version":3,"file":"012-add-refund-columns.d.ts","sourceRoot":"","sources":["012-add-refund-columns.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,6BAA8B,YAAW,kBAAkB;IACtE,IAAI,SAAmC;IAE1B,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAU3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAS3D"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"019-add-client-gstin.d.ts","sourceRoot":"","sources":["019-add-client-gstin.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAe,MAAM,SAAS,CAAC;AAEvE,qBAAa,2BAA4B,YAAW,kBAAkB;IACpE,IAAI,SAAiC;IAExB,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAmB3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAG3D"}

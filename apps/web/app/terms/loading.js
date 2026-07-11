@@ -1,0 +1,5 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function TermsLoading() {
+    return (_jsxs("div", { className: "min-h-screen bg-white", children: [_jsx("div", { className: "h-48 sm:h-56 bg-surface-100 animate-pulse" }), _jsxs("div", { className: "max-w-3xl mx-auto px-4 py-10", children: [_jsx("div", { className: "h-7 w-32 bg-surface-100 animate-pulse rounded-lg mb-6" }), _jsx("div", { className: "space-y-4", children: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => (_jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "h-5 w-3/4 bg-surface-100 animate-pulse rounded-lg" }), _jsx("div", { className: "h-4 w-full bg-surface-50 animate-pulse rounded-lg" }), _jsx("div", { className: "h-4 w-5/6 bg-surface-50 animate-pulse rounded-lg" }), _jsx("div", { className: "h-4 w-2/3 bg-surface-50 animate-pulse rounded-lg" })] }, i))) })] })] }));
+}
+//# sourceMappingURL=loading.js.map

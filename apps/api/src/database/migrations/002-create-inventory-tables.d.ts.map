@@ -1,0 +1,1 @@
+{"version":3,"file":"002-create-inventory-tables.d.ts","sourceRoot":"","sources":["002-create-inventory-tables.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,kCAAmC,YAAW,kBAAkB;IAC3E,IAAI,SAAwC;IAE/B,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAsI3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAO3D"}

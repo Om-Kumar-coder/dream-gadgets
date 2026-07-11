@@ -1,0 +1,1 @@
+{"version":3,"file":"HeroSlider.d.ts","sourceRoot":"","sources":["HeroSlider.tsx"],"names":[],"mappings":"AAIA,OAAO,EAAE,MAAM,EAAmD,MAAM,qBAAqB,CAAC;AAG9F,UAAU,eAAe;IACvB,OAAO,EAAE,MAAM,EAAE,CAAC;IAClB,gBAAgB,CAAC,EAAE,MAAM,CAAC;IAC1B,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB;AAED,wBAAgB,UAAU,CAAC,EACzB,OAAO,EACP,gBAAuB,EACvB,SAAc,GACf,EAAE,eAAe,kDAsIjB"}

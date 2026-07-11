@@ -1,0 +1,1 @@
+{"version":3,"file":"query-exchange.dto.d.ts","sourceRoot":"","sources":["query-exchange.dto.ts"],"names":[],"mappings":"AAIA,qBAAa,gBAAgB;IACsB,QAAQ,CAAC,EAAE,MAAM,CAAC;IAClB,OAAO,CAAC,EAAE,MAAM,CAAC;IACjB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,MAAM,CAAC,EAAE,MAAM,CAAC;IAC6B,gBAAgB,CAAC,EAAE,OAAO,CAAC;IAChE,IAAI,CAAC,EAAE,MAAM,CAAK;IAClB,KAAK,CAAC,EAAE,MAAM,CAAM;CAC9E"}

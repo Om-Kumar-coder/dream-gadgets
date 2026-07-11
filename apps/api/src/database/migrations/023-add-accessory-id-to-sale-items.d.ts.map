@@ -1,0 +1,1 @@
+{"version":3,"file":"023-add-accessory-id-to-sale-items.d.ts","sourceRoot":"","sources":["023-add-accessory-id-to-sale-items.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,sCAAuC,YAAW,kBAAkB;IAC/E,IAAI,SAA4C;IAEnC,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAQ3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAO3D"}

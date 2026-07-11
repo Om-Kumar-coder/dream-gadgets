@@ -1,0 +1,2 @@
+export default function OnlineOrdersPage(): import("react/jsx-runtime").JSX.Element;
+//# sourceMappingURL=page.d.ts.map

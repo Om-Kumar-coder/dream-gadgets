@@ -1,0 +1,1 @@
+{"version":3,"file":"OfferBanner.d.ts","sourceRoot":"","sources":["OfferBanner.tsx"],"names":[],"mappings":"AAGA,OAAO,EAAE,MAAM,EAAmD,MAAM,qBAAqB,CAAC;AAE9F,UAAU,gBAAgB;IACxB,OAAO,EAAE,MAAM,EAAE,CAAC;IAClB,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB;AAED,wBAAgB,WAAW,CAAC,EAAE,OAAO,EAAE,SAAc,EAAE,EAAE,gBAAgB,kDAsDxE"}

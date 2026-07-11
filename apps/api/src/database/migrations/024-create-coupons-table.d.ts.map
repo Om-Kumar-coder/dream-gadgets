@@ -1,0 +1,1 @@
+{"version":3,"file":"024-create-coupons-table.d.ts","sourceRoot":"","sources":["024-create-coupons-table.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAE1D,qBAAa,+BAAgC,YAAW,kBAAkB;IACxE,IAAI,SAAqC;IAE5B,EAAE,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;IAkC3C,IAAI,CAAC,WAAW,EAAE,WAAW,GAAG,OAAO,CAAC,IAAI,CAAC;CAK3D"}
