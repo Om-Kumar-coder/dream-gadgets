@@ -32,6 +32,7 @@ import {
   Palette,
   Tag,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -49,6 +50,7 @@ const navItems = [
   { href: '/buyback', label: 'Buyback Leads', icon: DollarSign },
   { href: '/returns', label: 'Returns', icon: RotateCcw },
   { href: '/coupons', label: 'Coupons', icon: Tag },
+  { href: '/emi', label: 'EMI Plans', icon: CreditCard },
   { href: '/refunds', label: 'Refunds', icon: Undo2 },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
   { href: '/gst', label: 'GST Reports', icon: Receipt },

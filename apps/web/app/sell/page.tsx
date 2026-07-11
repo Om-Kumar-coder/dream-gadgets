@@ -2,11 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SellWizard } from '../../components/sell/SellWizard';
 import { ScrollReveal } from '../../components/ui/ScrollReveal';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 import { StaticOfferBanner, StaticMidBanner } from '../../components/banner/StaticPageBanners';
 
 export const metadata: Metadata = {
   title: 'Sell Your Phone — Dream Gadgets',
-  description: 'Get the best price for your old phone. Doorstep pickup, instant payment. Sell in 60 seconds.',
+  description: 'Get the best price for your old phone. Free doorstep pickup, instant payment via bank transfer or UPI. Sell in 60 seconds.',
+  openGraph: {
+    title: 'Sell Your Phone — Dream Gadgets',
+    description: 'Get the best price for your old phone. Free doorstep pickup, instant payment. Sell in 60 seconds.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Sell Your Phone — Dream Gadgets',
+    description: 'Get the best price for your old phone. Doorstep pickup, instant payment.',
+  },
 };
 
 const HOW_IT_WORKS = [
@@ -28,6 +40,14 @@ const BENEFITS = [
 export default function SellPage() {
   return (
     <main>
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Sell Your Phone', url: '/sell' },
+      ]} />
+      <JsonLd data={webPageSchema('Sell Your Phone — Dream Gadgets', 'Get the best price for your old phone. Doorstep pickup, instant payment.', [
+        { name: 'Home', url: '/' },
+        { name: 'Sell Your Phone', url: '/sell' },
+      ])} />
       {/* ════════════════════════════════════
           HERO
           ════════════════════════════════════ */}

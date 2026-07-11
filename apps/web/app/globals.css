@@ -25,7 +25,7 @@
   }
 
   * {
-    @apply border-border;
+    @apply border border-[hsl(var(--border))];
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }

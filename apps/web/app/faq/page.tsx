@@ -1,9 +1,21 @@
 import type { Metadata } from 'next';
 import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { faqPageSchema, webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'FAQ — Dream Gadgets',
-  description: 'Frequently asked questions about buying and selling phones at Dream Gadgets.',
+  title: 'Frequently Asked Questions — Dream Gadgets',
+  description: 'Find answers to common questions about buying and selling phones at Dream Gadgets — pricing, returns, payments, data safety, and more.',
+  openGraph: {
+    title: 'FAQ — Dream Gadgets',
+    description: 'Answers to common questions about selling phones, buying refurbished devices, payments, returns, and warranties at Dream Gadgets.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FAQ — Dream Gadgets',
+    description: 'Get answers to frequently asked questions about Dream Gadgets.',
+  },
 };
 
 const FAQS = [
@@ -44,6 +56,15 @@ const FAQS = [
 export default function FaqPage() {
   return (
     <main>
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'FAQ', url: '/faq' },
+      ]} />
+      <JsonLd data={faqPageSchema(FAQS.map(f => ({ question: f.q, answer: f.a })))} />
+      <JsonLd data={webPageSchema('FAQ — Dream Gadgets', 'Frequently asked questions about buying and selling phones.', [
+        { name: 'Home', url: '/' },
+        { name: 'FAQ', url: '/faq' },
+      ])} />
       <section className="text-white py-16 px-4 text-center" style={{
         background: 'linear-gradient(135deg, #0F0F10 0%, #1A1A1A 50%, #0F0F10 100%)'
       }}>

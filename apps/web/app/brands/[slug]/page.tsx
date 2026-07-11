@@ -5,6 +5,8 @@ import { SortSelect } from '../../../components/product/SortSelect';
 import { findBrand, BRANDS } from '../../../lib/brands';
 import { BrandPromoBanner, BrandOfferBanner } from '../../../components/banner/BrandBanners';
 import { DynamicBrandHero } from '../../../components/banner/BrandHero';
+import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
+import { JsonLd } from '../../../components/seo/JsonLd';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -60,7 +62,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!brand) return { title: 'Brand Not Found' };
   return {
     title: `${brand.name} Phones — Dream Gadgets`,
-    description: `Shop certified pre-owned ${brand.name} phones at the best prices. Quality checked with warranty.`,
+    description: `Shop certified pre-owned ${brand.name} phones at the best prices. 20-point quality checked, 6-month warranty, free delivery, and 7-day returns.`,
+    openGraph: {
+      title: `${brand.name} Phones — Dream Gadgets`,
+      description: `Shop certified pre-owned ${brand.name} smartphones at the best prices. Quality checked with warranty.`,
+      images: brand.image ? [brand.image] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${brand.name} Phones — Dream Gadgets`,
+      description: `Shop certified pre-owned ${brand.name} phones with warranty.`,
+    },
   };
 }
 
@@ -91,8 +103,16 @@ export default async function BrandPage({ params: { slug }, searchParams }: Prop
   const limit = 24;
   const totalPages = Math.ceil(total / limit);
 
+  const brandName = brand.name;
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Brands', url: '/products' },
+    { name: `${brandName} Phones`, url: `/brands/${slug}` },
+  ];
+
   return (
     <div className="min-h-screen bg-surface-50/50">
+      <BreadcrumbJsonLd items={breadcrumbItems} />
       {/* ── Dynamic Brand Hero ── */}
       <DynamicBrandHero
         slug={slug}

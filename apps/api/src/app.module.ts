@@ -29,6 +29,7 @@ import { GstModule } from './modules/gst/gst.module';
 import { HealthModule } from './modules/health/health.module';
 import { CouponModule } from './modules/coupon/coupon.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { EmiModule } from './modules/emi/emi.module';
 import { RedisModule } from './common/redis/redis.module';
 import { EventsModule } from './common/events/events.module';
 
@@ -114,6 +115,7 @@ import { EventsModule } from './common/events/events.module';
     HealthModule,
     CouponModule,
     WhatsappModule,
+    EmiModule,
   ],
 })
 export class AppModule {}

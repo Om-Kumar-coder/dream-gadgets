@@ -1,15 +1,35 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'About Us — Dream Gadgets',
-  description: "India's most transparent mobile selling platform.",
+  description: "India's most transparent mobile selling platform for certified used phones. Learn about our mission, values, and why thousands trust us.",
+  openGraph: {
+    title: 'About Us — Dream Gadgets',
+    description: "India's most transparent mobile selling platform. 10,000+ devices sold, 4.8★ rating, 5+ branches.",
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About Us — Dream Gadgets',
+    description: "India's most transparent mobile selling platform.",
+  },
 };
 
 export default function AboutPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'About Us', url: '/about' },
+      ]} />
+      <JsonLd data={webPageSchema('About Us — Dream Gadgets', "India's most transparent mobile selling platform.", [
+        { name: 'Home', url: '/' },
+        { name: 'About Us', url: '/about' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-20 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

@@ -37,3 +37,4 @@ Thumbs.db
 NUL
 .env.local
 vps-*.js
+run-emi-*.js

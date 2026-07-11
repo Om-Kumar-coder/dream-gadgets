@@ -4,10 +4,22 @@ import { ProductCard } from '../../components/product/ProductCard';
 import { FilterSheetClient } from './FilterSheetClient';
 import { SortSelect } from '../../components/product/SortSelect';
 import { ShopBannerSlider, ShopBannerOffer } from '../../components/banner/ShopBanners';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'All Phones',
-  description: 'Browse our collection of certified used smartphones at the best prices.',
+  title: 'Buy Certified Used Phones Online — Dream Gadgets',
+  description: 'Browse our collection of certified refurbished smartphones at the best prices. Apple, Samsung, OnePlus, and more. 6-month warranty, free delivery, 7-day returns.',
+  openGraph: {
+    title: 'Buy Certified Used Phones Online — Dream Gadgets',
+    description: 'Browse certified refurbished smartphones at the best prices. Apple, Samsung, OnePlus & more. Warranty included.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Buy Certified Used Phones Online — Dream Gadgets',
+    description: 'Browse certified refurbished smartphones at the best prices with warranty.',
+  },
 };
 
 interface Props {
@@ -75,6 +87,12 @@ function FilterLink({ href, active, children, className }: { href: string; activ
   );
 }
 
+const PRODUCTS_JSONLD = webPageSchema(
+  'Buy Certified Used Phones Online — Dream Gadgets',
+  'Browse certified refurbished smartphones at the best prices. Apple, Samsung, OnePlus, and more. 6-month warranty, free delivery, 7-day returns.',
+  [{ name: 'Home', url: '/' }, { name: 'All Phones', url: '/products' }],
+);
+
 export default async function ProductsPage({ searchParams }: Props) {
   const { data: products, total } = await getProducts(searchParams);
   const activeCondition = searchParams.condition;
@@ -94,6 +112,11 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-surface-50/50">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'All Phones', url: '/products' },
+      ]} />
+      <JsonLd data={PRODUCTS_JSONLD} />
       {/* Shop Banner — Hero Slider at top */}
       <ShopBannerSlider />
 

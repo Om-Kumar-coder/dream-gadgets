@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Cancellation & Refunds — Dream Gadgets',
-  description: 'Learn about Dream Gadgets order cancellation policy and refund process. Cancel an order before shipping and hassle-free returns within 7 days.',
+  description: 'Learn about Dream Gadgets order cancellation policy and refund process. Cancel before shipping, 7-day returns, and hassle-free refunds.',
   openGraph: {
     title: 'Cancellation & Refunds — Dream Gadgets',
-    description: 'Easy order cancellation before shipping and a 7-day return policy for all certified refurbished phones from Dream Gadgets.',
+    description: 'Easy order cancellation before shipping and a 7-day return policy for all certified refurbished phones.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cancellation & Refunds — Dream Gadgets',
+    description: 'Easy cancellation and refund policy for Dream Gadgets orders.',
   },
 };
 
@@ -159,6 +167,14 @@ const SECTIONS = [
 export default function CancellationPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Cancellation & Refunds', url: '/cancellation' },
+      ]} />
+      <JsonLd data={webPageSchema('Cancellation & Refunds — Dream Gadgets', 'Order cancellation policy and refund process for Dream Gadgets.', [
+        { name: 'Home', url: '/' },
+        { name: 'Cancellation & Refunds', url: '/cancellation' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

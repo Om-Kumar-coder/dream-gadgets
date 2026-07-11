@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Dream Gadgets',
-  description: 'Our privacy policy explains how Dream Gadgets collects, uses, stores, and protects your personal information.',
+  description: 'Learn how Dream Gadgets collects, uses, stores, and protects your personal information. Understand your data privacy rights and our security measures.',
   openGraph: {
     title: 'Privacy Policy — Dream Gadgets',
     description: 'Learn how Dream Gadgets handles your personal data, your rights, and our security measures.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Privacy Policy — Dream Gadgets',
+    description: 'Learn how Dream Gadgets handles your personal data and your privacy rights.',
   },
 };
 
@@ -101,6 +109,14 @@ We are committed to resolving any privacy concerns promptly and transparently.`,
 export default function PrivacyPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Privacy Policy', url: '/privacy' },
+      ]} />
+      <JsonLd data={webPageSchema('Privacy Policy — Dream Gadgets', 'Privacy policy explaining how Dream Gadgets handles your personal data.', [
+        { name: 'Home', url: '/' },
+        { name: 'Privacy Policy', url: '/privacy' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

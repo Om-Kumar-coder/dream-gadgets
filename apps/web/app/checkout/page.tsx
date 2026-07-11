@@ -7,6 +7,21 @@ import { useCartStore } from '../../store/cart.store';
 import { apiClient } from '../../lib/api';
 import { CouponInput } from '../../components/coupon/CouponInput';
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
+
+interface EmiPlanOption {
+  id: string;
+  providerName: string;
+  providerSlug: string;
+  label: string;
+  tenureMonths: number;
+  annualRate: number;
+  processingFee: number;
+  emiAmount: number;
+  totalInterest: number;
+  totalPayment: number;
+}
+
 type Step = 'address' | 'review' | 'payment';
 
 interface AddressForm {
@@ -48,6 +63,10 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [emiPlans, setEmiPlans] = useState<EmiPlanOption[]>([]);
+  const [selectedEmiPlan, setSelectedEmiPlan] = useState<EmiPlanOption | null>(null);
+  const [showEmiDropdown, setShowEmiDropdown] = useState(false);
+  const [emiLoading, setEmiLoading] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const scriptLoadedRef = useRef(false);
   const cartTotal = total();
@@ -78,6 +97,17 @@ export default function CheckoutPage() {
     };
     document.body.appendChild(script);
   }, []);
+
+  // Fetch EMI plans for the cart total
+  useEffect(() => {
+    if (cartTotal < 3000 || emiPlans.length > 0) return;
+    setEmiLoading(true);
+    fetch(`${API}/public/emi/plans?amount=${Math.round(cartTotal - couponDiscount)}`)
+      .then(res => res.json())
+      .then(json => setEmiPlans(json.data ?? []))
+      .catch(() => {/* silent */})
+      .finally(() => setEmiLoading(false));
+  }, [cartTotal, couponDiscount, emiPlans.length]);
 
   if (items.length === 0) return null;
 
@@ -448,6 +478,70 @@ export default function CheckoutPage() {
                 </svg>
                 Secure checkout via Razorpay
               </div>
+
+              {/* EMI Options */}
+              {emiPlans.length > 0 && step === 'review' && (
+                <div className="mt-4 pt-4 divider">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmiDropdown(!showEmiDropdown)}
+                    className="flex items-center gap-2 text-sm font-semibold text-surface-700 mb-3 w-full"
+                  >
+                    <span>💳</span>
+                    <span>Pay in Easy EMIs</span>
+                    {selectedEmiPlan && (
+                      <span className="badge-primary text-[10px] ml-1">
+                        {selectedEmiPlan.emiAmount.toLocaleString('en-IN')}/mo
+                      </span>
+                    )}
+                    <svg className={`w-3.5 h-3.5 ml-auto text-surface-400 transition-transform ${showEmiDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {showEmiDropdown && (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {emiPlans.map(plan => (
+                        <label
+                          key={plan.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                            selectedEmiPlan?.id === plan.id
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                              : 'border-surface-100 hover:border-surface-200'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="emiPlan"
+                            checked={selectedEmiPlan?.id === plan.id}
+                            onChange={() => { setSelectedEmiPlan(plan); setShowEmiDropdown(false); }}
+                            className="w-4 h-4 text-primary accent-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-surface-900">
+                              {plan.providerName} — {plan.label}
+                            </p>
+                            <p className="text-[11px] text-surface-400">
+                              {plan.annualRate === 0 ? 'No Cost EMI' : `${plan.annualRate}% p.a.`}
+                              {plan.processingFee > 0 && ` · Fee: ₹${plan.processingFee}`}
+                            </p>
+                          </div>
+                          <p className="text-sm font-bold text-primary shrink-0">
+                            ₹{plan.emiAmount.toLocaleString('en-IN')}/mo
+                          </p>
+                        </label>
+                      ))}
+                      {selectedEmiPlan && (
+                        <button
+                          onClick={() => { setSelectedEmiPlan(null); setShowEmiDropdown(false); }}
+                          className="w-full text-center text-xs text-surface-400 hover:text-surface-600 py-2 transition-colors"
+                        >
+                          Clear EMI selection
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                 {['Visa', 'MC', 'UPI', 'NetBanking', 'EMI'].map(m => (

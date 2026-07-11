@@ -7,9 +7,11 @@ import { ServiceWorkerRegister } from '@/lib/offline/ServiceWorkerRegister';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamgadgets.in'),
   title: 'Dream Gadgets Admin',
   description: 'Internal ERP for Dream Gadgets multi-branch store management',
   icons: { icon: '/Logo_Dream_Gadgets.png', apple: '/Logo_Dream_Gadgets.png' },
+  robots: { index: false, follow: false },
   other: {
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',

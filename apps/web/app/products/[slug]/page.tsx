@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic';
 import { ProductBuyPanel } from '../../../components/product/ProductBuyPanel';
 import { UrgencyBadge } from '../../../components/product/UrgencyBadge';
 import { PriceComparison } from '../../../components/product/PriceComparison';
+import { JsonLd } from '../../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
 
 // Lazy-load below-the-fold interactive components to reduce initial bundle size
 const EMICalculator = dynamic(
@@ -95,12 +97,19 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
 
   const reviewsData = await getReviews(product.id);
 
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Phones', url: '/products' },
+    { name, url: `/products/${params.slug}` },
+  ];
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name,
     description: product.description || `${product.condition?.replace('_', ' ')} condition smartphone`,
     brand: { '@type': 'Brand', name: product.brand },
+    sku: product.imei,
     offers: {
       '@type': 'Offer',
       price,
@@ -131,12 +140,14 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Structured Data */}
+      <BreadcrumbJsonLd items={breadcrumbItems} />
+      <JsonLd data={jsonLd} />
 
       {/* ── Breadcrumb ── */}
       <div className="bg-white border-b border-surface-100/50">
         <div className="container-page py-3">
-          <nav className="flex items-center gap-2 text-xs text-surface-400">
+          <nav className="flex items-center gap-2 text-xs text-surface-400" aria-label="Breadcrumb">
             <a href="/" className="hover:text-primary transition-colors font-medium">Home</a>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

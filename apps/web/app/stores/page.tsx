@@ -1,8 +1,20 @@
 import type { Metadata } from 'next';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema, localBusinessSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Our Stores — Dream Gadgets Kolkata',
-  description: 'Visit Dream Gadgets stores in Chetla, Jadavpur, and Champahati. Buy/sell/exchange certified used phones, laptops, and gadgets.',
+  description: 'Visit Dream Gadgets stores in Chetla, Jadavpur, and Champahati. Buy, sell, and exchange certified used phones, laptops, and gadgets.',
+  openGraph: {
+    title: 'Our Stores — Dream Gadgets Kolkata',
+    description: 'Visit our stores in Chetla, Jadavpur, and Champahati. Buy, sell, and exchange certified used phones.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Our Stores — Dream Gadgets Kolkata',
+    description: 'Visit Dream Gadgets stores in Kolkata & South 24 Parganas.',
+  },
 };
 
 const STORES = [
@@ -50,9 +62,40 @@ const STORES = [
   },
 ];
 
+const STORE_SCHEMAS = STORES.map(s => ({
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: s.name,
+  telephone: s.phone.replace(/\s/g, ''),
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: s.address,
+    addressLocality: s.city,
+    addressRegion: s.state,
+    postalCode: s.pincode,
+    addressCountry: 'IN',
+  },
+  openingHoursSpecification: {
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    opens: s.hours.split('–')[0]?.trim() ?? '',
+    closes: s.hours.split('–')[1]?.trim() ?? '',
+  },
+  url: `https://maps.google.com/?q=${encodeURIComponent(s.mapQuery)}`,
+}));
+
 export default function StoresPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Our Stores', url: '/stores' },
+      ]} />
+      <JsonLd data={webPageSchema('Our Stores — Dream Gadgets Kolkata', 'Visit Dream Gadgets stores in Chetla, Jadavpur, and Champahati.', [
+        { name: 'Home', url: '/' },
+        { name: 'Our Stores', url: '/stores' },
+      ])} />
+      <JsonLd data={STORE_SCHEMAS} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

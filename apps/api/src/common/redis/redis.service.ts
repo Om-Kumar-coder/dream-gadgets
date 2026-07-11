@@ -146,6 +146,31 @@ export class RedisService implements OnModuleDestroy {
     await this.del(`reset:${token}`);
   }
 
+  // Forgot-password rate limiting (per identifier — email or phone)
+  // Limits to 1 request per cooldown period per identifier
+
+  /**
+   * Checks if the given identifier is currently rate-limited for forgot-password.
+   * Returns the number of seconds remaining in the cooldown, or 0 if not limited.
+   */
+  async getForgotPasswordCooldown(identifier: string): Promise<number> {
+    const remainingTTL = await this.getClient().then((c) => c.ttl(`forgot:cooldown:${identifier}`));
+    return remainingTTL > 0 ? remainingTTL : 0;
+  }
+
+  /**
+   * Records a forgot-password request for the given identifier and sets a cooldown.
+   * Only sets TTL on the first request (when the key doesn't exist yet) so subsequent
+   * requests within the cooldown window don't extend it.
+   */
+  async setForgotPasswordCooldown(identifier: string, cooldownSeconds: number): Promise<void> {
+    const key = `forgot:cooldown:${identifier}`;
+    const exists = await this.exists(key);
+    if (!exists) {
+      await this.set(key, '1', { EX: cooldownSeconds });
+    }
+  }
+
   // ─── Sales-specific helpers ─────────────────────────────────────────────────
 
   async getNextInvoiceSequence(branchId: string, year: number): Promise<number> {

@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Return & Refund Policy — Dream Gadgets',
-  description: 'Our 7-day return policy for certified refurbished phones. Learn about eligibility, return process, refund timeline, and conditions.',
+  description: 'Hassle-free 7-day return policy on all certified refurbished phones. Learn about return eligibility, process, refund timeline, and conditions.',
   openGraph: {
+    title: 'Return & Refund Policy — Dream Gadgets',
+    description: 'Hassle-free 7-day return policy on all certified refurbished phones from Dream Gadgets.',
+  },
+  twitter: {
+    card: 'summary_large_image',
     title: 'Return & Refund Policy — Dream Gadgets',
     description: 'Hassle-free 7-day return policy on all certified refurbished phones from Dream Gadgets.',
   },
@@ -87,6 +95,14 @@ const SECTIONS = [
 export default function ReturnsPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Returns & Refunds', url: '/returns' },
+      ]} />
+      <JsonLd data={webPageSchema('Return & Refund Policy — Dream Gadgets', '7-day return policy for certified refurbished phones from Dream Gadgets.', [
+        { name: 'Home', url: '/' },
+        { name: 'Returns & Refunds', url: '/returns' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

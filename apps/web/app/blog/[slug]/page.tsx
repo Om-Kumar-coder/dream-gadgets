@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { JsonLd } from '../../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
+import { blogPostingSchema } from '../../../lib/seo/schemas';
 
 const POSTS: Record<string, {
   title: string;
@@ -82,6 +85,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title: `${post.title} — Dream Gadgets Blog`,
     description: post.content[0]?.slice(0, 160) || 'Read more on Dream Gadgets Blog',
+    openGraph: {
+      title: `${post.title} — Dream Gadgets Blog`,
+      description: post.content[0]?.slice(0, 160) || '',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${post.title} — Dream Gadgets Blog`,
+      description: post.content[0]?.slice(0, 120) || '',
+    },
   };
 }
 
@@ -102,8 +114,22 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     .filter(([s]) => s !== params.slug)
     .slice(0, 3);
 
+  const blogSchema = blogPostingSchema({
+    title: post.title,
+    description: post.content[0]?.slice(0, 160) || '',
+    datePublished: post.date,
+    author: post.author,
+    url,
+  });
+
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Blog', url: '/blog' },
+        { name: post.title, url: `/blog/${params.slug}` },
+      ]} />
+      <JsonLd data={blogSchema} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

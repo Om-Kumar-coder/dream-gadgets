@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Cookies Policy — Dream Gadgets',
-  description: 'How Dream Gadgets uses cookies and how you can control them. Learn about essential, preference, analytics and authentication cookies used on our website.',
+  description: 'Learn how Dream Gadgets uses cookies — essential, preference, analytics and authentication. Understand how you can control your cookie preferences.',
   openGraph: {
     title: 'Cookies Policy — Dream Gadgets',
     description: 'Learn how Dream Gadgets uses cookies and how to manage your cookie preferences.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cookies Policy — Dream Gadgets',
+    description: 'Learn how Dream Gadgets uses cookies and how to manage your preferences.',
   },
 };
 
@@ -79,6 +87,14 @@ Cookies typically contain a unique identifier — a string of letters and number
 export default function CookiesPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Cookies Policy', url: '/cookies' },
+      ]} />
+      <JsonLd data={webPageSchema('Cookies Policy — Dream Gadgets', 'How Dream Gadgets uses cookies and how you can control them.', [
+        { name: 'Home', url: '/' },
+        { name: 'Cookies Policy', url: '/cookies' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

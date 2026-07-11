@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions — Dream Gadgets',
-  description: 'Terms and conditions for using Dream Gadgets services including buying, selling, payments, shipping, and returns.',
+  description: 'Read the terms and conditions for using Dream Gadgets — buying, selling, payments, shipping, returns, warranty, and legal disclaimers.',
   openGraph: {
     title: 'Terms & Conditions — Dream Gadgets',
-    description: 'Read the terms governing the use of Dream Gadgets platform, including transactions, warranties, and legal disclaimers.',
+    description: 'Terms governing the use of Dream Gadgets platform, including transactions, warranties, and legal disclaimers.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Terms & Conditions — Dream Gadgets',
+    description: 'Read the terms and conditions for using Dream Gadgets platform.',
   },
 };
 
@@ -144,6 +152,14 @@ Key terms for buyers:
 export default function TermsPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Terms & Conditions', url: '/terms' },
+      ]} />
+      <JsonLd data={webPageSchema('Terms & Conditions — Dream Gadgets', 'Terms and conditions for using Dream Gadgets services.', [
+        { name: 'Home', url: '/' },
+        { name: 'Terms & Conditions', url: '/terms' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

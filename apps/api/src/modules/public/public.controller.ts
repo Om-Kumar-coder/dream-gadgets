@@ -347,6 +347,106 @@ export class PublicController {
     return { data: inquiry };
   }
 
+  // ─── WhatsApp Click Tracking ────────────────────────────────────────────────
+
+  @Post('whatsapp/track-click')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track a WhatsApp click event for analytics' })
+  async trackWhatsAppClick(
+    @Body() body: {
+      source: string;
+      productId?: string | null;
+      phone: string;
+      url: string;
+      userAgent?: string | null;
+      referrer?: string | null;
+    },
+  ) {
+    // Validate required fields
+    if (typeof body?.source !== 'string' || !body.source || typeof body?.phone !== 'string' || !body.phone) {
+      return { status: 'ok' };
+    }
+
+    try {
+      await this.dataSource.query(
+        `INSERT INTO whatsapp_click_events (source, phone, page_url, user_agent, referrer)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          body.source?.slice(0, 100),
+          body.phone?.slice(0, 20),
+          body.url?.slice(0, 2000) ?? null,
+          body.userAgent?.slice(0, 500) ?? null,
+          body.referrer?.slice(0, 2000) ?? null,
+        ],
+      );
+    } catch {
+      // Silently fail — tracking shouldn't break UX
+    }
+
+    return { status: 'ok' };
+  }
+
+  @Get('account/whatsapp/analytics')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get WhatsApp click analytics for authenticated users' })
+  async getWhatsAppAnalytics(
+    @Request() req: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('source') source?: string,
+  ) {
+    // Only allow staff/admin roles to access analytics
+    const userRole = req.user?.role;
+    if (!['admin', 'shop_owner', 'manager'].includes(userRole)) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
+    }
+
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIdx = 1;
+
+    if (source) {
+      conditions.push(`source = $${paramIdx++}`);
+      params.push(source);
+    }
+    if (from) {
+      conditions.push(`created_at >= $${paramIdx++}`);
+      params.push(from);
+    }
+    if (to) {
+      conditions.push(`created_at <= $${paramIdx++}`);
+      params.push(to);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const [totalCount, sourceBreakdown, dailyTrend] = await Promise.all([
+      this.dataSource.query(
+        `SELECT COUNT(*)::int AS total FROM whatsapp_click_events ${whereClause}`,
+        params,
+      ),
+      this.dataSource.query(
+        `SELECT source, COUNT(*)::int AS count
+         FROM whatsapp_click_events ${whereClause}
+         GROUP BY source ORDER BY count DESC`,
+        params,
+      ),
+      this.dataSource.query(
+        `SELECT DATE(created_at) AS day, COUNT(*)::int AS count
+         FROM whatsapp_click_events ${whereClause}
+         GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30`,
+        params,
+      ),
+    ]);
+
+    return {
+      total: totalCount[0]?.total ?? 0,
+      bySource: sourceBreakdown,
+      dailyTrend,
+    };
+  }
+
   // ─── Announcement Bar ────────────────────────────────────────────────────────────
 
   @Get('announcement')

@@ -5,6 +5,9 @@ import { HomeBannerHero } from '../components/banner/HomeBannerHero';
 import { HomeBannerMid } from '../components/banner/HomeBannerMid';
 import { HomeBannerOffer } from '../components/banner/HomeBannerOffer';
 import ProductCard from '../components/product/ProductCard';
+import { JsonLd } from '../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
@@ -30,6 +33,12 @@ async function getHomeProducts() {
   }
 }
 
+const HOME_JSONLD = webPageSchema(
+  'Dream Gadgets — Buy & Sell Certified Used Phones',
+  "India's most transparent mobile selling platform. Highest price, doorstep pickup, instant payment.",
+  [{ name: 'Home', url: '/' }],
+);
+
 export default async function HomePage() {
   const products = await getHomeProducts();
   const trending = products.slice(0, 6);
@@ -39,6 +48,10 @@ export default async function HomePage() {
 
   return (
     <main className="overflow-hidden">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+      ]} />
+      <JsonLd data={HOME_JSONLD} />
       {/* ════════════════════════════════════════
           HERO SECTION — Dynamic Banners
           ════════════════════════════════════════ */}

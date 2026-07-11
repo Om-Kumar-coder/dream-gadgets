@@ -5,6 +5,8 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -25,6 +27,7 @@ const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_TTL_SECONDS = 15 * 60; // 15 minutes
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const RESET_TTL_SECONDS = 60 * 60; // 1 hour
+const FORGOT_PASSWORD_COOLDOWN_SECONDS = 60; // 60 seconds between reset requests per identifier
 
 @Injectable()
 export class AuthService {
@@ -301,18 +304,34 @@ export class AuthService {
   // ─── 3.6 Forgot / Reset password ────────────────────────────────────────────
 
   async forgotPassword(identifier: string): Promise<void> {
+    // Check per-identifier rate limit (60-second cooldown)
+    const cooldownRemaining = await this.redisService.getForgotPasswordCooldown(identifier);
+    if (cooldownRemaining > 0) {
+      throw new HttpException({
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        message: 'Too many requests. Please wait before requesting another reset link.',
+        retryAfter: cooldownRemaining,
+      }, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const user = await this.userRepository
       .createQueryBuilder('u')
       .where('u.email = :id OR u.phone = :id', { id: identifier })
       .getOne();
 
     if (!user) {
-      // Don't reveal whether user exists
+      // Don't reveal whether user exists — but still set cooldown to prevent
+      // identifier enumeration attacks
+      await this.redisService.setForgotPasswordCooldown(identifier, FORGOT_PASSWORD_COOLDOWN_SECONDS);
       return;
     }
 
     const token = uuidv4();
     await this.redisService.setResetToken(token, user.id, RESET_TTL_SECONDS);
+
+    // Set cooldown AFTER generating the token so the user doesn't get rate-limited
+    // before actually receiving the reset link
+    await this.redisService.setForgotPasswordCooldown(identifier, FORGOT_PASSWORD_COOLDOWN_SECONDS);
 
     // Build reset URL
     const webUrl = this.configService.get<string>('app.webUrl') ?? 'http://localhost:3001';

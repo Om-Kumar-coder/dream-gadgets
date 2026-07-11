@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/seo/JsonLd';
+import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
+import { webPageSchema } from '../../lib/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Shipping Policy — Dream Gadgets',
-  description: 'Learn about Dream Gadgets shipping policy — free shipping across India, delivery timeline, order processing, and shipping coverage.',
+  description: 'Learn about Dream Gadgets shipping policy — free shipping across India, 3-7 business days delivery, order processing timeline, and complete coverage areas.',
   openGraph: {
     title: 'Shipping Policy — Dream Gadgets',
-    description: 'Free shipping on all orders within India. 3-7 business days delivery. Learn more about our shipping process and coverage areas.',
+    description: 'Free shipping on all orders within India. 3-7 business days delivery. Learn about our shipping process and coverage areas.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shipping Policy — Dream Gadgets',
+    description: 'Free shipping on all orders within India. 3-7 business days delivery.',
   },
 };
 
@@ -113,6 +121,14 @@ const SECTIONS = [
 export default function ShippingPage() {
   return (
     <main className="animate-fade-in">
+      <BreadcrumbJsonLd items={[
+        { name: 'Home', url: '/' },
+        { name: 'Shipping Policy', url: '/shipping' },
+      ]} />
+      <JsonLd data={webPageSchema('Shipping Policy — Dream Gadgets', 'Dream Gadgets shipping policy — free shipping across India, delivery timeline, and order processing.', [
+        { name: 'Home', url: '/' },
+        { name: 'Shipping Policy', url: '/shipping' },
+      ])} />
       {/* Hero */}
       <section className="text-white py-16 px-4 text-center relative overflow-hidden bg-gradient-hero">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />

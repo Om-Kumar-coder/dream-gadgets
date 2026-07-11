@@ -4,12 +4,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { ForbiddenException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException, BadRequestException, HttpException } from '@nestjs/common';
 import * as fc from 'fast-check';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
 import { RedisService } from '../../common/redis/redis.service';
+import { TwilioVerifyService } from './services/twilio-verify.service';
+import { NotificationService } from '../notification/notification.service';
 
 // ─── Redis mock (in-memory store) ────────────────────────────────────────────
 const redisMock: Record<string, string> = {};
@@ -44,7 +46,6 @@ function makeRedisServiceMock(): any {
     exists,
     expire,
     keys,
-    // Auth-specific helpers — delegate to the underlying primitives above
     setRefreshToken: jest.fn(async (userId: string, family: string, token: string, ttlSeconds: number) => {
       await set(`refresh:${userId}:${family}`, token, { EX: ttlSeconds });
     }),
@@ -79,6 +80,16 @@ function makeRedisServiceMock(): any {
     }),
     getResetToken: jest.fn(async (token: string) => get(`reset:${token}`)),
     delResetToken: jest.fn(async (token: string) => del(`reset:${token}`)),
+    getForgotPasswordCooldown: jest.fn(async (identifier: string) => {
+      const key = `forgot:cooldown:${identifier}`;
+      return key in redisMock ? 30 : 0;
+    }),
+    setForgotPasswordCooldown: jest.fn(async (identifier: string, cooldownSeconds: number) => {
+      const key = `forgot:cooldown:${identifier}`;
+      if (!(key in redisMock)) {
+        redisMock[key] = '1';
+      }
+    }),
   };
 }
 
@@ -107,6 +118,8 @@ describe('AuthService', () => {
   let userRepo: any;
   let jwtService: JwtService;
   let dataSource: any;
+  let module: TestingModule;
+  let notifServiceMock: any;
 
   beforeEach(async () => {
     // Clear redis mock state
@@ -130,7 +143,7 @@ describe('AuthService', () => {
       query: (jest.fn() as any).mockResolvedValue([{ module: 'inventory', action: 'view' }]),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: getRepositoryToken(User), useValue: userRepo },
@@ -138,7 +151,6 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn((payload: any, opts: any) => {
-              // Return a deterministic fake token for testing
               return `fake.jwt.${JSON.stringify(payload)}`;
             }),
             verify: jest.fn((token: string, opts: any) => {
@@ -166,11 +178,32 @@ describe('AuthService', () => {
         },
         { provide: DataSource, useValue: dataSource },
         { provide: RedisService, useValue: makeRedisServiceMock() },
+        {
+          provide: TwilioVerifyService,
+          useValue: {
+            sendOtp: jest.fn(async () => ({ success: true, status: 'dev-mode' })),
+            verifyOtp: jest.fn(async (_phone: string, code: string) => {
+              // Accept '123456' as valid, reject everything else
+              if (code === '123456') return { success: true, status: 'approved' };
+              return { success: false, status: 'pending', error: 'Invalid code' };
+            }),
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendEmail: jest.fn(async (payload: any) => ({ id: 'notif-1', ...payload })),
+            sendSms: jest.fn(async (payload: any) => ({ id: 'notif-2', ...payload })),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
+
+    // Store typed notification mock for use in nested describe blocks
+    notifServiceMock = module.get(NotificationService) as any;
   });
 
   // ─── Login ────────────────────────────────────────────────────────────────
@@ -206,7 +239,6 @@ describe('AuthService', () => {
     });
 
     it('should throw ForbiddenException when account is locked', async () => {
-      // Pre-set lockout key
       redisMock['login:lockout:test@example.com'] = '1';
 
       await expect(
@@ -234,7 +266,6 @@ describe('AuthService', () => {
         await service.login({ identifier: 'bad@example.com', password: 'wrong' }).catch(() => {});
       }
 
-      // After 5 failures, lockout key should be set
       const locked = await service.isLockedOut('bad@example.com');
       expect(locked).toBe(true);
     });
@@ -245,7 +276,6 @@ describe('AuthService', () => {
       userRepo.update.mockResolvedValue({});
       dataSource.query.mockResolvedValue([]);
 
-      // Set some failed attempts
       redisMock['login:attempts:test@example.com'] = '3';
 
       await service.login({ identifier: 'test@example.com', password: 'password123' });
@@ -270,7 +300,6 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
-      // Old token should be deleted
       expect(redisMock[`refresh:${user.id}:${family}`]).toBeUndefined();
     });
 
@@ -279,13 +308,10 @@ describe('AuthService', () => {
       const family = 'used-family';
       const refreshToken = `fake.jwt.${JSON.stringify({ sub: userId, family })}`;
 
-      // Token NOT in Redis (already used)
-      // But another family exists
       redisMock[`refresh:${userId}:other-family`] = 'some-token';
 
       await expect(service.refresh(refreshToken)).rejects.toThrow(UnauthorizedException);
 
-      // All sessions should be invalidated
       const remaining = Object.keys(redisMock).filter((k) => k.startsWith(`refresh:${userId}:`));
       expect(remaining).toHaveLength(0);
     });
@@ -321,13 +347,13 @@ describe('AuthService', () => {
     it('should create customer and return tokens when OTP is valid', async () => {
       const phone = '+919876543210';
       redisMock[`otp:${phone}`] = '123456';
-      userRepo.findOne.mockResolvedValueOnce(null); // no existing user
+      userRepo.findOne.mockResolvedValueOnce(null);
       userRepo.create.mockReturnValue(makeUser());
       userRepo.save.mockResolvedValue(makeUser());
-      userRepo.findOne.mockResolvedValueOnce(makeUser()); // reload after save
+      userRepo.findOne.mockResolvedValueOnce(makeUser());
       dataSource.query
-        .mockResolvedValueOnce([{ id: 'customer-role-id' }]) // customer role lookup
-        .mockResolvedValueOnce([]); // permissions
+        .mockResolvedValueOnce([{ id: 'customer-role-id' }])
+        .mockResolvedValueOnce([]);
 
       const result = await service.register({
         phone,
@@ -341,66 +367,355 @@ describe('AuthService', () => {
     });
 
     it('should throw BadRequestException for invalid OTP', async () => {
-      redisMock['otp:+919876543210'] = '999999';
-
       await expect(
         service.register({
           phone: '+919876543210',
           firstName: 'John',
-          otp: '123456',
+          otp: '000000',
           password: 'password123',
         }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
-  // ─── Forgot / Reset password ──────────────────────────────────────────────
+  // ─── 3.6 Forgot / Reset password ──────────────────────────────────────────
 
   describe('forgotPassword', () => {
-    it('should store reset token in Redis for existing user', async () => {
-      const user = makeUser();
+    let user: User;
+
+    beforeEach(() => {
+      user = makeUser();
       userRepo.createQueryBuilder().getOne.mockResolvedValue(user);
+    });
+
+    // ── Token storage ───────────────────────────────────────────────────────
+
+    it('should store a reset token in Redis linked to the user ID', async () => {
+      await service.forgotPassword('test@example.com');
+
+      const resetKeys = Object.keys(redisMock).filter((k) => k.startsWith('reset:'));
+      expect(resetKeys.length).toBe(1);
+
+      const storedUserId = redisMock[resetKeys[0]];
+      expect(storedUserId).toBe(user.id);
+    });
+
+    it('should set the reset token with a TTL of 1 hour (3600 seconds)', async () => {
+      const redisService = module.get<RedisService>(RedisService);
+      const setResetTokenSpy = jest.spyOn(redisService, 'setResetToken');
+
+      await service.forgotPassword('test@example.com');
+
+      const ttlArg = setResetTokenSpy.mock.calls[0]?.[2];
+      expect(ttlArg).toBe(3600); // 1 hour in seconds
+    });
+
+    it('should not store any reset token for non-existent user (security, no info leak)', async () => {
+      userRepo.createQueryBuilder().getOne.mockResolvedValue(null);
+
+      await service.forgotPassword('nobody@example.com');
+
+      const resetKeys = Object.keys(redisMock).filter((k) => k.startsWith('reset:'));
+      expect(resetKeys).toHaveLength(0);
+    });
+
+    it('should not throw when user does not exist (no info leak)', async () => {
+      userRepo.createQueryBuilder().getOne.mockResolvedValue(null);
+      await expect(service.forgotPassword('nobody@example.com')).resolves.not.toThrow();
+    });
+
+    it('should search by email OR phone', async () => {
+      await service.forgotPassword('test@example.com');
+
+      expect(userRepo.createQueryBuilder().getOne).toHaveBeenCalled();
+      const qb = userRepo.createQueryBuilder();
+      expect(qb.where).toHaveBeenCalledWith(
+        'u.email = :id OR u.phone = :id',
+        { id: 'test@example.com' },
+      );
+    });
+
+    // ── Email notifications ────────────────────────────────────────────────
+
+    it('should send a password_reset email when user has an email address', async () => {
+      await service.forgotPassword('test@example.com');
+
+      expect(notifServiceMock.sendEmail).toHaveBeenCalledTimes(1);
+      const callArg: any = (notifServiceMock.sendEmail as any).mock.calls[0][0];
+      expect(callArg.to).toBe('test@example.com');
+      expect(callArg.type).toBe('password_reset');
+      expect(callArg.templateKey).toBe('password_reset');
+      expect(callArg.userId).toBe(user.id);
+      expect(callArg.templateVars).toHaveProperty('name');
+      expect(callArg.templateVars).toHaveProperty('resetUrl');
+      expect(callArg.templateVars.resetUrl).toContain('/reset-password?token=');
+    });
+
+    it('should include the reset token in the email reset URL', async () => {
+      await service.forgotPassword('test@example.com');
+
+      const callArg: any = (notifServiceMock.sendEmail as any).mock.calls[0][0];
+      const resetUrl: string = callArg.templateVars.resetUrl;
+
+      const tokenMatch = resetUrl.match(/token=([a-f0-9-]+)/);
+      expect(tokenMatch).not.toBeNull();
+      const tokenFromUrl = tokenMatch![1];
+      expect(redisMock[`reset:${tokenFromUrl}`]).toBe(user.id);
+    });
+
+    it('should use the configured web URL for the reset link', async () => {
+      const configService = module.get<ConfigService>(ConfigService);
+      (configService.get as any).mockImplementation((key: string) => {
+        const map: Record<string, string> = {
+          'app.jwtSecret': 'test-secret',
+          'app.jwtExpiry': '15m',
+          'app.refreshTokenSecret': 'test-refresh-secret',
+          'app.refreshTokenExpiry': '7d',
+          'app.webUrl': 'https://dreamgadgets.in',
+          'redis.url': 'redis://localhost:6379',
+          'app.env': 'test',
+        };
+        return map[key];
+      });
+
+      await service.forgotPassword('test@example.com');
+
+      const callArg: any = (notifServiceMock.sendEmail as any).mock.calls[0][0];
+      expect(callArg.templateVars.resetUrl).toMatch(/^https:\/\/dreamgadgets\.in\/reset-password\?token=/);
+    });
+
+    it("should include the user's first name in the email template vars", async () => {
+      user.firstName = 'John';
+      await service.forgotPassword('test@example.com');
+
+      const callArg: any = (notifServiceMock.sendEmail as any).mock.calls[0][0];
+      expect(callArg.templateVars.name).toBe('John');
+    });
+
+    it('should fall back to "User" when the user has no first name', async () => {
+      user.firstName = undefined as any;
+      await service.forgotPassword('test@example.com');
+
+      const callArg: any = (notifServiceMock.sendEmail as any).mock.calls[0][0];
+      expect(callArg.templateVars.name).toBe('User');
+    });
+
+    it('should not send email when user has no email address', async () => {
+      user.email = undefined as any;
+      await service.forgotPassword('test@example.com');
+
+      expect(notifServiceMock.sendEmail).not.toHaveBeenCalled();
+    });
+
+    // ── SMS notifications ──────────────────────────────────────────────────
+
+    it('should send a password_reset SMS when user has a phone number', async () => {
+      await service.forgotPassword('test@example.com');
+
+      expect(notifServiceMock.sendSms).toHaveBeenCalledTimes(1);
+      const callArg: any = (notifServiceMock.sendSms as any).mock.calls[0][0];
+      expect(callArg.to).toBe('+919876543210');
+      expect(callArg.type).toBe('password_reset');
+      expect(callArg.templateKey).toBe('password_reset');
+      expect(callArg.templateVars).toHaveProperty('resetUrl');
+    });
+
+    it('should not send SMS when user has no phone number', async () => {
+      user.phone = undefined as any;
+      await service.forgotPassword('test@example.com');
+
+      expect(notifServiceMock.sendSms).not.toHaveBeenCalled();
+    });
+
+    // ── Rate limiting ─────────────────────────────────────────────────────
+
+    it('should throw HttpException(429) when rate-limited (cooldown active)', async () => {
+      // Simulate active cooldown by setting the cooldown key in Redis
+      redisMock['forgot:cooldown:test@example.com'] = '1';
+
+      await expect(
+        service.forgotPassword('test@example.com'),
+      ).rejects.toThrow(HttpException);
+
+      // The response should include retryAfter
+      try {
+        await service.forgotPassword('test@example.com');
+      } catch (err: any) {
+        expect(err.response?.retryAfter).toBeGreaterThan(0);
+        expect(err.status).toBe(429);
+      }
+    });
+
+    it('should set cooldown for non-existent user to prevent enumeration', async () => {
+      userRepo.createQueryBuilder().getOne.mockResolvedValue(null);
+
+      await service.forgotPassword('nobody@example.com');
+
+      // Cooldown key should be set even for non-existent users
+      expect(redisMock['forgot:cooldown:nobody@example.com']).toBe('1');
+    });
+
+    it('should set cooldown after successful forgot-password request', async () => {
+      await service.forgotPassword('test@example.com');
+
+      expect(redisMock['forgot:cooldown:test@example.com']).toBe('1');
+    });
+
+    it('should allow request after cooldown expires', async () => {
+      // First request succeeds
+      await service.forgotPassword('test@example.com');
+
+      // Clear the cooldown (simulate time passing)
+      delete redisMock['forgot:cooldown:test@example.com'];
+
+      // Reset the getForgotPasswordCooldown mock to return 0
+      const redisService = module.get<RedisService>(RedisService);
+      (redisService.getForgotPasswordCooldown as any).mockResolvedValueOnce(0);
+
+      // Second request should succeed
+      await expect(
+        service.forgotPassword('test@example.com'),
+      ).resolves.not.toThrow();
+    });
+
+    // ── Resilience ─────────────────────────────────────────────────────────
+
+    it('should not fail when notification service throws (fire-and-forget)', async () => {
+      (notifServiceMock.sendEmail as any).mockRejectedValueOnce(new Error('Email service down'));
+      (notifServiceMock.sendSms as any).mockRejectedValueOnce(new Error('SMS service down'));
+
+      await expect(service.forgotPassword('test@example.com')).resolves.not.toThrow();
+
+      const resetKeys = Object.keys(redisMock).filter((k) => k.startsWith('reset:'));
+      expect(resetKeys).toHaveLength(1);
+    });
+
+    it('should still store token even when notification fails', async () => {
+      (notifServiceMock.sendEmail as any).mockRejectedValueOnce(new Error('Down'));
 
       await service.forgotPassword('test@example.com');
 
       const resetKeys = Object.keys(redisMock).filter((k) => k.startsWith('reset:'));
-      expect(resetKeys.length).toBeGreaterThan(0);
-    });
-
-    it('should not throw for non-existent user (security)', async () => {
-      userRepo.createQueryBuilder().getOne.mockResolvedValue(null);
-      await expect(service.forgotPassword('nobody@example.com')).resolves.not.toThrow();
+      expect(resetKeys).toHaveLength(1);
+      expect(redisMock[resetKeys[0]]).toBe(user.id);
     });
   });
 
   describe('resetPassword', () => {
-    it('should update password and invalidate sessions', async () => {
-      const userId = 'user-uuid-1';
-      const token = 'valid-reset-token';
+    const userId = 'user-uuid-1';
+    const token = 'valid-reset-token-uuid';
+
+    beforeEach(() => {
       redisMock[`reset:${token}`] = userId;
-      redisMock[`refresh:${userId}:family1`] = 'some-token';
+      redisMock[`refresh:${userId}:family1`] = 'some-refresh-token';
+      redisMock[`refresh:${userId}:family2`] = 'another-refresh-token';
       userRepo.update.mockResolvedValue({});
-
-      await service.resetPassword(token, 'newPassword123');
-
-      expect(userRepo.update).toHaveBeenCalledWith(userId, expect.objectContaining({ passwordHash: expect.any(String) }));
-      expect(redisMock[`reset:${token}`]).toBeUndefined();
-      expect(redisMock[`refresh:${userId}:family1`]).toBeUndefined();
     });
 
-    it('should throw BadRequestException for invalid token', async () => {
-      await expect(service.resetPassword('bad-token', 'newPassword123')).rejects.toThrow(BadRequestException);
+    // ── Success path ───────────────────────────────────────────────────────
+
+    it('should update the user record with a bcrypt-hashed password', async () => {
+      await service.resetPassword(token, 'NewP@ssword456');
+
+      expect(userRepo.update).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          passwordHash: expect.any(String),
+        }),
+      );
+
+      // Verify the stored hash is actually a bcrypt hash (starts with $2b$)
+      const updateArg: any = (userRepo.update as jest.Mock).mock.calls[0][1];
+      const isBcryptHash = (updateArg.passwordHash as string).startsWith('$2b$');
+      expect(isBcryptHash).toBe(true);
+    });
+
+    it('should hash the password with bcrypt cost factor 12', async () => {
+      // We verify the bcrypt cost by checking that the hash starts with $2b$12$
+      // (cost factor 12 is embedded in the bcrypt hash prefix)
+      await service.resetPassword(token, 'MyNewP@ss123');
+
+      const updateArg: any = (userRepo.update as jest.Mock).mock.calls[0][1];
+      const hashPrefix = (updateArg.passwordHash as string).substring(0, 6);
+      expect(hashPrefix).toBe('$2b$12');
+    });
+
+    it('should invalidate all existing refresh token families', async () => {
+      await service.resetPassword(token, 'NewP@ssword456');
+
+      expect(redisMock[`refresh:${userId}:family1`]).toBeUndefined();
+      expect(redisMock[`refresh:${userId}:family2`]).toBeUndefined();
+    });
+
+    it('should delete the reset token after successful use (single-use)', async () => {
+      await service.resetPassword(token, 'NewP@ssword456');
+
+      expect(redisMock[`reset:${token}`]).toBeUndefined();
+    });
+
+    it('should prevent the same token from being used twice', async () => {
+      await service.resetPassword(token, 'NewP@ssword456');
+
+      await expect(
+        service.resetPassword(token, 'AnotherP@ss789'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    // ── Error handling ────────────────────────────────────────────────────
+
+    it('should throw BadRequestException for an invalid token', async () => {
+      await expect(
+        service.resetPassword('nonexistent-token', 'NewP@ssword456'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for an expired token (deleted from Redis)', async () => {
+      delete redisMock[`reset:${token}`];
+
+      await expect(
+        service.resetPassword(token, 'NewP@ssword456'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should not call userRepo.update when the token is invalid', async () => {
+      await expect(
+        service.resetPassword('bad-token', 'NewP@ssword456'),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should not invalidate sessions when the token is invalid', async () => {
+      const before = Object.keys(redisMock).filter((k) => k.startsWith(`refresh:${userId}:`));
+
+      await expect(
+        service.resetPassword('bad-token', 'NewP@ssword456'),
+      ).rejects.toThrow(BadRequestException);
+
+      const after = Object.keys(redisMock).filter((k) => k.startsWith(`refresh:${userId}:`));
+      expect(after.sort()).toEqual(before.sort());
+    });
+
+    // ── Password constraints ───────────────────────────────────────────────
+
+    it('should accept passwords with minimum 8 characters', async () => {
+      await expect(
+        service.resetPassword(token, 'Abcd1234'),
+      ).resolves.not.toThrow();
+    });
+
+    it('should handle special characters in the new password', async () => {
+      await expect(
+        service.resetPassword(token, 'P@$$w0rd!#123'),
+      ).resolves.not.toThrow();
+
+      const updateArg: any = (userRepo.update as jest.Mock).mock.calls[0][1];
+      expect(updateArg.passwordHash).toMatch(/^\$2b\$/);
     });
   });
 
   // ─── Property-based test: JWT payload always contains required fields ──────
 
-  /**
-   * Property: For any valid user, the issued JWT access token payload
-   * always contains sub, email, role, permissions, and branchId.
-   *
-   * Validates: Requirements 1.7
-   */
   describe('JWT payload structure (property-based)', () => {
     it('should always contain sub, role, permissions, branchId in JWT payload', async () => {
       await fc.assert(
@@ -427,7 +742,6 @@ describe('AuthService', () => {
               roleId: 'role-id',
             });
 
-            // Mock permissions
             const perms = Array.from({ length: permCount }, (_, i) => ({
               module: 'inventory',
               action: `action${i}`,
@@ -436,7 +750,6 @@ describe('AuthService', () => {
             userRepo.update.mockResolvedValue({});
             userRepo.createQueryBuilder().getOne.mockResolvedValue(user);
 
-            // Capture what jwtService.sign is called with
             const signCalls: any[] = [];
             (jwtService.sign as ReturnType<typeof jest.fn>).mockImplementation((payload: any) => {
               signCalls.push(payload);
@@ -445,7 +758,6 @@ describe('AuthService', () => {
 
             await service.login({ identifier: email, password: 'password123' });
 
-            // The first sign call is for the access token
             const accessPayload = signCalls[0];
             expect(accessPayload).toHaveProperty('sub');
             expect(accessPayload).toHaveProperty('email');
