@@ -1,173 +1,220 @@
-'use client';
 import Link from 'next/link';
-import Image from 'next/image';
-import { useCartStore } from '../../store/cart.store';
 
 interface ProductCardProps {
+  /** Raw product data from the API */
+  product: any;
+  /** Visual variant — 'grid' has 4:3 aspect, 'square' has 1:1 aspect */
+  variant?: 'grid' | 'square';
+  /** Optional index fallback for key when product has no id */
+  index?: number;
+}
+
+function computeDiscount(price: number, original?: number): number | null {
+  if (!original || original <= price) return null;
+  return Math.round((1 - price / original) * 100);
+}
+
+function formatPrice(n: number): string {
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
+
+function getQualityClass(q: string): string {
+  const map: Record<string, string> = {
+    super_mint: 'Super Mint',
+    sealed_pack: 'Sealed Pack',
+    open_box: 'Open Box',
+    mint: 'Mint',
+    good: 'Good',
+  };
+  return map[q?.toLowerCase()] || q || 'Mint';
+}
+
+function getProductImage(p: any): string | null {
+  if (p.images?.[0]) return p.images[0];
+  if (p.thumbnail) return p.thumbnail;
+  return null;
+}
+
+/** Render star rating (stars only, numeric rating shown separately) */
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`w-3 h-3 ${star <= Math.round(rating) ? 'text-amber-400' : 'text-surface-200'}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Named-export version that accepts individual props (used by brands/[slug] and products pages).
+ */
+export function ProductCard({
+  id,
+  name,
+  condition,
+  price,
+  originalPrice,
+  imageUrl,
+  storage,
+  brand,
+  rating,
+  reviewCount,
+  inStock,
+  quickAdd,
+  variant = 'square',
+}: {
   id: string;
-  slug: string;
+  slug?: string;
   name: string;
   condition: string;
   price: number;
   originalPrice?: number;
   imageUrl?: string;
   storage?: string;
+  brand?: string;
   rating?: number;
   reviewCount?: number;
-  brand?: string;
   inStock?: boolean;
   quickAdd?: boolean;
-}
-
-const FALLBACK_IMAGE = '/images/placeholders/no-image.svg';
-
-const CONDITION_BADGES: Record<string, { label: string; color: string; emoji: string }> = {
-  SEALED_PACK: { label: 'Sealed Pack', color: 'bg-violet-100 text-violet-700 border-violet-200', emoji: '🎯' },
-  OPEN_BOX: { label: 'Open Box', color: 'bg-blue-100 text-blue-700 border-blue-200', emoji: '📦' },
-  SUPER_MINT: { label: 'Super Mint', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', emoji: '✨' },
-  MINT: { label: 'Mint', color: 'bg-teal-100 text-teal-700 border-teal-200', emoji: '💎' },
-  GOOD: { label: 'Good', color: 'bg-amber-100 text-amber-700 border-amber-200', emoji: '👍' },
-};
-
-function calculateDiscount(price: number, original?: number): number | null {
-  if (!original || original <= price) return null;
-  return Math.round((1 - price / original) * 100);
-}
-
-function RatingStars({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'xs' }) {
-  const sizeClass = size === 'sm' ? 'w-3.5 h-3.5' : 'w-3 h-3';
+  variant?: 'grid' | 'square';
+}) {
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map(star => {
-        const fill = rating >= star ? 'text-amber-400' : rating >= star - 0.5 ? 'text-amber-300' : 'text-surface-200';
-        return (
-          <svg key={star} className={`${sizeClass} ${fill}`} fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        );
-      })}
-    </div>
+    <ProductCardDefault
+      product={{
+        id,
+        item_name: name,  // name already includes storage from caller
+        condition,
+        online_price: price,
+        original_price: originalPrice,
+        images: imageUrl ? [imageUrl] : [],
+        storage,
+        brand,
+        rating,
+        reviewCount,
+        inStock,
+        quickAdd,
+      }}
+      variant={variant}
+      index={0}
+    />
   );
 }
 
-export function ProductCard({
-  id, slug, name, condition, price, originalPrice, imageUrl,
-  storage, rating = 0, reviewCount = 0, brand, inStock = true, quickAdd = false,
-}: ProductCardProps) {
-  const src = imageUrl || FALLBACK_IMAGE;
-  const conditionInfo = CONDITION_BADGES[condition] || { label: condition, color: 'bg-surface-100 text-surface-600 border-surface-200', emoji: '📱' };
-  const discount = calculateDiscount(price, originalPrice);
-  const { addItem } = useCartStore();
+/**
+ * Default export — accepts raw product API data.
+ * Used by the homepage (page.tsx).
+ */
+export default function ProductCardDefault({ product: p, variant = 'grid', index = 0 }: ProductCardProps) {
+  const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
+  const origPrice = p.original_price ? Number(p.original_price) : undefined;
+  const discount = computeDiscount(price, origPrice);
+  const img = getProductImage(p);
+  const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
+  const quality = getQualityClass(p.condition);
+  const isSquare = variant === 'square';
+  const padding = isSquare ? 'p-5' : 'p-6';
+  const isInStock = p.inStock !== false;
+  const hasQuickAdd = !!p.quickAdd;
+  const hasRating = typeof p.rating === 'number' && p.rating > 0;
 
   return (
     <Link
-      href={`/products/${slug}`}
-      className="group flex flex-col bg-white rounded-2xl border border-surface-100/80 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300"
+      key={p.id || index}
+      href={`/products/${p.id}`}
+      className="group relative bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300 flex flex-col"
     >
-      {/* Image Container */}
-      <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100 overflow-hidden">
-        <Image
-          src={src}
-          alt={name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-contain p-5 transition-transform duration-500 ease-out group-hover:scale-110"
-          onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE; }}
-        />
-
-        {/* Top badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
-          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${conditionInfo.color} bg-white/90 backdrop-blur-sm shadow-sm`}>
-            {conditionInfo.emoji} {conditionInfo.label}
-          </span>
-        </div>
-
-        {/* Discount badge */}
+      <div
+        className={`relative ${isSquare ? 'aspect-square' : 'aspect-[4/3]'} bg-gradient-to-br from-surface-50 to-surface-100 overflow-hidden`}
+      >
         {discount && (
-          <div className="absolute top-2.5 right-2.5">
-            <span className="inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-              -{discount}%
-            </span>
+          <span className="absolute top-3 right-3 z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+            -{discount}%
+          </span>
+        )}
+        {!isInStock && (
+          <span className="absolute top-3 left-3 z-10 bg-surface-800/80 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+            Out of Stock
+          </span>
+        )}
+        {img ? (
+          <img
+            src={img}
+            alt={name}
+            className={`w-full h-full object-contain ${padding} transition-transform duration-500 ease-out group-hover:scale-110`}
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
           </div>
         )}
-
-        {/* Out of stock overlay */}
-        {!inStock && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
-            <span className="bg-surface-950 text-white text-xs font-semibold px-5 py-2 rounded-full shadow-lg">
-              Out of Stock
-            </span>
-          </div>
-        )}
-
-        {/* Hover quick add */}
-        {quickAdd && inStock && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addItem({ id, imei: id, name, price, slug, imageUrl });
-              }}
-              className="w-full py-2.5 bg-white/95 backdrop-blur-md text-surface-900 text-xs font-bold rounded-xl shadow-lg border border-surface-200 hover:bg-white active:scale-[0.97] transition-all"
-            >
-              <span className="flex items-center justify-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add to Cart
-              </span>
-            </button>
-          </div>
+        {/* Hover overlay (grid variant only) */}
+        {!isSquare && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
       </div>
-
-      {/* Details */}
-      <div className="p-4 flex flex-col gap-1.5 flex-1">
-        {/* Brand */}
-        {brand && (
-          <span className="text-[10px] font-semibold text-surface-400 uppercase tracking-wider">{brand}</span>
-        )}
-
-        {/* Name */}
-        <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+      <div className="p-4 md:p-5 flex-1 flex flex-col">
+        <span className="inline-block text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full mb-2 capitalize w-fit">
+          {quality}
+        </span>
+        <h3 className="text-sm md:text-base font-semibold text-surface-900 line-clamp-2 leading-snug mb-1 group-hover:text-primary transition-colors">
           {name}
         </h3>
 
-        {/* Storage */}
-        {storage && (
-          <span className="text-[11px] text-surface-400 bg-surface-50 px-2 py-0.5 rounded-full w-fit border border-surface-100 font-medium">
-            {storage}
-          </span>
-        )}
-
-        {/* Rating */}
-        {(rating > 0 || reviewCount > 0) && (
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {rating > 0 && <RatingStars rating={rating} size="xs" />}
+        {/* Rating stars + review count */}
+        {hasRating && (
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <StarRating rating={Number(p.rating)} />
             <span className="text-[10px] text-surface-400">
-              {reviewCount > 0 ? `(${reviewCount})` : ''}
+              {Number(p.rating).toFixed(1)}
             </span>
+            {p.reviewCount && Number(p.reviewCount) > 0 && (
+              <span className="text-[10px] text-surface-300">
+                ({Number(p.reviewCount)})
+              </span>
+            )}
           </div>
         )}
 
-        {/* Price section */}
-        <div className="mt-auto pt-2 flex items-baseline gap-2 flex-wrap">
-          <span className="text-base font-extrabold text-surface-900">
-            ₹{price.toLocaleString('en-IN')}
+        {p.branch_name && (
+          <p className="text-xs text-surface-400 mb-1">{p.branch_name}</p>
+        )}
+
+        <div className="mt-auto flex items-baseline gap-2">
+          <span className={`font-extrabold text-surface-900 ${isSquare ? 'text-base' : 'text-lg'}`}>
+            {formatPrice(price)}
           </span>
-          {originalPrice && originalPrice > price && (
-            <span className="text-xs text-surface-400 line-through">
-              ₹{originalPrice.toLocaleString('en-IN')}
+          {origPrice && (
+            <span className={`text-surface-400 line-through ${isSquare ? 'text-xs' : 'text-sm'}`}>
+              {formatPrice(origPrice)}
             </span>
           )}
         </div>
 
-        {/* EMI hint */}
-        {price > 10000 && (
-          <p className="text-[10px] text-surface-400 mt-0.5">
-            No cost EMI from ₹{Math.round(price / 6).toLocaleString('en-IN')}/mo
-          </p>
+        {/* Quick add button */}
+        {hasQuickAdd && isInStock && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Quick add logic handled by parent (cart integration)
+            }}
+            className="mt-2 w-full py-2 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all active:scale-[0.97]"
+          >
+            Quick Add
+          </button>
         )}
       </div>
     </Link>

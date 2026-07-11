@@ -1,15 +1,37 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '../../../components/product/ProductGallery';
-import { ReviewSection } from '../../../components/product/ReviewSection';
-import { RelatedProducts } from '../../../components/product/RelatedProducts';
-import { ProductSpecs } from '../../../components/product/ProductSpecs';
-import { TrustElements } from '../../../components/product/TrustElements';
 import { AddToCartButton } from '../../../components/product/AddToCartButton';
-import { EMICalculator } from '../../../components/product/EMICalculator';
+import dynamic from 'next/dynamic';
 import { ProductBuyPanel } from '../../../components/product/ProductBuyPanel';
 import { UrgencyBadge } from '../../../components/product/UrgencyBadge';
 import { PriceComparison } from '../../../components/product/PriceComparison';
+
+// Lazy-load below-the-fold interactive components to reduce initial bundle size
+const EMICalculator = dynamic(
+  () => import('../../../components/product/EMICalculator').then((mod) => ({ default: mod.EMICalculator })),
+  { ssr: false, loading: () => <div className="h-32 bg-surface-50 animate-pulse rounded-2xl" /> },
+);
+
+const ReviewSection = dynamic(
+  () => import('../../../components/product/ReviewSection').then((mod) => ({ default: mod.ReviewSection })),
+  { loading: () => <div className="h-48 bg-surface-50 animate-pulse rounded-2xl" /> },
+);
+
+const RelatedProducts = dynamic(
+  () => import('../../../components/product/RelatedProducts').then((mod) => ({ default: mod.RelatedProducts })),
+  { loading: () => <div className="h-40 bg-surface-50 animate-pulse rounded-2xl" /> },
+);
+
+const ProductSpecs = dynamic(
+  () => import('../../../components/product/ProductSpecs').then((mod) => ({ default: mod.ProductSpecs })),
+  { loading: () => <div className="h-40 bg-surface-50 animate-pulse rounded-2xl" /> },
+);
+
+const TrustElements = dynamic(
+  () => import('../../../components/product/TrustElements').then((mod) => ({ default: mod.TrustElements })),
+  { loading: () => <div className="h-24 bg-surface-50 animate-pulse rounded-2xl" /> },
+);
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 

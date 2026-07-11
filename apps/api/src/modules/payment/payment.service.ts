@@ -129,7 +129,7 @@ export class PaymentService {
     } catch (err: any) {
       // If Redis is unavailable, still process but log warning
       if (err?.code === 'WEBHOOK_SIGNATURE_INVALID') throw err;
-      console.warn('[Payment] Redis unavailable for idempotency check, processing anyway:', err?.message);
+      this.logger.warn(`Redis unavailable for idempotency check, processing anyway: ${err?.message}`);
       await this.processWebhookEvent(event);
     }
 
@@ -152,7 +152,7 @@ export class PaymentService {
             },
           ).catch(() => {
             // Payment record may not exist yet — log and continue
-            console.log(`[Payment] No payment record found for order ${paymentEntity.order_id}`);
+            this.logger.log(`No payment record found for order ${paymentEntity.order_id}`);
           });
         }
         break;
@@ -162,12 +162,14 @@ export class PaymentService {
           await this.paymentRepo.update(
             { razorpayOrderId: paymentEntity.order_id },
             { status: 'failed' },
-          ).catch(() => {});
+          ).catch((err) => {
+            this.logger.warn(`Failed updating payment status for ${paymentEntity.order_id}: ${err?.message}`);
+          });
         }
         break;
       }
       default:
-        console.log(`[Payment] Unhandled webhook event: ${eventType}`);
+        this.logger.warn(`Unhandled webhook event: ${eventType}`);
     }
   }
 
@@ -215,7 +217,7 @@ export class PaymentService {
           refundStatus: refund.status,
           refundedAt: new Date(),
         }).catch((err) => {
-          console.warn(`[Refund] Failed to persist refund on payment ${dbPaymentId}:`, err?.message);
+          this.logger.warn(`Failed to persist refund on payment ${dbPaymentId}: ${err?.message}`);
         });
 
         // Send customer notifications

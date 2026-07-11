@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
 import { useWebAuthStore } from '../../store/auth.store';
+import ForgotPasswordForm from '../../components/auth/ForgotPasswordForm';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +34,40 @@ export default function LoginPage() {
     }
   }
 
+  /* ── Forgot password view (embedded) ─────────────────────── */
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-surface-900">Forgot Password</h1>
+            <p className="text-sm text-surface-500 mt-1">
+              Enter your email or phone number and we&apos;ll send you a reset link
+            </p>
+          </div>
+
+          <div className="card p-6 sm:p-8">
+            <ForgotPasswordForm embedded onBack={() => setShowForgotPassword(false)} />
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-6">
+            <Link href="/" className="text-xs text-surface-400 hover:text-surface-600 transition-colors">
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Login view ──────────────────────────────────────────── */
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
       <div className="w-full max-w-md">
@@ -78,6 +114,15 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 required
               />
+              <div className="flex justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-xs text-primary hover:text-primary-hover hover:underline transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             {error && (

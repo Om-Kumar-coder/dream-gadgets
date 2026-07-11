@@ -11,6 +11,8 @@ import { Brand } from './entities/brand.entity';
 import { Model } from './entities/model.entity';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { calculateWarrantyExpiry, ItemCondition } from '../../common/utils/business-logic';
+import { EventService } from '../../common/events/event.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -115,6 +117,24 @@ describe('InventoryService', () => {
         { provide: getRepositoryToken(Model), useValue: { findOne: jest.fn() } },
         { provide: DataSource, useValue: dataSource },
         { provide: ConfigService, useValue: makeConfigService() },
+        {
+          provide: EventService,
+          useValue: {
+            emitInventoryUpdated: jest.fn(),
+            emitInventoryLocked: jest.fn(),
+            emitInventoryUnlocked: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            keys: jest.fn(async () => [] as string[]),
+            del: jest.fn(async () => {}),
+            get: jest.fn(async () => null),
+            set: jest.fn(async () => {}),
+            exists: jest.fn(async () => false),
+          },
+        },
       ],
     }).compile();
 

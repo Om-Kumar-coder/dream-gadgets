@@ -13,9 +13,10 @@ import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
 import { OnlineOrderService } from './online-order.service';
 import { CouponModule } from '../coupon/coupon.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sale, SaleItem, Payment, OnlineOrder, OnlineOrderItem, InventoryItem, Accessory, Branch]), CouponModule],
+  imports: [NotificationModule, TypeOrmModule.forFeature([Sale, SaleItem, Payment, OnlineOrder, OnlineOrderItem, InventoryItem, Accessory, Branch]), CouponModule],
   controllers: [SalesController, OrdersController],
   providers: [SalesService, OnlineOrderService],
   exports: [SalesService, OnlineOrderService],

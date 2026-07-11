@@ -31,6 +31,24 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Parse URL-encoded bodies for Twilio WhatsApp webhooks
+  app.use('/api/v1/public/whatsapp/webhook', (req: Request, _res: Response, next: NextFunction) => {
+    if (req.method === 'POST' && req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+      let data = '';
+      req.on('data', (chunk) => { data += chunk; });
+      req.on('end', () => {
+        const params = new URLSearchParams(data);
+        req.body = {};
+        for (const [key, value] of params.entries()) {
+          (req.body as any)[key] = value;
+        }
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
   // Request logging middleware (structured JSON in production)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
@@ -92,7 +110,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Dream Gadgets API running on port ${port}`);
+  logger.log(`Dream Gadgets API running on port ${port}`);
 }
 
 bootstrap();

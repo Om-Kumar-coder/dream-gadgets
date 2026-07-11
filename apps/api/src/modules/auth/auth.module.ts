@@ -9,9 +9,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from './entities/user.entity';
 import { TwilioVerifyService } from './services/twilio-verify.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
+    NotificationModule,
     TypeOrmModule.forFeature([User]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

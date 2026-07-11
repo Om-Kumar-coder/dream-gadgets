@@ -35,3 +35,5 @@ dist/
 Thumbs.db
 *.DS_Store
 NUL
+.env.local
+vps-*.js

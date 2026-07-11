@@ -23,6 +23,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthService } from '../auth/auth.service';
 import {
   AdminService,
   CreateUserDto,
@@ -38,7 +39,10 @@ import {
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), PermissionGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly authService: AuthService,
+  ) {}
 
   // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -96,7 +100,20 @@ export class AdminController {
     @Body() dto: UpdateRolePermissionsDto,
   ) {
     const result = await this.adminService.updateRolePermissions(id, dto);
+    // Invalidate Redis cache so changes propagate instantly
+    await this.authService.invalidatePermissionCache(id);
     return { status: 'success', data: result };
+  }
+
+  @Post('roles/:id/invalidate-permissions')
+  @RequirePermission('settings.edit')
+  @HttpCode(HttpStatus.OK)
+  async invalidatePermissionCache(@Param('id') id: string) {
+    await this.authService.invalidatePermissionCache(id);
+    return {
+      status: 'success',
+      message: `Permission cache invalidated for role ${id}`,
+    };
   }
 
   // ─── Branches ─────────────────────────────────────────────────────────────────

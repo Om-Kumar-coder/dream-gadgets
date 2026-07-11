@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
@@ -18,6 +19,7 @@ import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { RedisService } from '../../common/redis/redis.service';
 import { TwilioVerifyService } from './services/twilio-verify.service';
+import { NotificationService } from '../notification/notification.service';
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -26,6 +28,8 @@ const RESET_TTL_SECONDS = 60 * 60; // 1 hour
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -34,12 +38,32 @@ export class AuthService {
     private dataSource: DataSource,
     private redisService: RedisService,
     private twilioVerifyService: TwilioVerifyService,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
+  /**
+   * Fetches permissions for a role, with Redis caching.
+   * Cache is invalidated whenever role permissions are updated (admin action).
+   * TTL: 15 minutes — permissions rarely change, so this dramatically reduces
+   * DB load on every login and token refresh.
+   */
   private async getUserPermissions(roleId: string): Promise<string[]> {
     if (!roleId) return [];
+
+    // Try cache first
+    const cacheKey = `perms:role:${roleId}`;
+    try {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as string[];
+      }
+    } catch {
+      // Cache miss or error — fall through to DB query
+    }
+
+    // Fetch from DB
     const rows = await this.dataSource.query(
       `SELECT p.module, p.action
        FROM permissions p
@@ -47,7 +71,28 @@ export class AuthService {
        WHERE rp.role_id = $1`,
       [roleId],
     );
-    return rows.map((r: any) => `${r.module}.${r.action}`);
+    const permissions = rows.map((r: any) => `${r.module}.${r.action}`);
+
+    // Cache for 15 minutes (permissions rarely change)
+    try {
+      await this.redisService.set(cacheKey, JSON.stringify(permissions), { EX: 900 });
+    } catch {
+      // Non-critical — cache is best-effort
+    }
+
+    return permissions;
+  }
+
+  /**
+   * Invalidates the permission cache for a role.
+   * Call this when role permissions are updated in the admin panel.
+   */
+  async invalidatePermissionCache(roleId: string): Promise<void> {
+    try {
+      await this.redisService.del(`perms:role:${roleId}`);
+    } catch {
+      // Non-critical
+    }
   }
 
   private async buildTokens(user: User): Promise<{ accessToken: string; refreshToken: string; family: string }> {
@@ -269,9 +314,41 @@ export class AuthService {
     const token = uuidv4();
     await this.redisService.setResetToken(token, user.id, RESET_TTL_SECONDS);
 
-    // In production: enqueue email/SMS notification with reset link
-    if (this.configService.get<string>('app.env') === 'development') {
-      console.log(`[DEV] Password reset token for ${identifier}: ${token}`);
+    // Build reset URL
+    const webUrl = this.configService.get<string>('app.webUrl') ?? 'http://localhost:3001';
+    const resetUrl = `${webUrl}/reset-password?token=${token}`;
+
+    const vars: Record<string, string> = {
+      name: user.firstName ?? 'User',
+      resetUrl,
+    };
+
+    // Send email if user has an email address
+    if (user.email) {
+      this.notificationService.sendEmail({
+        to: user.email,
+        userId: user.id,
+        type: 'password_reset',
+        templateKey: 'password_reset',
+        templateVars: vars,
+        metadata: { identifier },
+      }).catch((err) =>
+        this.logger.warn(`[ForgotPassword] Failed to send email to ${user.email}: ${err?.message}`),
+      );
+    }
+
+    // Send SMS if user has a phone number
+    if (user.phone) {
+      this.notificationService.sendSms({
+        to: user.phone,
+        userId: user.id,
+        type: 'password_reset',
+        templateKey: 'password_reset',
+        templateVars: vars,
+        metadata: { identifier },
+      }).catch((err) =>
+        this.logger.warn(`[ForgotPassword] Failed to send SMS to ${user.phone}: ${err?.message}`),
+      );
     }
   }
 

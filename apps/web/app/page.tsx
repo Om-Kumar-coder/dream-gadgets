@@ -4,6 +4,7 @@ import { BRANDS } from '../lib/brands';
 import { HomeBannerHero } from '../components/banner/HomeBannerHero';
 import { HomeBannerMid } from '../components/banner/HomeBannerMid';
 import { HomeBannerOffer } from '../components/banner/HomeBannerOffer';
+import ProductCard from '../components/product/ProductCard';
 
 export const metadata: Metadata = {
   title: 'Dream Gadgets — Buy & Sell Certified Used Phones',
@@ -27,29 +28,6 @@ async function getHomeProducts() {
   } catch {
     return [];
   }
-}
-
-function computeDiscount(price: number, original?: number): number | null {
-  if (!original || original <= price) return null;
-  return Math.round((1 - price / original) * 100);
-}
-
-function formatPrice(n: number): string {
-  return '₹' + Number(n).toLocaleString('en-IN');
-}
-
-function getQualityClass(q: string): string {
-  const map: Record<string, string> = {
-    super_mint: 'Super Mint', sealed_pack: 'Sealed Pack', open_box: 'Open Box',
-    mint: 'Mint', good: 'Good',
-  };
-  return map[q?.toLowerCase()] || q || 'Mint';
-}
-
-function getProductImage(p: any): string | null {
-  if (p.images?.[0]) return p.images[0];
-  if (p.thumbnail) return p.thumbnail;
-  return null;
 }
 
 export default async function HomePage() {
@@ -135,56 +113,9 @@ export default async function HomePage() {
           <Link href="/products" className="viewBtn">View All →</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {trending.map((p: any, i: number) => {
-            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
-            const origPrice = p.original_price ? Number(p.original_price) : undefined;
-            const discount = computeDiscount(price, origPrice);
-            const img = getProductImage(p);
-            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
-            const quality = getQualityClass(p.condition);
-            return (
-              <Link
-                key={p.id || i}
-                href={`/products/${p.id}`}
-                className="group relative bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="relative aspect-[4/3] bg-gradient-to-br from-surface-50 to-surface-100 overflow-hidden">
-                  {discount && (
-                    <span className="absolute top-3 right-3 z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-                      -{discount}%
-                    </span>
-                  )}
-                  {img ? (
-                    <img src={img} alt={name} className="w-full h-full object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-110" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-20 h-20 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                        <line x1="12" y1="18" x2="12.01" y2="18" />
-                      </svg>
-                    </div>
-                  )}
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="p-4 md:p-5">
-                  <span className="inline-block text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full mb-2 capitalize">
-                    {quality}
-                  </span>
-                  <h3 className="text-sm md:text-base font-semibold text-surface-900 line-clamp-2 leading-snug mb-2 group-hover:text-primary transition-colors">
-                    {name}
-                  </h3>
-                  {p.branch_name && (
-                    <p className="text-xs text-surface-400 mb-2">{p.branch_name}</p>
-                  )}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-extrabold text-surface-900">{formatPrice(price)}</span>
-                    {origPrice && <span className="text-sm text-surface-400 line-through">{formatPrice(origPrice)}</span>}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {trending.map((p: any, i: number) => (
+            <ProductCard key={p.id || i} product={p} variant="grid" index={i} />
+          ))}
         </div>
       </section>
 
@@ -211,43 +142,9 @@ export default async function HomePage() {
             </div>
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {dealOfDay.map((p: any, i: number) => {
-                  const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
-                  const origPrice = p.original_price ? Number(p.original_price) : undefined;
-                  const discount = computeDiscount(price, origPrice);
-                  const img = getProductImage(p);
-                  const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
-                  const quality = getQualityClass(p.condition);
-                  return (
-                    <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
-                      <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
-                        {discount && (
-                          <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
-                            -{discount}%
-                          </span>
-                        )}
-                        {img ? (
-                          <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                              <line x1="12" y1="18" x2="12.01" y2="18" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
-                        <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
-                          {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {dealOfDay.map((p: any, i: number) => (
+                  <ProductCard key={p.id || i} product={p} variant="square" index={i} />
+                ))}
               </div>
             </div>
           </div>
@@ -283,40 +180,9 @@ export default async function HomePage() {
           <Link href="/products?sort=discount" className="viewBtn">View All →</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {hotDeals.map((p: any, i: number) => {
-            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
-            const origPrice = p.original_price ? Number(p.original_price) : undefined;
-            const discount = computeDiscount(price, origPrice);
-            const img = getProductImage(p);
-            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
-            const quality = getQualityClass(p.condition);
-            return (
-              <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
-                <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
-                  {discount && (
-                    <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">-{discount}%</span>
-                  )}
-                  {img ? (
-                    <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
-                  <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
-                    {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {hotDeals.map((p: any, i: number) => (
+            <ProductCard key={p.id || i} product={p} variant="square" index={i} />
+          ))}
         </div>
       </section>
 
@@ -334,40 +200,9 @@ export default async function HomePage() {
           <Link href="/products" className="viewBtn">View All →</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {recommended.map((p: any, i: number) => {
-            const price = Number(p.online_price ?? p.price ?? p.selling_price ?? 0);
-            const origPrice = p.original_price ? Number(p.original_price) : undefined;
-            const discount = computeDiscount(price, origPrice);
-            const img = getProductImage(p);
-            const name = p.item_name ?? `${p.model ?? ''} ${p.storage ?? ''}`.trim();
-            const quality = getQualityClass(p.condition);
-            return (
-              <Link key={p.id || i} href={`/products/${p.id}`} className="group bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-elevation-3 hover:-translate-y-1 transition-all duration-300">
-                <div className="relative aspect-square bg-gradient-to-br from-surface-50 to-surface-100">
-                  {discount && (
-                    <span className="absolute top-3 right-3 z-10 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">-{discount}%</span>
-                  )}
-                  {img ? (
-                    <img src={img} alt={name} className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <span className="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full capitalize">{quality}</span>
-                  <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 mt-1.5 mb-1 group-hover:text-primary transition-colors">{name}</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base font-extrabold text-surface-900">{formatPrice(price)}</span>
-                    {origPrice && <span className="text-xs text-surface-400 line-through">{formatPrice(origPrice)}</span>}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {recommended.map((p: any, i: number) => (
+            <ProductCard key={p.id || i} product={p} variant="square" index={i} />
+          ))}
         </div>
       </section>
 

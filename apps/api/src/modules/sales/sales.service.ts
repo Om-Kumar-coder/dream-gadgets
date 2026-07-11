@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   BadRequestException,
   NotFoundException,
   ForbiddenException,
@@ -21,6 +22,7 @@ import {
   getRequiredDiscountRole,
 } from '../../common/utils/business-logic';
 import { CouponService } from '../coupon/coupon.service';
+import { NotificationService } from '../notification/notification.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { EventService } from '../../common/events/event.service';
 
@@ -39,6 +41,8 @@ function getUserRoleLevel(roleName: string): number {
 
 @Injectable()
 export class SalesService {
+  private readonly logger = new Logger(SalesService.name);
+
   constructor(
     @InjectRepository(Sale)
     private saleRepo: Repository<Sale>,
@@ -57,6 +61,7 @@ export class SalesService {
     private redisService: RedisService,
     private eventService: EventService,
     private couponService: CouponService,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── 7.2 Invoice number generation ──────────────────────────────────────────
@@ -360,7 +365,7 @@ export class SalesService {
         try {
           await this.couponService.recordUsage(appliedCouponCode);
         } catch (err: any) {
-          console.warn(`[Sales] Failed to record coupon usage: ${err?.message}`);
+          this.logger.warn(`Failed to record coupon usage: ${err?.message}`);
         }
       }
 
@@ -384,7 +389,7 @@ export class SalesService {
           });
         }
       } catch (err: any) {
-        console.warn(`[Sales] Failed to emit realtime events: ${err?.message}`);
+        this.logger.warn(`Failed to emit realtime events: ${err?.message}`);
       }
 
       return this.findById(savedSale.id);
@@ -549,18 +554,84 @@ ${itemRows}
 
   async emailInvoice(id: string, email?: string): Promise<{ message: string }> {
     const sale = await this.findById(id);
-    // In production: enqueue notification job with invoice PDF
-    // For MVP: log and return success
-    console.log(`[Sales] Email invoice ${sale.invoiceNumber} to ${email ?? 'client'}`);
-    return { message: `Invoice ${sale.invoiceNumber} queued for email delivery` };
+
+    // Resolve recipient: use provided email, or look up from client
+    let targetEmail = email;
+    if (!targetEmail && sale.clientId) {
+      try {
+        const client = await this.dataSource.query(
+          `SELECT email FROM clients WHERE id = $1`,
+          [sale.clientId],
+        );
+        targetEmail = client?.[0]?.email ?? undefined;
+      } catch {
+        // Ignore — fall through to skip
+      }
+    }
+
+    if (!targetEmail) {
+      return { message: `Invoice ${sale.invoiceNumber}: no email address available` };
+    }
+
+    const vars: Record<string, string> = {
+      name: 'Customer',
+      invoiceNumber: sale.invoiceNumber,
+      amount: Number(sale.totalAmount).toFixed(2),
+    };
+
+    this.notificationService.sendEmail({
+      to: targetEmail,
+      type: 'invoice_delivery',
+      templateKey: 'invoice_delivery',
+      templateVars: vars,
+      metadata: { saleId: id, invoiceNumber: sale.invoiceNumber },
+    }).catch((err: any) =>
+      this.logger.warn(`[Sales] Failed to send invoice email to ${targetEmail}: ${err?.message}`),
+    );
+
+    return { message: `Invoice ${sale.invoiceNumber} queued for email delivery to ${targetEmail}` };
   }
 
   // ─── 7.8 WhatsApp invoice ────────────────────────────────────────────────────
 
   async whatsappInvoice(id: string, phone?: string): Promise<{ message: string }> {
     const sale = await this.findById(id);
-    console.log(`[Sales] WhatsApp invoice ${sale.invoiceNumber} to ${phone ?? 'client'}`);
-    return { message: `Invoice ${sale.invoiceNumber} queued for WhatsApp delivery` };
+
+    // Resolve recipient: use provided phone, or look up from client
+    let targetPhone = phone;
+    if (!targetPhone && sale.clientId) {
+      try {
+        const client = await this.dataSource.query(
+          `SELECT phone FROM clients WHERE id = $1`,
+          [sale.clientId],
+        );
+        targetPhone = client?.[0]?.phone ?? undefined;
+      } catch {
+        // Ignore — fall through to skip
+      }
+    }
+
+    if (!targetPhone) {
+      return { message: `Invoice ${sale.invoiceNumber}: no phone number available` };
+    }
+
+    const vars: Record<string, string> = {
+      name: 'Customer',
+      invoiceNumber: sale.invoiceNumber,
+      amount: Number(sale.totalAmount).toFixed(2),
+    };
+
+    this.notificationService.sendWhatsApp({
+      to: targetPhone,
+      type: 'invoice_delivery',
+      templateKey: 'invoice_delivery',
+      templateVars: vars,
+      metadata: { saleId: id, invoiceNumber: sale.invoiceNumber },
+    }).catch((err: any) =>
+      this.logger.warn(`[Sales] Failed to send invoice WhatsApp to ${targetPhone}: ${err?.message}`),
+    );
+
+    return { message: `Invoice ${sale.invoiceNumber} queued for WhatsApp delivery to ${targetPhone}` };
   }
 
   // ─── 7.9 Void sale ───────────────────────────────────────────────────────────
@@ -618,7 +689,7 @@ ${itemRows}
           timestamp: new Date().toISOString(),
         });
       } catch (err: any) {
-        console.warn(`[Sales] Failed to emit sale.voided: ${err?.message}`);
+        this.logger.warn(`Failed to emit sale.voided: ${err?.message}`);
       }
 
       return this.findById(id);

@@ -19,6 +19,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AdminService } from '../admin/admin.service';
 import { SearchService } from '../search/search.service';
+import { RedisService } from '../../common/redis/redis.service';
 import { OnlineOrderService, CreateOnlineOrderDto } from '../sales/online-order.service';
 import { PaymentService } from '../payment/payment.service';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
@@ -70,6 +71,7 @@ export class PublicController {
     private readonly onlineOrderService: OnlineOrderService,
     private readonly paymentService: PaymentService,
     private readonly adminService: AdminService,
+    private readonly redisService: RedisService,
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
@@ -88,8 +90,21 @@ export class PublicController {
   // ─── Products ──────────────────────────────────────────────────────────────────
 
   @Get('products')
-  @ApiOperation({ summary: 'Search public products' })
+  @ApiOperation({ summary: 'Search public products (cached 60s)' })
   async getProducts(@Query() query: Record<string, any>) {
+    // Build deterministic cache key from all query params
+    const cacheKey = `public:products:${JSON.stringify(query, Object.keys(query).sort())}`;
+
+    // Try cache first
+    try {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // Cache miss or error — fall through to DB query
+    }
+
     const result = await this.searchService.searchPublicProducts('', {
       page: query.page ? Number(query.page) : undefined,
       limit: query.limit ? Number(query.limit) : undefined,
@@ -102,12 +117,21 @@ export class PublicController {
       branchId: query.branchId,
     });
 
-    return {
+    const response = {
       data: result.items,
       total: result.total,
       page: result.page,
       limit: result.limit,
     };
+
+    // Cache for 60 seconds
+    try {
+      await this.redisService.set(cacheKey, JSON.stringify(response), { EX: 60 });
+    } catch {
+      // Non-critical — cache is best-effort
+    }
+
+    return response;
   }
 
   @Get('products/:id')
@@ -223,10 +247,8 @@ export class PublicController {
             },
           });
         } catch (err: any) {
-          // Refund failure shouldn't block cancellation — log and continue
-          console.warn(
-            `[CancelOrder] Refund failed for order ${order.orderNumber}: ${err?.message ?? 'Unknown error'}`,
-          );
+          // Refund failure shouldn't block cancellation — logged in catch, continue
+          // Refund failure shouldn't block cancellation — logged in catch, continue
         }
       }
     }

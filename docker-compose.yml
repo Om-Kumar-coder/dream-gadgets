@@ -44,6 +44,8 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-jwt-secret-change-in-production
       REFRESH_TOKEN_SECRET: dev-refresh-secret-change-in-production
+    env_file:
+      - .env.local
     volumes:
       - ./apps/api/src:/app/apps/api/src
       - ./packages:/app/packages

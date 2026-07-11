@@ -106,6 +106,11 @@ export class NotificationService {
         body: '<h2>Refund Initiated</h2><p>Dear {{name}},</p><p>A refund of <strong>₹{{amount}}</strong> for your order <strong>{{orderNumber}}</strong> has been initiated.</p><p>The refund will be credited to your original payment method within <strong>2–5 business days</strong>.</p><p>Refund ID: {{refundId}}</p><p>— Dream Gadgets</p>',
         smsBody: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. Will credit within 2-5 business days. - Dream Gadgets',
       },
+      password_reset: {
+        subject: 'Reset Your Dream Gadgets Password',
+        body: '<h2>Password Reset</h2><p>Hi {{name}},</p><p>We received a request to reset your password.</p><p>Click the link below to reset it. This link is valid for <strong>1 hour</strong>.</p><p><a href="{{resetUrl}}" style="display:inline-block;padding:12px 24px;background:#E50914;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Reset Password</a></p><p>If you did not request this, please ignore this email.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Reset your Dream Gadgets password. Use this link: {{resetUrl}}. Valid for 1 hour. - Dream Gadgets',
+      },
     };
 
     const tpl = defaults[templateKey] ?? { subject: templateKey, body: '' };
@@ -136,6 +141,7 @@ export class NotificationService {
         otp: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
         birthday_offer: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
         refund_processed: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. - Dream Gadgets',
+        password_reset: 'Reset your Dream Gadgets password: {{resetUrl}}. Valid 1 hour. - Dream Gadgets',
       };
 
       const shortBody = defaults[templateKey] ?? htmlBody.replace(/<[^>]*>/g, '');

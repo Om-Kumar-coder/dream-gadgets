@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,13 +10,17 @@ import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { QueryClientDto } from './dto/query-client.dto';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ClientService {
+  private readonly logger = new Logger(ClientService.name);
+
   constructor(
     @InjectRepository(Client)
     private clientRepo: Repository<Client>,
     private dataSource: DataSource,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── 8.2 Create client ───────────────────────────────────────────────────────
@@ -189,8 +194,21 @@ export class ClientService {
     const client = await this.clientRepo.findOne({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
 
-    // In production: enqueue notification job
-    console.log(`[Client] Email to ${client.email ?? client.phone}: ${payload.subject}`);
+    const target = client.email;
+    if (!target) {
+      return { message: `Client ${id} has no email address` };
+    }
+
+    this.notificationService.sendEmail({
+      to: target,
+      type: 'custom_message',
+      subject: payload.subject,
+      body: payload.body,
+      metadata: { clientId: id },
+    }).catch((err: any) =>
+      this.logger.warn(`[Client] Failed to send email to ${target}: ${err?.message}`),
+    );
+
     return { message: `Email queued for client ${id}` };
   }
 
@@ -200,8 +218,19 @@ export class ClientService {
     const client = await this.clientRepo.findOne({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
 
-    // In production: enqueue notification job
-    console.log(`[Client] WhatsApp to ${client.phone}: ${payload.message}`);
+    if (!client.phone) {
+      return { message: `Client ${id} has no phone number` };
+    }
+
+    this.notificationService.sendWhatsApp({
+      to: client.phone,
+      type: 'custom_message',
+      body: payload.message,
+      metadata: { clientId: id },
+    }).catch((err: any) =>
+      this.logger.warn(`[Client] Failed to send WhatsApp to ${client.phone}: ${err?.message}`),
+    );
+
     return { message: `WhatsApp message queued for client ${id}` };
   }
 }

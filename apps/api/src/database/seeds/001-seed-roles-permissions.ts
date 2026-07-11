@@ -16,9 +16,10 @@ const MODULES = [
   'settings',
   'content',
   'buyback',
+  'whatsapp',
 ];
 
-const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve'];
+const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send'];
 
 // Role permission matrix
 // Format: { module: actions[] }
@@ -40,6 +41,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     settings: [],
     content: [],
     buyback: ['view', 'edit'],
+    whatsapp: ['view', 'edit', 'send'],
   },
 
   shop_sales: {
@@ -57,6 +59,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     settings: [],
     content: [],
     buyback: ['view'],
+    whatsapp: ['view', 'send'],
   },
 
   store_sales: {
@@ -74,6 +77,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     settings: [],
     content: [],
     buyback: ['view'],
+    whatsapp: ['view'],
   },
 
   calling_staff: {
@@ -91,6 +95,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     settings: [],
     content: [],
     buyback: ['view', 'edit'],
+    whatsapp: ['view', 'edit', 'send'],
   },
 
   employee: {
@@ -107,6 +112,8 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     users: [],
     settings: [],
     content: [],
+    buyback: [],
+    whatsapp: [],
   },
 };
 

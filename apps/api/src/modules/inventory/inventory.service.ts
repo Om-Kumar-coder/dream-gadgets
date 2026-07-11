@@ -21,6 +21,7 @@ import {
   ItemCondition,
 } from '../../common/utils/business-logic';
 import { EventService } from '../../common/events/event.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class InventoryService {
@@ -38,11 +39,27 @@ export class InventoryService {
     private dataSource: DataSource,
     private configService: ConfigService,
     private eventService: EventService,
+    private redisService: RedisService,
   ) {}
 
   // Allow optional queue injection from module
   setSearchQueue(queue: any) {
     this.searchQueue = queue;
+  }
+
+  /**
+   * Invalidates all cached public product listings so repeat visitors
+   * see fresh data after any inventory mutation.
+   */
+  private async invalidatePublicCache(): Promise<void> {
+    try {
+      const keys = await this.redisService.keys('public:products:*');
+      if (keys.length > 0) {
+        await this.redisService.del(keys);
+      }
+    } catch {
+      // Non-critical — cache invalidation is best-effort
+    }
   }
 
   // ─── 5.2 Create ─────────────────────────────────────────────────────────────
@@ -87,7 +104,12 @@ export class InventoryService {
       status: 'available',
     });
 
-    return this.itemRepo.save(item);
+    const saved = await this.itemRepo.save(item);
+
+    // Invalidate public product cache so new items appear immediately
+    await this.invalidatePublicCache();
+
+    return saved;
   }
 
   // ─── 5.3 List (paginated + filtered) ────────────────────────────────────────
@@ -193,9 +215,12 @@ export class InventoryService {
         branchId: item.branchId,
         timestamp: new Date().toISOString(),
       });
-    } catch (err: any) {
-      console.warn(`[Inventory] Failed to emit inventory.updated: ${err?.message}`);
+    } catch {
+      // Non-critical — realtime events are best-effort
     }
+
+    // Invalidate public product cache so changes reflect immediately
+    await this.invalidatePublicCache();
 
     return saved;
   }
@@ -284,6 +309,9 @@ export class InventoryService {
         // Queue not available — log and continue
       }
     }
+
+    // Invalidate public product cache when online status toggles
+    await this.invalidatePublicCache();
 
     return saved;
   }

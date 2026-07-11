@@ -10,19 +10,14 @@ import { Brand } from './entities/brand.entity';
 import { Model } from './entities/model.entity';
 import { Accessory } from './entities/accessory.entity';
 import { AccessoryService } from './accessory.service';
-import { EventService } from '../../common/events/event.service';
+import { EventsModule } from '../../common/events/events.module';
+import { RedisModule } from '../../common/redis/redis.module';
 
 /**
  * Integration test: verifies the InventoryModule compiles correctly
  * without duplicate entity registrations.
  */
 describe('InventoryModule', () => {
-  const mockEventService = {
-    emitInventoryUpdated: jest.fn(),
-    emitInventoryLocked: jest.fn(),
-    emitInventoryUnlocked: jest.fn(),
-  };
-
   function buildModule() {
     return Test.createTestingModule({
       imports: [
@@ -33,6 +28,8 @@ describe('InventoryModule', () => {
           synchronize: true,
         }),
         InventoryModule,
+        EventsModule,
+        RedisModule,
       ],
     })
       .overrideProvider(getRepositoryToken(InventoryItem))
@@ -48,9 +45,7 @@ describe('InventoryModule', () => {
       .overrideProvider(ConfigService)
       .useValue({ get: jest.fn() })
       .overrideProvider(getDataSourceToken())
-      .useValue({ query: jest.fn() })
-      .overrideProvider(EventService)
-      .useValue(mockEventService);
+      .useValue({ query: jest.fn() });
   }
 
   it('should compile the module with all dependencies', async () => {
