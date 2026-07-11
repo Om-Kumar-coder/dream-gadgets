@@ -68,6 +68,22 @@ server {
   ssl_protocols TLSv1.2 TLSv1.3;
   ssl_ciphers HIGH:!aNULL:!MD5;
 
+  # Socket.io WebSocket — proxy to API server (must be before /admin and /)
+  location /socket.io/ {
+    proxy_pass http://localhost:$API_PORT/socket.io/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;
+  }
+
   # API
   location /api/ {
     client_max_body_size 25M;
@@ -157,6 +173,22 @@ EOF
 server {
   listen 80;
   server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+
+  # Socket.io WebSocket — proxy to API server (must be before /admin and /)
+  location /socket.io/ {
+    proxy_pass http://localhost:$API_PORT/socket.io/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;
+  }
 
   # API
   location /api/ {
