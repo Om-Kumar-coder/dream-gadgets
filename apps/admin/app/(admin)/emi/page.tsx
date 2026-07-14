@@ -613,7 +613,7 @@ function ProviderCard({
                     onToggle={onTogglePlan}
                     onEdit={onEditPlan}
                     onDelete={onDeletePlan}
-                    isToggling={togglePlanMutation.isPending}
+                    isToggling={isToggling}
                   />
                 ))}
               <div className="px-4 py-3 border-t border-surface-100 bg-surface-50/30">

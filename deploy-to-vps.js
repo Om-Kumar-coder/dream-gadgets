@@ -16,7 +16,7 @@ const deployCommands = [
   `echo "=== Installing dependencies ==="`,
   `cd ${PROJECT_DIR} && npm install 2>&1 | tail -10`,
   `echo "=== Running migrations ==="`,
-  `cd ${PROJECT_DIR}/apps/api && npx ts-node -r tsconfig-paths/register run-migrations.ts 2>&1 | tail -20`,
+  `cd ${PROJECT_DIR}/apps/api && node migrate.js 2>&1`,
   `echo "=== Building all apps (from ${PROJECT_DIR}) ==="`,
   `cd ${PROJECT_DIR} && npm run build 2>&1 | tail -30`,
   `echo "=== PM2 reload ==="`,
