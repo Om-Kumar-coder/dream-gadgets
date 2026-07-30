@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Banner, getBannerImage, getBannerHref, trackBannerClick, getDeviceType } from '@/lib/bannerService';
+import { Banner, getBannerImage, getBannerHref, trackBannerClick, getDeviceType } from '../../lib/bannerService';
 import { ScrollReveal } from '../ui/ScrollReveal';
 
 interface MidPageBannerProps {

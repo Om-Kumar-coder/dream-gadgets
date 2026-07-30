@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getAllBanners, getBannerImage } from '@/lib/bannerService';
+import { getAllBanners, getBannerImage } from '../../lib/bannerService';
 import { HeroSlider } from './HeroSlider';
 import { MidPageBanner } from './MidPageBanner';
 import { OfferBanner } from './OfferBanner';

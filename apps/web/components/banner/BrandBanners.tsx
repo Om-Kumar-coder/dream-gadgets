@@ -1,6 +1,6 @@
 'use client';
 
-import { usePromotionalBanners } from '@/lib/bannerService';
+import { usePromotionalBanners } from '../../lib/bannerService';
 import { MidPageBanner } from './MidPageBanner';
 import { OfferBanner } from './OfferBanner';
 import { Loader2 } from 'lucide-react';

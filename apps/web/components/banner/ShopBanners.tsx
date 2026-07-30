@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getAllBanners } from '@/lib/bannerService';
+import { getAllBanners } from '../../lib/bannerService';
 import { HeroSlider } from './HeroSlider';
 import { OfferBanner } from './OfferBanner';
 import { Loader2 } from 'lucide-react';

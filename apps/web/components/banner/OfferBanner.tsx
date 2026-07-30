@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Banner, getBannerImage, getBannerHref, trackBannerClick } from '@/lib/bannerService';
+import { Banner, getBannerImage, getBannerHref, trackBannerClick } from '../../lib/bannerService';
 
 interface OfferBannerProps {
   banners: Banner[];

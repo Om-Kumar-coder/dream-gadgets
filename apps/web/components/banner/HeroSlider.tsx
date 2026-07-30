@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Banner, getBannerImage, getBannerHref, trackBannerClick } from '@/lib/bannerService';
+import { Banner, getBannerImage, getBannerHref, trackBannerClick } from '../../lib/bannerService';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 
 interface HeroSliderProps {
