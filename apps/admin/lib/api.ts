@@ -15,6 +15,26 @@ function processQueue(error: any, token: string | null = null) {
   failedQueue = [];
 }
 
+/**
+ * Fully clear all admin auth state — localStorage tokens AND the zustand persisted store.
+ * This prevents the redirect loop where persist rehydrates expired tokens.
+ */
+function clearAllAuth() {
+  localStorage.removeItem('admin_access_token');
+  localStorage.removeItem('admin_refresh_token');
+  localStorage.removeItem('admin-auth-storage'); // zustand persist key
+}
+
+/**
+ * Redirect to login only if we are not already on the login page.
+ * This prevents a redirect loop.
+ */
+function safeRedirectToLogin() {
+  const currentPath = window.location.pathname;
+  if (currentPath === '/login') return; // Already on login — don't redirect again
+  window.location.href = '/login';
+}
+
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
   withCredentials: true,
@@ -91,9 +111,8 @@ apiClient.interceptors.response.use(
       return apiClient(original);
     } catch (err) {
       processQueue(err, null);
-      localStorage.removeItem('admin_access_token');
-      localStorage.removeItem('admin_refresh_token');
-      window.location.href = '/login';
+      clearAllAuth();
+      safeRedirectToLogin();
       return Promise.reject(err);
     } finally {
       isRefreshing = false;

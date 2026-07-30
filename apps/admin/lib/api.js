@@ -11,6 +11,15 @@ function processQueue(error, token = null) {
     });
     failedQueue = [];
 }
+function clearAllAuth() {
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin-auth-storage');
+}
+function safeRedirectToLogin() {
+    if (window.location.pathname === '/login') return;
+    window.location.href = '/login';
+}
 export const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
     withCredentials: true,
@@ -72,9 +81,8 @@ apiClient.interceptors.response.use((res) => res, async (error) => {
     }
     catch (err) {
         processQueue(err, null);
-        localStorage.removeItem('admin_access_token');
-        localStorage.removeItem('admin_refresh_token');
-        window.location.href = '/login';
+        clearAllAuth();
+        safeRedirectToLogin();
         return Promise.reject(err);
     }
     finally {

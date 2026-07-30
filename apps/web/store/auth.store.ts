@@ -53,10 +53,11 @@ export const useAuthStore = create<AuthState>()(
               }
             } catch {}
           }
-        } else if (state.accessToken && !stored) {
-          // Store has token but localStorage doesn't — sync it
-          syncToLocalStorage(state.accessToken, state.refreshToken);
         }
+        // NOTE: The reverse case (store has token but localStorage doesn't) is intentionally
+        // NOT handled here. Re-syncing expired tokens back to localStorage was causing an
+        // infinite redirect loop: the API interceptor would clear localStorage on a 401,
+        // then hydrate() would put the expired tokens back, triggering the 401 again.
       },
     }),
     { name: 'auth-storage' },

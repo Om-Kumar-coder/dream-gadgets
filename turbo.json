@@ -5,6 +5,21 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "@dream-gadgets/api#build": {
+      "outputs": ["dist/**"]
+    },
+    "@dream-gadgets/web#build": {
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@dream-gadgets/admin#build": {
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@dream-gadgets/shared-types#build": {
+      "outputs": ["dist/**"]
+    },
+    "@dream-gadgets/ui#build": {
+      "outputs": ["dist/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
