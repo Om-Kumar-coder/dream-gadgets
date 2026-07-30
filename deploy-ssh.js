@@ -17,7 +17,7 @@ conn.on('ready', () => {
     `echo "--- Git Pull ---" && cd ${PROJECT_DIR} && git pull 2>&1`,
     `echo "--- Installing dependencies ---" && cd ${PROJECT_DIR} && npm install 2>&1 | tail -5`,
     `echo "--- Cleaning stale API build cache ---" && cd ${PROJECT_DIR}/apps/api && rm -rf dist *.tsbuildinfo .tsbuildinfo 2>&1`,
-    `echo "--- Building all apps (forced) ---" && cd ${PROJECT_DIR} && npx turbo run build --force 2>&1 | tail -20`,
+    `echo "--- Building all apps (forced) ---" && cd ${PROJECT_DIR} && npm run build -- --force 2>&1 | tail -20`,
     `echo "--- Updating Nginx config ---" && cd ${PROJECT_DIR} && bash deploy.sh nginx 2>&1`,
     `echo "--- Restarting PM2 ---" && cd ${PROJECT_DIR} && pm2 reload all 2>&1`,
     `echo "--- Waiting for services to stabilize ---" && sleep 5`,
