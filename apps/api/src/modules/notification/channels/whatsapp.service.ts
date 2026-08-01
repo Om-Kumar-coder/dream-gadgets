@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { formatE164Phone } from '../../../common/utils/phone';
 
 export interface WhatsAppDeliveryResult {
   success: boolean;
@@ -33,7 +34,7 @@ export class WhatsAppService {
     }
 
     try {
-      const formattedTo = this.formatWhatsAppPhone(to);
+      const formattedTo = formatE164Phone(to);
       const from = this.configService.get<string>('TWILIO_WHATSAPP_FROM') ?? '+14155238886'; // Twilio WhatsApp sandbox
 
       const twilio = require('twilio');
@@ -60,16 +61,5 @@ export class WhatsAppService {
         error: err?.message ?? 'Unknown WhatsApp error',
       };
     }
-  }
-
-  private formatWhatsAppPhone(phone: string): string {
-    let digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) {
-      digits = `91${digits}`;
-    }
-    if (!digits.startsWith('+')) {
-      digits = `+${digits}`;
-    }
-    return digits;
   }
 }

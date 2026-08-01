@@ -13,7 +13,6 @@ import {
   RawBodyRequest,
   Req,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
@@ -21,7 +20,9 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiSecurity, ApiQuery } from '@ne
 import { AuthGuard } from '@nestjs/passport';
 import { IsNumber, IsOptional, IsString, IsObject, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { PaymentService } from './payment.service';
+import { PhonePeService } from './phonepe.service';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -62,8 +63,24 @@ class VerifyPaymentDto {
   orderId: string;
 }
 
+class InitiatePhonePeDto {
+  @ApiProperty({ description: 'Amount in paise (INR * 100)' })
+  @IsNumber()
+  @Min(1)
+  amount: number;
+
+  @ApiProperty({ description: 'Order ID from our system' })
+  @IsString()
+  orderId: string;
+
+  @ApiPropertyOptional({ description: 'Mobile number for prefill' })
+  @IsOptional()
+  @IsString()
+  mobileNumber?: string;
+}
+
 class CreateRefundDto {
-  @ApiProperty({ description: 'Razorpay payment ID' })
+  @ApiProperty({ description: 'Payment ID' })
   @IsString()
   paymentId: string;
 
@@ -82,26 +99,26 @@ class CreateRefundDto {
 @ApiTags('Payments')
 @Controller()
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly phonePeService: PhonePeService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  // ─── POST /payments/razorpay/order ────────────────────────────────────────────
-  // PUBLIC endpoint for guest & authenticated checkout
+  // ─── POST /payments/razorpay/order (legacy) ──────────────────────────────────
   @Post('payments/razorpay/order')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a Razorpay order for online payment (public access for checkout)' })
+  @ApiOperation({ summary: 'Create a Razorpay order (legacy)' })
   @ApiSecurity('optional')
-  async createPublicOrder(@Body() dto: CreateRazorpayOrderDto, @Req() req: any) {
-    // Allow both authenticated and unauthenticated access
-    // In production, you might want to rate-limit guest orders
+  async createPublicOrder(@Body() dto: CreateRazorpayOrderDto) {
     return this.paymentService.createRazorpayOrder(dto);
   }
 
-  // ─── POST /webhooks/razorpay ──────────────────────────────────────────────────
-
+  // ─── POST /webhooks/razorpay (legacy) ─────────────────────────────────────────
   @Post('webhooks/razorpay')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Razorpay webhook handler (HMAC-SHA256 verified)' })
+  @ApiOperation({ summary: 'Razorpay webhook handler (legacy)' })
   async handleWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('x-razorpay-signature') signature: string,
@@ -113,17 +130,14 @@ export class PaymentController {
         message: 'x-razorpay-signature header is required',
       });
     }
-
-    // Use raw body for signature verification
     const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
     return this.paymentService.handleWebhook(rawBody, signature, body);
   }
 
-  // ─── POST /payments/razorpay/verify ───────────────────────────────────────────
-  // PUBLIC endpoint for frontend payment verification callback
+  // ─── POST /payments/razorpay/verify (legacy) ──────────────────────────────────
   @Post('payments/razorpay/verify')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify Razorpay payment signature and confirm order' })
+  @ApiOperation({ summary: 'Verify Razorpay payment signature (legacy)' })
   async verifyPayment(@Body() dto: VerifyPaymentDto) {
     return this.paymentService.verifyPayment({
       razorpayOrderId: dto.razorpayOrderId,
@@ -133,20 +147,134 @@ export class PaymentController {
     });
   }
 
-  // ─── POST /payments/razorpay/refund ───────────────────────────────────────────
-  // PROTECTED admin endpoint
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  PHONEPE ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─── POST /payments/phonepe/initiate ─────────────────────────────────────────
+  @Post('payments/phonepe/initiate')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Initiate a PhonePe payment (returns redirect URL)' })
+  @ApiSecurity('optional')
+  async initiatePhonePePayment(@Body() dto: InitiatePhonePeDto) {
+    const merchantTransactionId = `DG_${dto.orderId.slice(0, 8)}_${Date.now()}`;
+    const baseUrl = this.configService.get<string>('BACKEND_URL', 'http://localhost:3000');
+
+    const result = await this.phonePeService.initiatePayment({
+      amount: dto.amount,
+      merchantTransactionId,
+      merchantUserId: `order_${dto.orderId}`,
+      mobileNumber: dto.mobileNumber,
+      redirectUrl: `${baseUrl}/api/v1/payments/phonepe/redirect`,
+      callbackUrl: `${baseUrl}/api/v1/webhooks/phonepe`,
+    });
+
+    await this.paymentService.savePhonePeTransactionRef(dto.orderId, merchantTransactionId);
+
+    return {
+      redirectUrl: result.redirectUrl,
+      merchantTransactionId: result.merchantTransactionId,
+      orderId: dto.orderId,
+    };
+  }
+
+  // ─── POST /payments/phonepe/redirect ─────────────────────────────────────────
+  @Post('payments/phonepe/redirect')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'PhonePe payment redirect handler' })
+  async handlePhonePeRedirect(@Body() body: any) {
+    const result = await this.phonePeService.processRedirectCallback({
+      merchantId: body.merchantId,
+      transactionId: body.transactionId,
+      code: body.code,
+    });
+
+    const order = await this.paymentService.findOrderByMerchantTxnId(result.merchantTransactionId);
+    if (order && result.status === 'completed') {
+      await this.paymentService.confirmPhonePePayment({
+        orderId: order.id,
+        merchantTransactionId: result.merchantTransactionId,
+      });
+    }
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3001');
+    const status = result.status === 'completed' ? 'success' : 'failed';
+    return {
+      status,
+      redirectUrl: order
+        ? `${frontendUrl}/orders/${order.id}?payment=${status}`
+        : `${frontendUrl}/orders?payment=${status}`,
+    };
+  }
+
+  // ─── POST /webhooks/phonepe ──────────────────────────────────────────────────
+  @Post('webhooks/phonepe')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'PhonePe webhook/callback handler' })
+  async handlePhonePeWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-verify') xVerifyHeader: string,
+    @Body() body: any,
+  ) {
+    const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
+    const callbackData = await this.phonePeService.processCallback(rawBody, xVerifyHeader);
+
+    const order = await this.paymentService.findOrderByMerchantTxnId(callbackData.merchantTransactionId);
+    if (order && callbackData.status === 'completed') {
+      await this.paymentService.confirmPhonePePayment({
+        orderId: order.id,
+        merchantTransactionId: callbackData.merchantTransactionId,
+        phonepeTransactionId: callbackData.merchantTransactionId,
+        amount: callbackData.amount,
+      });
+    }
+
+    return { status: 'ok' };
+  }
+
+  // ─── POST /payments/phonepe/status ───────────────────────────────────────────
+  @Post('payments/phonepe/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check PhonePe payment status' })
+  async checkPhonePeStatus(@Body() body: { merchantTransactionId: string }) {
+    return this.phonePeService.checkPaymentStatus(body.merchantTransactionId);
+  }
+
+  // ─── POST /payments/razorpay/refund (legacy) ──────────────────────────────────
   @Post('payments/razorpay/refund')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
   @RequirePermission('sales.approve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Trigger a Razorpay refund (admin only)' })
+  @ApiOperation({ summary: 'Trigger a Razorpay refund (admin only) (legacy)' })
   async createRefund(@Body() dto: CreateRefundDto) {
     return this.paymentService.createRefund(dto);
   }
 
-  // ─── GET /payments/:id ─────────────────────────────────────────────────────────
-  // PROTECTED admin endpoint
+  // ─── POST /payments/phonepe/refund ───────────────────────────────────────────
+  @Post('payments/phonepe/refund')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), PermissionGuard)
+  @RequirePermission('sales.approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Initiate a PhonePe refund (admin only)' })
+  async createPhonePeRefund(@Body() body: { paymentId: string; amount?: number }) {
+    // Look up the payment to get the PhonePe merchant transaction ID
+    const paymentRef = await this.paymentService.getPhonePePaymentRef(body.paymentId);
+    if (!paymentRef || !paymentRef.merchantTxnId) {
+      throw new BadRequestException({
+        code: 'NO_PHONEPE_PAYMENT',
+        message: 'This payment has no associated PhonePe transaction',
+      });
+    }
+    return this.phonePeService.refundPayment({
+      originalTransactionId: paymentRef.merchantTxnId,
+      amount: body.amount,
+    });
+  }
+
+  // ─── GET /payments/:id ───────────────────────────────────────────────────────
   @Get('payments/:id')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
@@ -157,7 +285,6 @@ export class PaymentController {
   }
 
   // ─── GET /sales/:id/payments ──────────────────────────────────────────────────
-  // PROTECTED admin endpoint
   @Get('sales/:id/payments')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
@@ -168,7 +295,6 @@ export class PaymentController {
   }
 
   // ─── GET /admin/refunds ──────────────────────────────────────────────────────
-  // PROTECTED admin endpoint
   @Get('admin/refunds')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)
@@ -179,7 +305,6 @@ export class PaymentController {
   }
 
   // ─── POST /admin/refunds/:paymentId/retry ────────────────────────────────────
-  // PROTECTED admin endpoint
   @Post('admin/refunds/:paymentId/retry')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), PermissionGuard)

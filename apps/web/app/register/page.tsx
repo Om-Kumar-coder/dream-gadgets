@@ -1,9 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
 import { useWebAuthStore } from '../../store/auth.store';
+
+const RESEND_COOLDOWN_SECONDS = 30;
+const OTP_EXPIRY_MINUTES = 10;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,6 +15,24 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ phone: '', otp: '', firstName: '', lastName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // dev-mode OTP returned by the API (only when MSG91 is unconfigured)
+  const [devOtp, setDevOtp] = useState('');
+  // resend cooldown (seconds remaining)
+  const [cooldown, setCooldown] = useState(0);
+
+  // Countdown for the resend button (single interval while cooldown is active)
+  const isCooldownActive = cooldown > 0;
+  useEffect(() => {
+    if (!isCooldownActive) return;
+    const id = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isCooldownActive]);
+
+  function startCooldown() {
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
 
   async function sendOtp() {
     if (!form.phone.trim() || form.phone.replace(/\D/g, '').length < 10) {
@@ -21,10 +42,13 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      await apiClient.post('/auth/send-otp', { phone: form.phone });
+      const { data } = await apiClient.post('/auth/send-otp', { phone: form.phone });
+      // In dev-mode the API returns { devOtp } so local testing works without SMS
+      setDevOtp(data?.data?.devOtp ?? '');
       setStep('register');
+      startCooldown();
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Failed to send OTP');
+      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -35,17 +59,40 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await apiClient.post('/auth/register', form);
+      const payload = {
+        phone: form.phone,
+        otp: form.otp,
+        firstName: form.firstName,
+        lastName: form.lastName || undefined,
+        // Avoid sending '' — the API's @IsEmail() rejects empty strings
+        email: form.email?.trim() ? form.email.trim() : undefined,
+        password: form.password,
+      };
+      const { data } = await apiClient.post('/auth/register', payload);
       const { accessToken, refreshToken } = data.data;
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      setTokens(accessToken, refreshToken, payload);
+      const jwtPayload = JSON.parse(atob(accessToken.split('.')[1]));
+      setTokens(accessToken, refreshToken, jwtPayload);
       router.push('/account');
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Registration failed. Please try again.');
+      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   }
+
+  function changePhone() {
+    setStep('otp');
+    setError('');
+    setDevOtp('');
+    setCooldown(0);
+  }
+
+  const formatCooldown = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
@@ -138,12 +185,41 @@ export default function RegisterPage() {
                   name="otp"
                   type="text"
                   value={form.otp}
-                  onChange={e => setForm(p => ({ ...p, otp: e.target.value }))}
+                  onChange={e => setForm(p => ({ ...p, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
                   className="input"
                   placeholder="Enter 6-digit OTP"
                   maxLength={6}
                   required
                 />
+                <p className="text-xs text-surface-400 mt-1">Valid for {OTP_EXPIRY_MINUTES} minutes</p>
+              </div>
+
+              {/* Dev-mode OTP hint — only shown when the API returns one */}
+              {devOtp && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+                  <span>🧪</span>
+                  <span>
+                    Dev mode — your OTP is <strong className="font-mono tracking-widest">{devOtp}</strong>
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => { setForm(p => ({ ...p, otp: '' })); }}
+                  className="text-xs text-surface-400 hover:text-surface-600 transition-colors"
+                >
+                  Clear OTP
+                </button>
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={loading || cooldown > 0}
+                  className="text-xs font-medium text-primary hover:text-primary-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {cooldown > 0 ? `Resend in ${formatCooldown(cooldown)}` : 'Resend OTP'}
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -239,7 +315,7 @@ export default function RegisterPage() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => { setStep('otp'); setError(''); }}
+                  onClick={changePhone}
                   className="text-xs text-surface-400 hover:text-surface-600 transition-colors"
                 >
                   ← Change phone number

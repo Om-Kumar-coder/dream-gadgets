@@ -458,4 +458,82 @@ export class PaymentService {
       dbPaymentId: payment.id,
     });
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  PHONEPE METHODS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async savePhonePeTransactionRef(orderId: string, merchantTransactionId: string): Promise<void> {
+    // Save the merchant txn ID on the order for later verification
+    await this.orderRepo.update(orderId, {
+      // Using a note-like field — we could add a dedicated column later
+      notes: `phonepe_mtid:${merchantTransactionId}`,
+    } as any).catch((err) => {
+      this.logger.warn(`Failed to save PhonePe txn ref on order ${orderId}: ${err?.message}`);
+    });
+  }
+
+  async findOrderByMerchantTxnId(merchantTransactionId: string): Promise<OnlineOrder | null> {
+    // Search orders by the notes field containing the merchant txn ID
+    const orders = await this.orderRepo.find({
+      where: { status: OnlineOrderStatus.PENDING_PAYMENT },
+      order: { orderedAt: 'DESC' },
+      take: 20,
+    });
+    return orders.find(o => o.notes?.includes(merchantTransactionId)) ?? null;
+  }
+
+  async confirmPhonePePayment(params: {
+    orderId: string;
+    merchantTransactionId: string;
+    phonepeTransactionId?: string;
+    amount?: number;
+  }): Promise<{ payment: Payment; order: OnlineOrder }> {
+    const { orderId, merchantTransactionId, phonepeTransactionId, amount } = params;
+
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException({ code: 'ORDER_NOT_FOUND', message: `Order ${orderId} not found` });
+    }
+
+    // Create payment record
+    const payment = this.paymentRepo.create({
+      onlineOrderId: orderId,
+      method: 'phonepe',
+      amount: amount ? amount / 100 : order.totalAmount,
+      status: 'completed',
+      phonepeMerchantTxnId: merchantTransactionId,
+      phonepeTransactionId: phonepeTransactionId ?? merchantTransactionId,
+    });
+    await this.paymentRepo.save(payment);
+
+    // Update order status
+    if (order.status === OnlineOrderStatus.PENDING_PAYMENT) {
+      order.status = OnlineOrderStatus.PAYMENT_CONFIRMED;
+      await this.orderRepo.save(order);
+    }
+
+    // Emit realtime event
+    try {
+      this.eventService.emitPaymentConfirmed({
+        orderId,
+        paymentId: payment.id,
+        amount: Number(payment.amount),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Event] Failed to emit payment.confirmed: ${err?.message}`);
+    }
+
+    return { payment, order };
+  }
+
+  async getPhonePePaymentRef(paymentId: string): Promise<{ merchantTxnId: string; amount: number } | null> {
+    const payment = await this.paymentRepo.findOne({ where: { id: paymentId } });
+    if (!payment || !payment.phonepeMerchantTxnId) return null;
+    return {
+      merchantTxnId: payment.phonepeMerchantTxnId,
+      amount: payment.amount,
+    };
+  }
 }

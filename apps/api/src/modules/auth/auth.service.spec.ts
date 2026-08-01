@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
 import { RedisService } from '../../common/redis/redis.service';
-import { TwilioVerifyService } from './services/twilio-verify.service';
+import { Msg91OtpService } from './services/msg91-otp.service';
 import { NotificationService } from '../notification/notification.service';
 
 // ─── Redis mock (in-memory store) ────────────────────────────────────────────
@@ -179,7 +179,7 @@ describe('AuthService', () => {
         { provide: DataSource, useValue: dataSource },
         { provide: RedisService, useValue: makeRedisServiceMock() },
         {
-          provide: TwilioVerifyService,
+          provide: Msg91OtpService,
           useValue: {
             sendOtp: jest.fn(async () => ({ success: true, status: 'dev-mode' })),
             verifyOtp: jest.fn(async (_phone: string, code: string) => {
@@ -346,7 +346,6 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should create customer and return tokens when OTP is valid', async () => {
       const phone = '+919876543210';
-      redisMock[`otp:${phone}`] = '123456';
       userRepo.findOne.mockResolvedValueOnce(null);
       userRepo.create.mockReturnValue(makeUser());
       userRepo.save.mockResolvedValue(makeUser());

@@ -146,6 +146,33 @@ export class RedisService implements OnModuleDestroy {
     await this.del(`reset:${token}`);
   }
 
+  // OTP codes (phone → 6-digit code, TTL = validity window)
+  async setOtp(phone: string, otp: string, ttlSeconds: number): Promise<void> {
+    await this.set(`otp:${phone}`, otp, { EX: ttlSeconds });
+  }
+
+  async getOtp(phone: string): Promise<string | null> {
+    return this.get(`otp:${phone}`);
+  }
+
+  async delOtp(phone: string): Promise<void> {
+    await this.del(`otp:${phone}`);
+  }
+
+  // OTP verification attempt limiting (brute-force protection)
+  async incrementOtpAttempts(phone: string, ttlSeconds: number): Promise<number> {
+    const key = `otp:attempts:${phone}`;
+    const attempts = await this.incr(key);
+    if (attempts === 1) {
+      await this.expire(key, ttlSeconds);
+    }
+    return attempts;
+  }
+
+  async clearOtpAttempts(phone: string): Promise<void> {
+    await this.del(`otp:attempts:${phone}`);
+  }
+
   // Forgot-password rate limiting (per identifier — email or phone)
   // Limits to 1 request per cooldown period per identifier
 

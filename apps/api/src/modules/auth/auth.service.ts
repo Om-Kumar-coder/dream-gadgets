@@ -20,7 +20,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { RedisService } from '../../common/redis/redis.service';
-import { TwilioVerifyService } from './services/twilio-verify.service';
+import { Msg91OtpService } from './services/msg91-otp.service';
 import { NotificationService } from '../notification/notification.service';
 
 const LOCKOUT_THRESHOLD = 5;
@@ -40,7 +40,7 @@ export class AuthService {
     private configService: ConfigService,
     private dataSource: DataSource,
     private redisService: RedisService,
-    private twilioVerifyService: TwilioVerifyService,
+    private msg91OtpService: Msg91OtpService,
     private notificationService: NotificationService,
   ) {}
 
@@ -256,8 +256,8 @@ export class AuthService {
   // ─── 3.5 Register (customer) ────────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-    // Verify OTP via Twilio Verify
-    const verifyResult = await this.twilioVerifyService.verifyOtp(dto.phone, dto.otp);
+    // Verify OTP (generated in our backend, stored in Redis, sent via MSG91)
+    const verifyResult = await this.msg91OtpService.verifyOtp(dto.phone, dto.otp);
     if (!verifyResult.success) {
       throw new BadRequestException('Invalid or expired OTP');
     }
@@ -294,11 +294,14 @@ export class AuthService {
 
   // ─── 3.5 Send OTP (helper for registration) ─────────────────────────────────
 
-  async sendOtp(phone: string): Promise<void> {
-    const result = await this.twilioVerifyService.sendOtp(phone);
+  async sendOtp(phone: string): Promise<{ devOtp?: string }> {
+    const result = await this.msg91OtpService.sendOtp(phone);
     if (!result.success) {
       throw new BadRequestException(`Failed to send OTP: ${result.error}`);
     }
+    // Surface the OTP only in dev-mode so the frontend can display it for
+    // local testing; real SMS (production) never returns it.
+    return result.status === 'dev-mode' && result.otp ? { devOtp: result.otp } : {};
   }
 
   // ─── 3.6 Forgot / Reset password ────────────────────────────────────────────

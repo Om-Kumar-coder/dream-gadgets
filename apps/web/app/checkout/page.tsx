@@ -1,26 +1,11 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tag } from 'lucide-react';
 import { useCartStore } from '../../store/cart.store';
 import { apiClient } from '../../lib/api';
 import { CouponInput } from '../../components/coupon/CouponInput';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
-
-interface EmiPlanOption {
-  id: string;
-  providerName: string;
-  providerSlug: string;
-  label: string;
-  tenureMonths: number;
-  annualRate: number;
-  processingFee: number;
-  emiAmount: number;
-  totalInterest: number;
-  totalPayment: number;
-}
 
 type Step = 'address' | 'review' | 'payment';
 
@@ -63,53 +48,13 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [emiPlans, setEmiPlans] = useState<EmiPlanOption[]>([]);
-  const [selectedEmiPlan, setSelectedEmiPlan] = useState<EmiPlanOption | null>(null);
-  const [showEmiDropdown, setShowEmiDropdown] = useState(false);
-  const [emiLoading, setEmiLoading] = useState(false);
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
-  const scriptLoadedRef = useRef(false);
   const cartTotal = total();
   const count = itemCount();
 
-  useEffect(() => {
-    if (items.length === 0) {
-      router.push('/cart');
-    }
-  }, [items.length, router]);
-
-  useEffect(() => {
-    if (scriptLoadedRef.current || typeof window === 'undefined') return;
-    if ((window as any).Razorpay) {
-      setRazorpayLoaded(true);
-      scriptLoadedRef.current = true;
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => {
-      setRazorpayLoaded(true);
-      scriptLoadedRef.current = true;
-    };
-    script.onerror = () => {
-      setError('Failed to load payment gateway. Please try again.');
-    };
-    document.body.appendChild(script);
-  }, []);
-
-  // Fetch EMI plans for the cart total
-  useEffect(() => {
-    if (cartTotal < 3000 || emiPlans.length > 0) return;
-    setEmiLoading(true);
-    fetch(`${API}/public/emi/plans?amount=${Math.round(cartTotal - couponDiscount)}`)
-      .then(res => res.json())
-      .then(json => setEmiPlans(json.data ?? []))
-      .catch(() => {/* silent */})
-      .finally(() => setEmiLoading(false));
-  }, [cartTotal, couponDiscount, emiPlans.length]);
-
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    router.push('/cart');
+    return null;
+  }
 
   function handleAddressSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -137,6 +82,8 @@ export default function CheckoutPage() {
     setError('');
     try {
       const effectiveTotal = cartTotal - couponDiscount;
+
+      // Step 1: Create the order
       const { data: orderRes } = await apiClient.post('/public/orders', {
         items: items.map(i => ({
           itemId: i.id,
@@ -152,55 +99,19 @@ export default function CheckoutPage() {
       const order = orderRes?.data ?? orderRes;
       setOrderId(order.id);
 
+      // Step 2: Initiate PhonePe payment
       const amountPaise = Math.round(effectiveTotal * 100);
-      const { data: rzpRes } = await apiClient.post('/payments/razorpay/order', {
+      const { data: ppRes } = await apiClient.post('/payments/phonepe/initiate', {
         amount: amountPaise,
-        receipt: order.orderNumber,
-        notes: { orderId: order.id },
+        orderId: order.id,
+        mobileNumber: address.phone.replace(/\D/g, ''),
       });
-      const rzpOrder = rzpRes?.data ?? rzpRes;
-      const razorpayOrderId = rzpOrder.orderId;
+      const phonepeData = ppRes?.data ?? ppRes;
+      const redirectUrl = phonepeData.redirectUrl;
 
+      // Step 3: Redirect to PhonePe checkout page
       setStep('payment');
-      const rzp = new (window as any).Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? 'rzp_test_xxxxxxxx',
-        amount: amountPaise,
-        currency: 'INR',
-        name: 'Dream Gadgets',
-        description: `Order ${order.orderNumber}`,
-        order_id: razorpayOrderId,
-        prefill: { name: address.name, contact: address.phone },
-        theme: { color: '#E50914' },
-        handler: async (response: any) => {
-          try {
-            await apiClient.post('/payments/razorpay/verify', {
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              orderId: order.id,
-            });
-            clearCart();
-            router.push(`/orders/${order.id}?payment=success`);
-          } catch (verifyErr: any) {
-            setError(
-              typeof verifyErr === 'string' ? verifyErr :
-              verifyErr?.response?.data?.error?.message ??
-              verifyErr?.message ??
-              'Payment was taken but verification failed. Please contact support.'
-            );
-            router.push(`/orders/${order.id}?payment=pending`);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            setError('Payment cancelled. You can retry from your order page.');
-            router.push(`/orders/${order.id}?payment=pending`);
-          },
-          confirm_close: true,
-        },
-      });
-      rzp.open();
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err?.response?.data?.error?.message ?? 'Checkout failed. Please try again.');
       setLoading(false);
@@ -208,11 +119,7 @@ export default function CheckoutPage() {
   }, [items, address, cartTotal, couponDiscount, couponCode, clearCart, router]);
 
   const inputClass = (key: string) =>
-    `input ${
-      fieldErrors[key]
-        ? 'input-error'
-        : ''
-    }`;
+    `input ${fieldErrors[key] ? 'input-error' : ''}`;
 
   const labelClass = 'block text-sm font-semibold text-surface-700 mb-1.5';
 
@@ -364,7 +271,7 @@ export default function CheckoutPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Processing...
+                        Redirecting to PhonePe...
                       </>
                     ) : (
                       <>
@@ -379,7 +286,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* ═══ Step 3: Payment Processing ═══ */}
+            {/* ═══ Step 3: Payment Redirect ═══ */}
             {step === 'payment' && (
               <div className="bg-white border border-surface-100 rounded-2xl p-8 sm:p-10 shadow-sm text-center">
                 <div className="mb-6">
@@ -390,8 +297,8 @@ export default function CheckoutPage() {
                     </svg>
                   </div>
                 </div>
-                <h2 className="text-xl font-bold text-surface-900 mb-2">Processing Payment</h2>
-                <p className="text-sm text-surface-500 mb-2">Please complete the payment in the Razorpay popup.</p>
+                <h2 className="text-xl font-bold text-surface-900 mb-2">Redirecting to PhonePe</h2>
+                <p className="text-sm text-surface-500 mb-2">You are being redirected to PhonePe's secure checkout page.</p>
                 {orderId && (
                   <p className="text-xs text-surface-400 font-mono">Order ID: {orderId.slice(0, 8)}...</p>
                 )}
@@ -476,75 +383,11 @@ export default function CheckoutPage() {
                 <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Secure checkout via Razorpay
+                Secure checkout via PhonePe
               </div>
 
-              {/* EMI Options */}
-              {emiPlans.length > 0 && step === 'review' && (
-                <div className="mt-4 pt-4 divider">
-                  <button
-                    type="button"
-                    onClick={() => setShowEmiDropdown(!showEmiDropdown)}
-                    className="flex items-center gap-2 text-sm font-semibold text-surface-700 mb-3 w-full"
-                  >
-                    <span>💳</span>
-                    <span>Pay in Easy EMIs</span>
-                    {selectedEmiPlan && (
-                      <span className="badge-primary text-[10px] ml-1">
-                        {selectedEmiPlan.emiAmount.toLocaleString('en-IN')}/mo
-                      </span>
-                    )}
-                    <svg className={`w-3.5 h-3.5 ml-auto text-surface-400 transition-transform ${showEmiDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {showEmiDropdown && (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {emiPlans.map(plan => (
-                        <label
-                          key={plan.id}
-                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                            selectedEmiPlan?.id === plan.id
-                              ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                              : 'border-surface-100 hover:border-surface-200'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="emiPlan"
-                            checked={selectedEmiPlan?.id === plan.id}
-                            onChange={() => { setSelectedEmiPlan(plan); setShowEmiDropdown(false); }}
-                            className="w-4 h-4 text-primary accent-primary"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-surface-900">
-                              {plan.providerName} — {plan.label}
-                            </p>
-                            <p className="text-[11px] text-surface-400">
-                              {plan.annualRate === 0 ? 'No Cost EMI' : `${plan.annualRate}% p.a.`}
-                              {plan.processingFee > 0 && ` · Fee: ₹${plan.processingFee}`}
-                            </p>
-                          </div>
-                          <p className="text-sm font-bold text-primary shrink-0">
-                            ₹{plan.emiAmount.toLocaleString('en-IN')}/mo
-                          </p>
-                        </label>
-                      ))}
-                      {selectedEmiPlan && (
-                        <button
-                          onClick={() => { setSelectedEmiPlan(null); setShowEmiDropdown(false); }}
-                          className="w-full text-center text-xs text-surface-400 hover:text-surface-600 py-2 transition-colors"
-                        >
-                          Clear EMI selection
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {['Visa', 'MC', 'UPI', 'NetBanking', 'EMI'].map(m => (
+                {['UPI', 'GPay', 'PhonePe', 'NetBanking', 'Card'].map(m => (
                   <span key={m} className="px-2 py-1 bg-surface-50 rounded-lg text-[10px] font-medium text-surface-500 border border-surface-100">{m}</span>
                 ))}
               </div>

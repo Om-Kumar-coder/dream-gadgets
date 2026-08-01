@@ -8,7 +8,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from './entities/user.entity';
-import { TwilioVerifyService } from './services/twilio-verify.service';
+import { Msg91OtpService } from './services/msg91-otp.service';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
@@ -26,7 +26,7 @@ import { NotificationModule } from '../notification/notification.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, TwilioVerifyService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, Msg91OtpService],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

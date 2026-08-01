@@ -49,6 +49,14 @@ export class Payment {
   @Column({ name: 'razorpay_signature', nullable: true, type: 'varchar' })
   razorpaySignature: string | null;
 
+  // ─── PhonePe fields ─────────────────────────────────────────────────────────
+
+  @Column({ name: 'phonepe_transaction_id', nullable: true, type: 'varchar' })
+  phonepeTransactionId: string | null;
+
+  @Column({ name: 'phonepe_merchant_txn_id', nullable: true, type: 'varchar' })
+  phonepeMerchantTxnId: string | null;
+
   @Column({ default: 'completed' })
   status: string;
 
@@ -62,6 +70,9 @@ export class Payment {
 
   @Column({ name: 'razorpay_refund_id', nullable: true, type: 'varchar' })
   razorpayRefundId: string | null;
+
+  @Column({ name: 'phonepe_refund_id', nullable: true, type: 'varchar' })
+  phonepeRefundId: string | null;
 
   @Column({ name: 'refund_amount', nullable: true, type: 'decimal', precision: 12, scale: 2 })
   refundAmount: number | null;

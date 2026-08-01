@@ -487,10 +487,13 @@ export default function AccountPage() {
             </div>
             <h3 className="text-base font-semibold text-surface-900 mb-1">No addresses saved</h3>
             <p className="text-sm text-surface-400 mb-6">Add an address for faster checkout.</p>
-            <button className="btn-secondary btn-md">
-              <IconPlus size={14} />
-              Add Address
-            </button>
+            <div className="inline-flex items-center gap-2 opacity-50 cursor-not-allowed select-none">
+              <button disabled className="btn-secondary btn-md pointer-events-none">
+                <IconPlus size={14} />
+                Add Address
+              </button>
+              <span className="text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">Coming soon</span>
+            </div>
           </div>
         </div>
       )}
@@ -505,22 +508,36 @@ export default function AccountPage() {
             </h2>
             <div className="space-y-2">
               {[
-                { label: 'Personal Information', desc: 'Update your name, email, and phone number', icon: <IconUser size={18} /> },
-                { label: 'Change Password', desc: 'Update your account password', icon: <IconShieldCheck size={18} /> },
-                { label: 'Notification Preferences', desc: 'Manage email and SMS notifications', icon: <IconMessageCircle size={18} /> },
-              ].map(item => (
-                <button key={item.label}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors text-left">
-                  <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-500 shrink-0">
-                    {item.icon}
+                { label: 'Personal Information', desc: 'Update your name, email, and phone number', href: '/account/edit', icon: <IconUser size={18} /> },
+                { label: 'Change Password', desc: 'Update your account password', href: '/account/edit', icon: <IconShieldCheck size={18} /> },
+                { label: 'Notification Preferences', desc: 'Manage email and SMS notifications', href: null, icon: <IconMessageCircle size={18} /> },
+              ].map(item =>
+                item.href ? (
+                  <Link key={item.label} href={item.href}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors text-left">
+                    <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-500 shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-900">{item.label}</p>
+                      <p className="text-xs text-surface-400">{item.desc}</p>
+                    </div>
+                    <IconChevronRight size={16} className="text-surface-300 shrink-0" />
+                  </Link>
+                ) : (
+                  <div key={item.label}
+                    className="flex items-center gap-3 p-3 rounded-xl text-left opacity-50 cursor-not-allowed select-none">
+                    <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-300 shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-500">{item.label}</p>
+                      <p className="text-xs text-surface-300">{item.desc}</p>
+                    </div>
+                    <span className="text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">Coming soon</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-surface-900">{item.label}</p>
-                    <p className="text-xs text-surface-400">{item.desc}</p>
-                  </div>
-                  <IconChevronRight size={16} className="text-surface-300 shrink-0" />
-                </button>
-              ))}
+                )
+              )}
             </div>
           </div>
 

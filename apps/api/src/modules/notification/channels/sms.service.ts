@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { formatE164Phone } from '../../../common/utils/phone';
 
 export interface SmsDeliveryResult {
   success: boolean;
@@ -33,7 +34,7 @@ export class SmsService {
     }
 
     try {
-      const formattedTo = this.formatPhone(to);
+      const formattedTo = formatE164Phone(to);
       const from = this.configService.get<string>('TWILIO_SMS_FROM') ?? '+15005550006'; // Twilio test number
 
       const twilio = require('twilio');
@@ -60,19 +61,5 @@ export class SmsService {
         error: err?.message ?? 'Unknown SMS error',
       };
     }
-  }
-
-  private formatPhone(phone: string): string {
-    // Strip non-digits
-    let digits = phone.replace(/\D/g, '');
-    // If 10-digit Indian number, prepend +91
-    if (digits.length === 10) {
-      digits = `91${digits}`;
-    }
-    // Ensure + prefix
-    if (!digits.startsWith('+')) {
-      digits = `+${digits}`;
-    }
-    return digits;
   }
 }

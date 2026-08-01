@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PhonePeService } from './phonepe.service';
 import { Payment } from '../sales/entities/payment.entity';
 import { OnlineOrder } from '../sales/entities/online-order.entity';
 import { NotificationModule } from '../notification/notification.module';
@@ -14,7 +15,7 @@ import { NotificationModule } from '../notification/notification.module';
     NotificationModule,
   ],
   controllers: [PaymentController],
-  providers: [PaymentService],
-  exports: [PaymentService],
+  providers: [PaymentService, PhonePeService],
+  exports: [PaymentService, PhonePeService],
 })
 export class PaymentModule {}

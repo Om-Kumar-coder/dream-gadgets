@@ -62,10 +62,11 @@ export class AuthController {
   // 3.5 Send OTP
   @Post('send-otp')
   @Throttle({ default: { ttl: 60000, limit: 3 } })
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send OTP to phone for registration' })
   async sendOtp(@Body() body: { phone: string }) {
-    await this.authService.sendOtp(body.phone);
+    // Returns { devOtp } only in dev-mode; {} in production (SMS sent).
+    return this.authService.sendOtp(body.phone);
   }
 
   // 3.6 Forgot password
