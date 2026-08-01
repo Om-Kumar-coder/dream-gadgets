@@ -256,16 +256,17 @@ export class AuthService {
   // ─── 3.5 Register (customer) ────────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    // Check duplicate phone BEFORE verifying the OTP so a doomed registration
+    // doesn't consume the user's single-use code.
+    const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
+    if (existing) {
+      throw new BadRequestException('Phone number already registered');
+    }
+
     // Verify OTP (generated in our backend, stored in Redis, sent via MSG91)
     const verifyResult = await this.msg91OtpService.verifyOtp(dto.phone, dto.otp);
     if (!verifyResult.success) {
       throw new BadRequestException('Invalid or expired OTP');
-    }
-
-    // Check duplicate phone
-    const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
-    if (existing) {
-      throw new BadRequestException('Phone number already registered');
     }
 
     // Get customer role

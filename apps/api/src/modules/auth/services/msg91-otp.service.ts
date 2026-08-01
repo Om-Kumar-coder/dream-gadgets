@@ -70,12 +70,15 @@ export class Msg91OtpService {
 
     try {
       const mobile = formatPhoneWithoutPlus(phone);
+      // MSG91 caps otp_expiry at 15 minutes; clamp to keep Redis TTL and
+      // MSG91 expiry in sync even if MSG91_OTP_TTL is misconfigured.
+      const expiryMinutes = Math.min(15, Math.max(1, Math.ceil(ttl / 60)));
       const params = new URLSearchParams({
         authkey: authKey,
         template_id: templateId,
         mobile,
         otp,
-        otp_expiry: String(Math.ceil(ttl / 60)),
+        otp_expiry: String(expiryMinutes),
         real_time_response: '1',
       });
 
@@ -91,6 +94,19 @@ export class Msg91OtpService {
         clearTimeout(timeout);
       }
 
+      if (!response.ok) {
+        // Distinguish transport/auth failures (HTTP error + non-JSON body)
+        // from MSG91-level template errors.
+        const raw = await response.text().catch(() => '');
+        this.logger.error(`[MSG91] HTTP ${response.status} sending OTP to ${mobile}: ${raw.slice(0, 300)}`);
+        await this.redisService.delOtp(keyPhone);
+        return {
+          success: false,
+          status: 'failed',
+          error: `MSG91 HTTP ${response.status}`,
+        };
+      }
+
       const data = await response.json().catch(() => ({})) as {
         type?: string;
         message?: string;
@@ -102,7 +118,10 @@ export class Msg91OtpService {
         return { success: true, status: 'sent' };
       }
 
-      this.logger.error(`[MSG91] Failed to send OTP to ${mobile}: ${data.message ?? 'unknown error'}`);
+      this.logger.error(
+        `[MSG91] Failed to send OTP to ${mobile}: ${data.message ?? 'unknown error'}` +
+          (data.request_id ? ` (request_id=${data.request_id})` : ''),
+      );
       // Don't leave a valid OTP in Redis that the user never received
       await this.redisService.delOtp(keyPhone);
       return {

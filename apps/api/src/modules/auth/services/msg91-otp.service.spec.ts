@@ -75,6 +75,7 @@ describe('Msg91OtpService', () => {
   describe('sendOtp()', () => {
     it('should generate, store the OTP and call MSG91 when configured', async () => {
       const fetchMock = jest.fn(async () => ({
+        ok: true,
         json: async () => ({ type: 'success', message: 'OTP sent successfully', request_id: 'req-123' }),
       }));
       (global as any).fetch = fetchMock;
@@ -152,6 +153,7 @@ describe('Msg91OtpService', () => {
 
     it('should return failure and clear the stored OTP when MSG91 responds with an error', async () => {
       (global as any).fetch = jest.fn(async () => ({
+        ok: true,
         json: async () => ({ type: 'error', message: 'Invalid template' }),
       }));
 
