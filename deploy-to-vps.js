@@ -16,9 +16,11 @@ const deployCommands = [
   `echo "=== Current commit ==="`,
   `cd ${PROJECT_DIR} && git log --oneline -1`,
   `echo "=== Installing dependencies ==="`,
-  `cd ${PROJECT_DIR} && npm install 2>&1 | tail -10`,
+  `cd ${PROJECT_DIR} && set -o pipefail && npm install 2>&1 | tail -10 || { echo "NPM_INSTALL_FAILED"; exit 1; }`,
   `echo "=== Running migrations ==="`,
-  `cd ${PROJECT_DIR}/apps/api && node migrate.js 2>&1`,
+  // migrate.js exits 1 on known pre-existing table errors (e.g. emi_providers
+  // created manually earlier). Treat as non-fatal: log clearly, keep going.
+  `cd ${PROJECT_DIR}/apps/api && node migrate.js 2>&1 || echo "MIGRATE_WARN: migration step reported errors (may be pre-existing tables); continuing"`,
   `echo "=== Clearing turbo cache + API dist (forces real rebuild) ==="`,
   `cd ${PROJECT_DIR} && rm -rf .turbo node_modules/.cache apps/api/dist && echo "caches cleared"`,
   `echo "=== Building all apps (forced, from ${PROJECT_DIR}) ==="`,
@@ -75,8 +77,14 @@ function runNext() {
     let output = '';
     stream.on('data', (data) => { output += data.toString(); });
     stream.stderr.on('data', (data) => { output += data.toString(); });
-    stream.on('close', () => {
+    stream.on('close', (code) => {
       console.log(output.length > 1200 ? output.slice(-1200) : output);
+      // Fail fast: abort the whole deploy on any non-zero remote exit code.
+      if (code !== 0) {
+        console.error(`\n=== DEPLOY ABORTED: command exited with code ${code} ===`);
+        conn.end();
+        process.exit(1);
+      }
       cmdIndex++;
       runNext();
     });

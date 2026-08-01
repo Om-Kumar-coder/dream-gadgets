@@ -165,6 +165,24 @@ describe('Msg91OtpService', () => {
       expect(await redisMock.getOtp('9876543210')).toBeNull();
     });
 
+    it('should return failure and clear the stored OTP when MSG91 returns a non-OK HTTP status', async () => {
+      const textMock = jest.fn(async () => 'Unauthorized');
+      (global as any).fetch = jest.fn(async () => ({
+        ok: false,
+        status: 401,
+        text: textMock,
+      }));
+
+      const result = await service.sendOtp('9876543210');
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('MSG91 HTTP 401');
+      // OTP must not be left dangling when the SMS was never delivered
+      expect(await redisMock.getOtp('9876543210')).toBeNull();
+      expect(textMock).toHaveBeenCalled();
+    });
+
     it('should return failure and clear the stored OTP when the MSG91 call throws', async () => {
       (global as any).fetch = jest.fn(async () => {
         throw new Error('network down');
