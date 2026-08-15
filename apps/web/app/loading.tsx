@@ -42,10 +42,10 @@ export default function RootLoading() {
 
       {/* Logo Container */}
       <div className="relative flex flex-col items-center">
-        {/* Logo mark */}
+        {/* Logo mark — 90% of viewport width on desktop and mobile (height-capped so it always fits) */}
         <div className="relative mb-6">
-          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="w-[min(72vw,20rem)] animate-scale-in-bounce dark:hidden" />
-          <img src="/logo-dark-bg.png" alt="Dream Gadgets" className="w-[min(72vw,20rem)] hidden animate-scale-in-bounce dark:block" />
+          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="w-[min(90vw,72vh)] animate-scale-in-bounce dark:hidden" />
+          <img src="/logo-dark-bg.png" alt="Dream Gadgets" className="w-[min(90vw,72vh)] hidden animate-scale-in-bounce dark:block" />
           {/* Glow ring */}
           <div className="absolute -inset-6 rounded-3xl bg-primary/5 animate-pulse-glow" />
         </div>

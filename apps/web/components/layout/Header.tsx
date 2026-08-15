@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useCartStore } from '../../store/cart.store';
 import { UserMenu } from './UserMenu';
@@ -80,11 +81,33 @@ export function Header() {
         </div>
       </div>
 
+      {/* ── Mobile Full-Width Logo Row ── */}
+      <div className="md:hidden max-w-7xl mx-auto px-4 pt-3">
+        <Link href="/" className="block group">
+          <img
+            src="/logo-light-bg.png"
+            alt="Dream Gadgets"
+            className="w-[min(90%,32rem)] mx-auto h-auto transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        </Link>
+      </div>
+
       {/* ── Main Header ── */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-11 md:h-14 w-auto transition-transform duration-300 group-hover:scale-105" />
+        {/* Mobile Menu Toggle (left on mobile) */}
+        <button
+          onClick={() => setMobileOpen(o => !o)}
+          className="md:hidden p-2 rounded-xl hover:bg-surface-50 transition-colors"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
+        </button>
+
+        {/* Logo (Desktop) */}
+        <Link href="/" className="hidden md:flex items-center gap-2 shrink-0 group">
+          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-16 lg:h-20 w-auto transition-transform duration-300 group-hover:scale-105" />
         </Link>
 
         {/* Search (Desktop) */}
@@ -191,16 +214,6 @@ export function Header() {
             </svg>
           </button>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden p-2 rounded-xl hover:bg-surface-50 transition-colors"
-            aria-label="Toggle menu"
-          >
-            <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -232,11 +245,14 @@ export function Header() {
         </div>
       </div>
 
-      {/* ── Mobile Slide-Out Menu ── */}
-      {mobileOpen && (
+      {/* ── Mobile Slide-Out Menu ──
+          Rendered via portal to <body>: when the header is scrolled it gains
+          `backdrop-blur`, which creates a containing block that traps `fixed`
+          descendants to the header's box — hiding the menu behind the page. */}
+      {typeof document !== 'undefined' && mobileOpen && createPortal(
         <>
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden animate-fade-in" onClick={() => setMobileOpen(false)} />
-          <div className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl md:hidden overflow-y-auto animate-slide-in-left">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden animate-fade-in" onClick={() => setMobileOpen(false)} />
+          <div className="fixed top-0 left-0 bottom-0 w-72 bg-white z-[70] shadow-2xl md:hidden overflow-y-auto animate-slide-in-left">
             <div className="p-4 border-b border-surface-100 flex items-center justify-between">
               <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-surface-50" aria-label="Close menu">
@@ -286,12 +302,13 @@ export function Header() {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
 
-      {/* ── Mobile Search Overlay ── */}
-      {mobileSearchOpen && (
-        <div className="fixed inset-0 z-50 bg-white md:hidden animate-fade-in">
+      {/* ── Mobile Search Overlay (portal to <body> — same containing-block fix) ── */}
+      {typeof document !== 'undefined' && mobileSearchOpen && createPortal(
+        <div className="fixed inset-0 z-[70] bg-white md:hidden animate-fade-in">
           <div className="p-4">
             <div className="flex items-center gap-3 mb-4">
               <button
@@ -338,7 +355,8 @@ export function Header() {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </header>
   );

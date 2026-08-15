@@ -82,20 +82,20 @@ export function SplashScreen({ exiting }: SplashScreenProps) {
 
       {/* Center content */}
       <div className="relative flex flex-col items-center px-6">
-        {/* Logo — large, with entrance + pulsing glow ring */}
+        {/* Logo — 90% of viewport width on desktop and mobile (height-capped so it always fits) */}
         <div className="relative mb-12">
           <div className="absolute -inset-14 md:-inset-20 rounded-full bg-primary/[0.06] animate-pulse-glow" />
           <div className="absolute -inset-4 md:-inset-6 rounded-full border border-primary/10" />
           <img
             src="/logo-light-bg.png"
             alt="Dream Gadgets"
-            className="w-[min(78vw,24rem)] h-auto animate-scale-in-bounce dark:hidden"
+            className="w-[min(90vw,72vh)] h-auto animate-scale-in-bounce dark:hidden"
             draggable={false}
           />
           <img
             src="/logo-dark-bg.png"
             alt="Dream Gadgets"
-            className="w-[min(78vw,24rem)] h-auto hidden animate-scale-in-bounce dark:block"
+            className="w-[min(90vw,72vh)] h-auto hidden animate-scale-in-bounce dark:block"
             draggable={false}
           />
         </div>
