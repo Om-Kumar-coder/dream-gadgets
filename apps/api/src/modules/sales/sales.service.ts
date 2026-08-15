@@ -668,8 +668,15 @@ ${itemRows}
         }
       }
 
-      // Write audit log
-      await queryRunner.manager.query(
+      await queryRunner.commitTransaction();
+
+      // Write audit log AFTER commit, outside the transaction. A failing
+      // audit INSERT used to abort the whole transaction here — in Postgres a
+      // failed statement puts the transaction in an aborted state and COMMIT
+      // then silently rolls everything back, so the void returned 200 but
+      // never persisted. Audit logging must never be able to undo business
+      // logic.
+      await this.dataSource.query(
         `INSERT INTO audit_logs (entity_type, entity_id, action, performed_by_id, changes, created_at)
          VALUES ($1, $2, $3, $4, $5, NOW())
          ON CONFLICT DO NOTHING`,
@@ -677,8 +684,6 @@ ${itemRows}
       ).catch(() => {
         // audit_logs table may not exist in test env — ignore
       });
-
-      await queryRunner.commitTransaction();
 
       // Emit realtime event after successful commit
       try {
