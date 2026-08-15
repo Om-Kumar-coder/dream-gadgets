@@ -127,7 +127,7 @@ export class PublicController {
       // Cache miss or error — fall through to DB query
     }
 
-    const result = await this.searchService.searchPublicProducts('', {
+    const result = await this.searchService.searchPublicProducts(query.search ?? query.q ?? '', {
       page: query.page ? Number(query.page) : undefined,
       limit: query.limit ? Number(query.limit) : undefined,
       condition: query.condition,
@@ -137,6 +137,7 @@ export class PublicController {
       storage: query.storage,
       colour: query.colour,
       branchId: query.branchId,
+      sort: query.sort,
     });
 
     const response = {

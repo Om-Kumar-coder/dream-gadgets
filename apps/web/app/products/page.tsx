@@ -100,6 +100,26 @@ export default async function ProductsPage({ searchParams }: Props) {
   const activeSort = searchParams.sort || 'popular';
   const activeSearch = searchParams.search || '';
 
+  const PAGE_SIZE = 24;
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams({
+      ...(searchParams.brand && { brand: searchParams.brand }),
+      ...(searchParams.condition && { condition: searchParams.condition }),
+      ...(searchParams.minPrice && { minPrice: searchParams.minPrice }),
+      ...(searchParams.maxPrice && { maxPrice: searchParams.maxPrice }),
+      ...(searchParams.sort && { sort: searchParams.sort }),
+      ...(searchParams.search && { search: searchParams.search }),
+      page: String(p),
+    });
+    return `/products?${params}`;
+  };
+  // Page-number window: 1 … (cur-2…cur+2) … totalPages
+  const pageWindow = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2,
+  );
+
   const pageTitle = activeSearch
     ? `Results for "${activeSearch}"`
     : activeBrand
@@ -320,12 +340,58 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
 
               {/* Pagination */}
-              {total > 24 && (
-                <div className="mt-10 flex items-center justify-center gap-2">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-surface-200 shadow-sm">
+              {totalPages > 1 && (
+                <div className="mt-10 flex flex-col items-center gap-3">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-surface-200 shadow-sm">
                     <span className="text-sm text-surface-500 font-medium">
-                      Showing 1–{Math.min(24, total)} of {total}
+                      Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
                     </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5">
+                    {page > 1 ? (
+                      <a
+                        href={pageHref(page - 1)}
+                        className="px-3 py-1.5 text-sm font-semibold text-primary bg-white rounded-lg border border-surface-200 hover:border-primary/40 transition-colors"
+                      >
+                        ← Prev
+                      </a>
+                    ) : (
+                      <span className="px-3 py-1.5 text-sm font-semibold text-surface-300 bg-surface-50 rounded-lg border border-surface-100 cursor-not-allowed">
+                        ← Prev
+                      </span>
+                    )}
+                    {pageWindow.map((p, i) => {
+                      const prev = pageWindow[i - 1];
+                      const gap = prev && p - prev > 1;
+                      return (
+                        <span key={p} className="inline-flex items-center">
+                          {gap && <span className="px-1 text-sm text-surface-400">…</span>}
+                          <a
+                            href={pageHref(p)}
+                            aria-current={p === page ? 'page' : undefined}
+                            className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
+                              p === page
+                                ? 'bg-primary text-white border-primary shadow-sm'
+                                : 'bg-white text-surface-700 border-surface-200 hover:border-primary/40'
+                            }`}
+                          >
+                            {p}
+                          </a>
+                        </span>
+                      );
+                    })}
+                    {page < totalPages ? (
+                      <a
+                        href={pageHref(page + 1)}
+                        className="px-3 py-1.5 text-sm font-semibold text-primary bg-white rounded-lg border border-surface-200 hover:border-primary/40 transition-colors"
+                      >
+                        Next →
+                      </a>
+                    ) : (
+                      <span className="px-3 py-1.5 text-sm font-semibold text-surface-300 bg-surface-50 rounded-lg border border-surface-100 cursor-not-allowed">
+                        Next →
+                      </span>
+                    )}
                   </div>
                 </div>
               )}

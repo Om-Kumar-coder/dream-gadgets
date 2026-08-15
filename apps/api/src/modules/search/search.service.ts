@@ -18,6 +18,7 @@ export interface SearchFilters {
   city?: string;
   page?: number;
   limit?: number;
+  sort?: string;
 }
 
 export interface SearchResult {
@@ -163,7 +164,13 @@ export class SearchService {
     let paramIdx = 1;
 
     if (query?.trim()) {
-      conditions.push(`i.search_vector @@ plainto_tsquery('english', $${paramIdx})`);
+      // Full-text index first, with a name fallback (brand + model + item_name)
+      // because search_vector only indexes item_name/imei/pku_code — the seeded
+      // catalog has item_name NULL for most items.
+      conditions.push(`(
+        i.search_vector @@ plainto_tsquery('english', $${paramIdx})
+        OR (COALESCE(brd.name, '') || ' ' || COALESCE(mdl.name, '') || ' ' || COALESCE(i.item_name, '')) ILIKE '%' || $${paramIdx} || '%'
+      )`);
       params.push(query.trim());
       paramIdx++;
     }
@@ -215,6 +222,7 @@ export class SearchService {
       const countResult = await this.dataSource.query(
         `SELECT COUNT(*)::int AS total FROM inventory_items i
          LEFT JOIN brands brd ON brd.id = i.brand_id
+         LEFT JOIN models mdl ON mdl.id = i.model_id
          ${whereClause}`,
         params,
       );
@@ -222,7 +230,14 @@ export class SearchService {
       const rankClause = query?.trim()
         ? `, ts_rank(i.search_vector, plainto_tsquery('english', $1)) AS rank`
         : '';
-      const orderClause = query?.trim() ? 'ORDER BY rank DESC, i.online_price ASC' : 'ORDER BY i.online_price ASC';
+      const sort = filters.sort;
+      let orderClause: string;
+      if (sort === 'price_asc') orderClause = 'ORDER BY i.online_price ASC NULLS LAST';
+      else if (sort === 'price_desc') orderClause = 'ORDER BY i.online_price DESC NULLS LAST';
+      else if (sort === 'newest') orderClause = 'ORDER BY i.created_at DESC';
+      else if (sort === 'discount') orderClause = 'ORDER BY (COALESCE(i.selling_price, 0) - COALESCE(i.online_price, 0)) DESC NULLS LAST';
+      else if (query?.trim()) orderClause = 'ORDER BY rank DESC, i.online_price ASC';
+      else orderClause = 'ORDER BY i.online_price ASC';
 
       const items = await this.dataSource.query(
         `SELECT
@@ -285,6 +300,7 @@ export class SearchService {
           `SELECT i.condition, COUNT(*)::int AS count
            FROM inventory_items i
            LEFT JOIN brands brd ON brd.id = i.brand_id
+           LEFT JOIN models mdl ON mdl.id = i.model_id
            ${whereClause}
            GROUP BY i.condition ORDER BY count DESC`,
           params,
@@ -293,6 +309,7 @@ export class SearchService {
           `SELECT i.storage, COUNT(*)::int AS count
            FROM inventory_items i
            LEFT JOIN brands brd ON brd.id = i.brand_id
+           LEFT JOIN models mdl ON mdl.id = i.model_id
            ${storageWhereClause}
            GROUP BY i.storage ORDER BY count DESC`,
           params,
