@@ -81,13 +81,13 @@ export function Header() {
         </div>
       </div>
 
-      {/* ── Mobile Full-Width Logo Row ── */}
-      <div className="md:hidden max-w-7xl mx-auto px-4 pt-3">
+      {/* ── Full-Width Logo Row (desktop + mobile — ~90% of viewport) ── */}
+      <div className="max-w-7xl mx-auto px-4 pt-3 md:pt-5">
         <Link href="/" className="block group">
           <img
             src="/logo-light-bg.png"
             alt="Dream Gadgets"
-            className="w-[min(90%,32rem)] mx-auto h-auto transition-transform duration-300 group-hover:scale-[1.02]"
+            className="w-[min(90vw,44rem)] mx-auto h-auto transition-transform duration-300 group-hover:scale-[1.02]"
           />
         </Link>
       </div>
@@ -105,16 +105,11 @@ export function Header() {
           </svg>
         </button>
 
-        {/* Logo (Desktop) */}
-        <Link href="/" className="hidden md:flex items-center gap-2 shrink-0 group">
-          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-16 lg:h-20 w-auto transition-transform duration-300 group-hover:scale-105" />
-        </Link>
-
         {/* Search (Desktop) */}
         <form
           ref={searchRef}
           onSubmit={handleSearch}
-          className="hidden md:flex flex-1 max-w-lg mx-4"
+          className="hidden md:flex flex-1 max-w-xl mx-auto"
         >
           <div className="relative w-full group">
             <div className={`flex items-center gap-2 rounded-xl border transition-all duration-200 px-3 py-2 ${
