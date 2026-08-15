@@ -122,7 +122,11 @@ export class BuybackService {
   private static factorFor(map: Record<string, number>, value?: string | null): number {
     if (!value) return 1;
     const key = value.trim().toLowerCase();
-    return map[key] ?? 1;
+    // Map keys may be mixed-case (e.g. 'Below 50%') — match case-insensitively
+    for (const [k, factor] of Object.entries(map)) {
+      if (k.toLowerCase() === key) return factor;
+    }
+    return 1;
   }
 
   /**
