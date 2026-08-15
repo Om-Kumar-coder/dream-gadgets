@@ -48,7 +48,11 @@ export class ExchangeController {
   @ApiOperation({ summary: 'Get price guide change history (audit log)' })
   async getPriceGuideAudits(@Query('limit') limit?: string) {
     const audits = await this.exchangeService.getPriceGuideAudits(limit ? parseInt(limit, 10) : 50);
-    return { data: audits };
+    // Return the array directly — the global interceptor wraps it as
+    // { status, data: [...] } like every other list endpoint. Previously this
+    // returned { data: audits }, double-nesting it ({ data: { data: [...] } })
+    // which crashed the admin price-guide page ("...map is not a function").
+    return audits;
   }
 
   @Post('price-guide')
