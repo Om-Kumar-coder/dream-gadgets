@@ -34,6 +34,7 @@ interface Branch {
   workingHours: string;
   mapUrl: string;
   sortOrder: number;
+  productCount?: number;
 }
 
 const EMOJIS = ['🏪', '🏬', '🏢', '🏙️', '🛍️'];
@@ -129,6 +130,10 @@ export default async function StoresPage() {
                     </p>
                     <p className="flex items-center gap-2 text-surface-600">
                       <span>🕐</span> {s.workingHours}
+                    </p>
+                    <p className="flex items-center gap-2 font-semibold text-surface-800">
+                      <span>📦</span>
+                      {s.productCount ? `${s.productCount} product${s.productCount === 1 ? '' : 's'}` : 'No products listed yet'}
                     </p>
                     {s.instagram && (
                       <a

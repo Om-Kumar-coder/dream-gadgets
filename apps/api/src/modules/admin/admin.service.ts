@@ -223,8 +223,19 @@ export class AdminService {
 
   // ─── 16.3 Branch management ───────────────────────────────────────────────────
 
-  async listBranches(): Promise<Branch[]> {
-    return this.branchRepo.find({ order: { name: 'ASC' } });
+  async listBranches(): Promise<any[]> {
+    const rows = await this.branchRepo.manager.query(`
+      SELECT
+        b.id, b.name, b.code, b.address, b.city, b.state, b.pincode,
+        b.phone, b.whatsapp, b.email, b.instagram,
+        b.working_hours AS "workingHours", b.map_url AS "mapUrl",
+        b.sort_order AS "sortOrder", b.is_active AS "isActive",
+        b.gstin, b.created_at AS "createdAt",
+        (SELECT COUNT(*)::int FROM inventory_items ii WHERE ii.branch_id = b.id) AS "productCount"
+      FROM branches b
+      ORDER BY b.name ASC
+    `);
+    return rows.map((r: any) => ({ ...r, productCount: Number(r.productCount) || 0 }));
   }
 
   async createBranch(dto: CreateBranchDto): Promise<Branch> {

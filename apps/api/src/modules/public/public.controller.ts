@@ -180,11 +180,12 @@ export class PublicController {
   async getPublicBranches() {
     const branches = await this.dataSource.query(
       `SELECT
-         id, name, code, address, city, state, pincode,
-         phone, whatsapp, email, instagram, working_hours,
-         map_url, sort_order
-       FROM branches
-       ORDER BY sort_order ASC, name ASC`,
+         b.id, b.name, b.code, b.address, b.city, b.state, b.pincode,
+         b.phone, b.whatsapp, b.email, b.instagram, b.working_hours,
+         b.map_url, b.sort_order,
+         (SELECT COUNT(*)::int FROM inventory_items ii WHERE ii.branch_id = b.id) AS product_count
+       FROM branches b
+       ORDER BY b.sort_order ASC, b.name ASC`,
     );
     return {
       data: branches.map((b: any) => ({
@@ -202,6 +203,7 @@ export class PublicController {
         workingHours: b.working_hours,
         mapUrl: b.map_url,
         sortOrder: b.sort_order,
+        productCount: Number(b.product_count) || 0,
       })),
     };
   }

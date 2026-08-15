@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { MapPin, Phone, Clock, ArrowRight, Store, Loader2, Building2 } from 'lucide-react';
+import { MapPin, Phone, Clock, ArrowRight, Store, Loader2, Building2, Package } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
 interface Branch {
@@ -17,6 +17,7 @@ interface Branch {
   whatsapp?: string;
   workingHours?: string;
   isActive?: boolean;
+  productCount?: number;
 }
 
 export default function BranchesPage() {
@@ -114,13 +115,19 @@ export default function BranchesPage() {
                 )}
               </div>
 
-              <Link
-                href={`/branches/${branch.id}`}
-                className="mt-auto inline-flex items-center justify-center gap-2 w-full py-2.5 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary hover:text-white transition-all active:scale-[0.98]"
-              >
-                View Products
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="mt-auto flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-surface-700 bg-surface-100 px-3 py-1.5 rounded-full">
+                  <Package className="w-3.5 h-3.5 text-surface-400" />
+                  {branch.productCount ? `${branch.productCount} product${branch.productCount === 1 ? '' : 's'}` : 'No products'}
+                </span>
+                <Link
+                  href={`/branches/${branch.id}`}
+                  className="inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary hover:text-white transition-all active:scale-[0.98]"
+                >
+                  View Products
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
           ))}
 
