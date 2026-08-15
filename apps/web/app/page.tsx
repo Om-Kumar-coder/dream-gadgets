@@ -31,7 +31,10 @@ async function getHomeBranches() {
 
 async function getHomeProducts() {
   try {
-    const res = await fetch(`${API}/public/products?limit=12&sort=popular`, { next: { revalidate: 60 } });
+    // limit=24 + sort=popular interleaves one unit per model, so the four
+    // sections below get non-overlapping, varied products instead of the
+    // same cards repeated.
+    const res = await fetch(`${API}/public/products?limit=24&sort=popular`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const json = await res.json();
     return json.data ?? json.items ?? [];
@@ -49,10 +52,11 @@ const HOME_JSONLD = webPageSchema(
 export default async function HomePage() {
   const products = await getHomeProducts();
   const branches = await getHomeBranches();
+  // Non-overlapping windows so no card repeats across sections.
   const trending = products.slice(0, 6);
-  const dealOfDay = products.slice(0, 3);
-  const hotDeals = products.slice(0, 4);
-  const recommended = products.slice(2, 6);
+  const dealOfDay = products.slice(6, 9);
+  const hotDeals = products.slice(9, 13);
+  const recommended = products.slice(13, 17);
 
   return (
     <main className="overflow-hidden">

@@ -237,7 +237,9 @@ export class SearchService {
       else if (sort === 'newest') orderClause = 'ORDER BY i.created_at DESC';
       else if (sort === 'discount') orderClause = 'ORDER BY (COALESCE(i.selling_price, 0) - COALESCE(i.online_price, 0)) DESC NULLS LAST';
       else if (query?.trim()) orderClause = 'ORDER BY rank DESC, i.online_price ASC';
-      else orderClause = 'ORDER BY i.online_price ASC';
+      // Default / popular browsing: surface one unit of each model first so the
+      // first page shows catalog variety instead of a wall of identical units.
+      else orderClause = `ORDER BY (ROW_NUMBER() OVER (PARTITION BY i.model_id ORDER BY i.created_at DESC)) ASC, i.online_price ASC NULLS LAST`;
 
       const items = await this.dataSource.query(
         `SELECT
