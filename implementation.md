@@ -98,6 +98,8 @@
   - `GET /accessories` 500'd — table is snake_case but the Accessory entity had no explicit column mappings (`acc.purchasePrice` etc.). Added explicit `name:` mappings ✅ (and the earlier `@Type(() => Number)` DTO fix stopped the 400)
   - **Verified end-to-end**: create → 201 (`DG-MAIN-2026-00002`, ₹1,09,999, item→sold), persisted via `GET /sales/:id`, dashboard `todaySalesCount` 0→1, void → `isVoided=true` + audit row + item back to `available`. Test sale left as a proper voided record (audit trail). Known quirk: the dashboard KPI counts voided sales (no `is_voided` filter) — flagged as follow-up ✅
 
+- **Launch content filled (`20f289a` + `a142d86`)**: migration `037` seeds 9 banners (home slider ×3, middle ×2, bottom ×1, offer ×1; promotional middle/offer for brand pages) and `brand_hero:{slug}` images for all 17 brands. Added the 7 blog articles that were listed on `/blog` but had no detail page (404 → full articles with SEO/JSON-LD). Generated branded SVG assets (dark + brand-red design language) into `apps/web/public/banners/` and `apps/web/public/brand-hero/` so the home hero and brand pages no longer run on fallback gradients. Verified live: banners API returns all placements, all 12 `/blog/*` pages 200, all 17 brand heroes return image URLs, and every SVG serves `200 image/svg+xml` ✅
+
 ### Live verification (Aug 15, dreamgadgets.in)
 
 - **Buyback estimator** verified end-to-end: S23/mint → ₹48,750, iPhone 15 Pro Max/good → ₹66,000, OnePlus 12/fair → ₹26,000 — all from `price_guide` (high confidence); screen 0.6× and battery 0.65× adjustments confirmed live
