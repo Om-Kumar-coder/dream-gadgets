@@ -83,13 +83,9 @@ export function Header() {
 
       {/* ── Main Header ── */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        {/* Logo — compact lockup (Hostinger-style: mark + wordmark, left-aligned) */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <img src="/logo-mark-192.png" alt="" className="h-8 md:h-9 w-auto object-contain" />
-          <span className="text-base md:text-lg font-extrabold tracking-tight leading-none whitespace-nowrap">
-            <span className="text-surface-900 dark:text-white">DREAM</span>{' '}
-            <span className="text-primary">GADGETS</span>
-          </span>
+        {/* Logo — full logo, margins trimmed so it fits the header (not cropped) */}
+        <Link href="/" className="flex items-center shrink-0 group">
+          <img src="/logo-header-light.png" alt="Dream Gadgets" className="h-12 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
         </Link>
 
         {/* Search (Desktop) */}
@@ -246,12 +242,8 @@ export function Header() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden animate-fade-in" onClick={() => setMobileOpen(false)} />
           <div className="fixed top-0 left-0 bottom-0 w-72 bg-white z-[70] shadow-2xl md:hidden overflow-y-auto animate-slide-in-left">
             <div className="p-4 border-b border-surface-100 flex items-center justify-between">
-              <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 group">
-                <img src="/logo-mark-192.png" alt="" className="h-7 w-auto object-contain" />
-                <span className="text-sm font-extrabold tracking-tight leading-none whitespace-nowrap">
-                  <span className="text-surface-900 dark:text-white">DREAM</span>{' '}
-                  <span className="text-primary">GADGETS</span>
-                </span>
+              <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center group">
+                <img src="/logo-header-light.png" alt="Dream Gadgets" className="h-9 w-auto object-contain" />
               </Link>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-surface-50" aria-label="Close menu">
                 <svg className="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

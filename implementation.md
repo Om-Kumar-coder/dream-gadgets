@@ -85,7 +85,7 @@
 - **Env-gated fallbacks**: email/WhatsApp/SMS channels refuse to "send" outside dev-mode unless providers are configured ✅
 - **Health endpoint**: `/public/health` now includes DB/Redis/queue status ✅
 - **PWA/branding**: admin manifest + icons + SW under `/admin` basePath; web apple-touch-icon fixed ✅
-- **Hostinger-style logo**: splash + loading keep the 90%-width full logo (`min(90vw, 72vh)`); the header logo is now a compact lockup — phone mark + single-line `DREAM GADGETS` wordmark, ~159×32px (4.97:1, matching Hostinger's 147×30) — left-aligned with search centered and actions on the right; mobile nav drawer + search overlay portaled to `<body>` so they no longer get trapped/clipped by the scrolled header's `backdrop-blur` containing block ✅
+- **Full fitted logo**: splash + loading keep the 90%-width full logo (`min(90vw, 72vh)`); the header shows the complete `logo-header-light.png` (margins trimmed, content uncropped) fitted at 100×48px mobile / 116×56px desktop — left-aligned, search centered, actions right; mobile nav drawer + search overlay portaled to `<body>` so they no longer get trapped/clipped by the scrolled header's `backdrop-blur` containing block ✅
 
 ### Live verification (Aug 15, dreamgadgets.in)
 
