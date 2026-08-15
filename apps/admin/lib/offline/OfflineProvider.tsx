@@ -5,6 +5,7 @@ import { offlineDB, CachedInventoryItem } from './db';
 import { syncQueue } from './sync-queue';
 import { apiClient } from '@/lib/api';
 import { SyncStatusBanner } from './SyncStatusBanner';
+import { SplashScreen } from '@/components/SplashScreen';
 
 interface OfflineContextValue {
   isReady: boolean;
@@ -32,18 +33,33 @@ export function useOffline() {
  */
 export function OfflineProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [initError, setInitError] = useState<string | null>(null);
+
+  // Guarantee the branded splash is visible for a short moment so it
+  // doesn't flash — IndexedDB init is usually near-instant.
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   // Initialize database
   useEffect(() => {
     let cancelled = false;
+
+    // Failsafe — never leave the user stuck on the splash, even if
+    // IndexedDB is slow or hangs. The app works without offline support.
+    const failsafe = setTimeout(() => {
+      if (!cancelled) setIsReady(true);
+    }, 4000);
 
     const init = async () => {
       try {
         // Warm up the database by opening it
         const info = await offlineDB.getDatabaseInfo();
         if (!cancelled) {
+          clearTimeout(failsafe);
           setIsReady(true);
         }
 
@@ -59,6 +75,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
         }
       } catch (error: any) {
         if (!cancelled) {
+          clearTimeout(failsafe);
           console.warn('[OfflineProvider] IndexedDB init failed:', error?.message);
           setInitError(error?.message);
           // Still mark as ready — the app works without offline support
@@ -68,7 +85,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     };
 
     init();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(failsafe); };
   }, []);
 
   const refreshPendingCount = useCallback(async () => {
@@ -111,10 +128,18 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const showSplash = !isReady || !minElapsed;
+
   return (
     <OfflineContext.Provider value={{ isReady, cacheInventory, refreshPendingCount, pendingCount }}>
-      <SyncStatusBanner />
-      {children}
+      {showSplash ? (
+        <SplashScreen />
+      ) : (
+        <>
+          <SyncStatusBanner />
+          {children}
+        </>
+      )}
     </OfflineContext.Provider>
   );
 }

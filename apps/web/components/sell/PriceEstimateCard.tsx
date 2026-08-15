@@ -1,85 +1,115 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PriceEstimateCardProps {
   brand: string;
   modelName: string;
   condition: string;
+  screenCondition?: string;
+  bodyCondition?: string;
+  batteryHealth?: string;
+  functionalIssues?: string;
   estimatedPrice: number | null;
-  onUpdate: (data: Partial<{ estimatedPrice: number }>) => void;
+  onUpdate: (data: Partial<{ estimatedPrice: number | null }>) => void;
 }
 
-const BASE_PRICES: Record<string, number> = {
-  'iPhone 16 Pro Max': 125000,
-  'iPhone 16 Pro': 110000,
-  'iPhone 16': 90000,
-  'iPhone 15 Pro Max': 110000,
-  'iPhone 15 Pro': 95000,
-  'iPhone 15': 80000,
-  'iPhone 14 Pro Max': 95000,
-  'iPhone 14': 70000,
-  'iPhone 13': 55000,
-  'iPhone 12': 40000,
-  'Galaxy S25 Ultra': 120000,
-  'Galaxy S25+': 95000,
-  'Galaxy S25': 85000,
-  'Galaxy S24 Ultra': 110000,
-  'Galaxy S24': 75000,
-  'Galaxy S23 Ultra': 95000,
-  'Galaxy S23': 65000,
-  'Galaxy Z Fold 6': 140000,
-  'Galaxy Z Flip 6': 95000,
-  'Galaxy A55': 30000,
-  'OnePlus 13': 75000,
-  'OnePlus 12': 65000,
-  'OnePlus 11': 55000,
-  'OnePlus Nord 4': 30000,
-  'OnePlus Nord CE 4': 25000,
-  'Xiaomi 14 Pro': 55000,
-  'Xiaomi 13 Pro': 45000,
-  'Redmi Note 13 Pro': 25000,
-  'Redmi Note 12': 18000,
-  'Pixel 9 Pro': 85000,
-  'Pixel 9': 70000,
-  'Pixel 8 Pro': 70000,
-  'Pixel 8': 55000,
-  'Pixel 7a': 35000,
-};
+interface EstimateResponse {
+  estimatedPrice: number | null;
+  dataSource: 'price_guide' | 'historical_sales' | 'no_data';
+  confidence: 'high' | 'medium' | 'low' | 'none';
+  modelName?: string;
+  brand?: string;
+  condition?: string;
+  baseValue?: number | null;
+  basePrice?: number;
+  conditionMultiplier?: number;
+  adjustments?: {
+    screen: number;
+    body: number;
+    battery: number;
+    functional: number;
+  };
+  sampleCount?: number;
+}
 
-const CONDITION_MULTIPLIERS: Record<string, number> = {
-  sealed_pack: 0.95,
-  open_box: 0.90,
-  super_mint: 0.85,
-  mint: 0.75,
-  good: 0.60,
-  fair: 0.40,
-  broken: 0.20,
-};
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
-export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice, onUpdate }: PriceEstimateCardProps) {
+function pct(factor: number | undefined): string {
+  if (factor == null) return '-';
+  return `${Math.round(factor * 100)}%`;
+}
+
+export function PriceEstimateCard({
+  brand,
+  modelName,
+  condition,
+  screenCondition,
+  bodyCondition,
+  batteryHealth,
+  functionalIssues,
+  estimatedPrice,
+  onUpdate,
+}: PriceEstimateCardProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
   const [animatedPrice, setAnimatedPrice] = useState(0);
+  const requestSeq = useRef(0);
 
-  // Calculate price from condition
+  // Fetch server-side estimate whenever device or assessment changes
   useEffect(() => {
     if (!condition || !modelName) return;
 
+    const seq = ++requestSeq.current;
     setLoading(true);
-    const basePrice = BASE_PRICES[modelName];
-    if (!basePrice) {
-      // Fallback: generate a reasonable price
-      const estimated = Math.floor(Math.random() * 30000) + 5000;
-      onUpdate({ estimatedPrice: estimated });
-      setLoading(false);
-      return;
-    }
+    setError('');
 
-    const multiplier = CONDITION_MULTIPLIERS[condition] || 0.5;
-    const estimated = Math.round(basePrice * multiplier);
-    onUpdate({ estimatedPrice: estimated });
-    setLoading(false);
-  }, [condition, modelName, onUpdate]);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+
+    fetch(`${API}/public/buyback/estimate-price`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        brand,
+        modelName,
+        condition,
+        ...(screenCondition ? { screenCondition } : {}),
+        ...(bodyCondition ? { bodyCondition } : {}),
+        ...(batteryHealth ? { batteryHealth } : {}),
+        ...(functionalIssues ? { functionalIssues } : {}),
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.message || 'Failed to get estimate');
+        }
+        return res.json();
+      })
+      .then((json) => {
+        if (seq !== requestSeq.current) return; // stale response
+        const data: EstimateResponse = json?.data ?? json;
+        setEstimate(data);
+        onUpdate({ estimatedPrice: data.estimatedPrice });
+      })
+      .catch((err: any) => {
+        if (seq !== requestSeq.current) return;
+        if (err?.name === 'AbortError') return;
+        setError(err.message || 'Something went wrong. Please try again.');
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        if (seq === requestSeq.current) setLoading(false);
+      });
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [brand, modelName, condition, screenCondition, bodyCondition, batteryHealth, functionalIssues, onUpdate]);
 
   // Animate price counting up
   useEffect(() => {
@@ -100,6 +130,8 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
   }, [estimatedPrice]);
 
   const maxPrice = estimatedPrice ? Math.round(estimatedPrice * 1.3) : null;
+  const adjustments = estimate?.adjustments;
+  const hasAdjustments = adjustments && Object.values(adjustments).some((f) => f < 1);
 
   return (
     <div className="space-y-6">
@@ -122,6 +154,12 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
       {/* Price card */}
       {loading ? (
         <div className="h-32 bg-surface-100 rounded-2xl animate-pulse" />
+      ) : error ? (
+        <div className="text-center p-8 bg-red-50 rounded-2xl border border-red-100">
+          <p className="text-surface-700 font-medium mb-1">Couldn&apos;t fetch the estimate right now</p>
+          <p className="text-sm text-surface-500">{error}</p>
+          <p className="text-xs text-surface-400 mt-2">You can still continue — our team will quote the final price after inspection.</p>
+        </div>
       ) : estimatedPrice ? (
         <div className="relative text-center p-8 bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border-2 border-primary/20 animate-scale-in overflow-hidden">
           <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
@@ -136,8 +174,21 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
           )}
           <div className="flex items-center justify-center gap-2 mt-3 text-xs text-surface-400">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            Price updated in real-time
+            {estimate?.dataSource === 'historical_sales' ? (
+              <span>Based on {estimate?.sampleCount ?? 0} recent {estimate?.sampleCount === 1 ? 'sale' : 'sales'} at our stores</span>
+            ) : estimate?.confidence === 'high' ? (
+              <span>Based on current market value</span>
+            ) : (
+              <span>Based on current market value</span>
+            )}
           </div>
+        </div>
+      ) : estimate?.dataSource === 'no_data' ? (
+        <div className="text-center p-8 bg-surface-50 rounded-2xl border border-surface-100">
+          <p className="text-surface-700 font-semibold mb-1">Instant quote not available for this model yet</p>
+          <p className="text-sm text-surface-500">
+            No problem! Submit your details and our team will call you with the best price within 24 hours.
+          </p>
         </div>
       ) : (
         <div className="text-center p-8 bg-surface-50 rounded-2xl border border-surface-100">
@@ -146,20 +197,46 @@ export function PriceEstimateCard({ brand, modelName, condition, estimatedPrice,
       )}
 
       {/* Price breakdown */}
-      {estimatedPrice && (
+      {estimatedPrice && estimate?.baseValue != null && (
         <div className="space-y-2 text-sm animate-fade-in-up">
           <p className="font-semibold text-surface-700">Price Breakdown</p>
           <div className="bg-surface-50 rounded-xl p-4 space-y-2 border border-surface-100">
             <div className="flex justify-between">
-              <span className="text-surface-500">Base value ({modelName})</span>
-              <span className="font-medium text-surface-900">₹{(BASE_PRICES[modelName] || 0).toLocaleString('en-IN')}</span>
+              <span className="text-surface-500">Base value ({estimate?.modelName ?? modelName})</span>
+              <span className="font-medium text-surface-900">₹{Number(estimate.baseValue).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-surface-500">Condition adjustment</span>
-              <span className="font-medium text-emerald-600">
-                {condition ? `${Math.round((CONDITION_MULTIPLIERS[condition] || 0) * 100)}%` : '-'}
-              </span>
+              <span className="font-medium text-emerald-600">{pct(estimate.conditionMultiplier)}</span>
             </div>
+            {hasAdjustments && (
+              <>
+                {adjustments && adjustments.screen < 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-surface-500">Screen ({screenCondition})</span>
+                    <span className="font-medium text-emerald-600">{pct(adjustments.screen)}</span>
+                  </div>
+                )}
+                {adjustments && adjustments.body < 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-surface-500">Body ({bodyCondition})</span>
+                    <span className="font-medium text-emerald-600">{pct(adjustments.body)}</span>
+                  </div>
+                )}
+                {adjustments && adjustments.battery < 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-surface-500">Battery ({batteryHealth})</span>
+                    <span className="font-medium text-emerald-600">{pct(adjustments.battery)}</span>
+                  </div>
+                )}
+                {adjustments && adjustments.functional < 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-surface-500">Functional issues</span>
+                    <span className="font-medium text-emerald-600">{pct(adjustments.functional)}</span>
+                  </div>
+                )}
+              </>
+            )}
             <div className="border-t border-surface-200 pt-2 flex justify-between font-bold">
               <span className="text-surface-900">Your estimated price</span>
               <span className="text-primary">₹{estimatedPrice.toLocaleString('en-IN')}</span>

@@ -127,6 +127,8 @@ const config: Config = {
         'glow-pulse': 'glowPulse 3s ease-in-out infinite',
         'scale-pulse': 'scalePulse 3s ease-in-out infinite',
         'count-up': 'countUp 0.5s ease-out',
+        'gradient-shift': 'gradientShift 10s ease-in-out infinite',
+        'float-up': 'floatUp 9s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -202,6 +204,16 @@ const config: Config = {
         countUp: {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        gradientShift: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        floatUp: {
+          '0%': { transform: 'translateY(0)', opacity: '0' },
+          '8%': { opacity: '0.7' },
+          '92%': { opacity: '0.5' },
+          '100%': { transform: 'translateY(-110vh)', opacity: '0' },
         },
       },
       transitionTimingFunction: {

@@ -21,10 +21,11 @@ import { extname, join } from 'path';
 import * as fs from 'fs';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { BuybackService } from './buyback.service';
-import { IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsOptional, IsNumber, Min } from 'class-validator';
 
 class CreateBuybackLeadDto {
   @IsString()
@@ -46,6 +47,52 @@ class CreateBuybackLeadDto {
   @IsString()
   @MaxLength(50)
   deviceType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  screenCondition?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bodyCondition?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  batteryHealth?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  condition?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  estimatedPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  functionalIssues?: string;
+}
+
+class EstimateBuybackPriceDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  brand: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  modelName: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  condition?: string;
 
   @IsOptional()
   @IsString()
@@ -103,6 +150,23 @@ export class BuybackController {
         message: 'Your request has been submitted. Our team will contact you shortly.',
       },
     };
+  }
+
+  // ─── Public: Estimate a buyback price ────────────────────────────────────────
+
+  @Post('public/buyback/estimate-price')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Estimate a buyback price for a device (public)' })
+  async estimatePrice(@Body() dto: EstimateBuybackPriceDto) {
+    if (!dto.modelName?.trim()) {
+      throw new BadRequestException({
+        code: 'MODEL_REQUIRED',
+        message: 'Model name is required',
+      });
+    }
+    const result = await this.buybackService.estimatePrice(dto);
+    return { data: result };
   }
 
   // ─── Public: Upload photos for a lead ─────────────────────────────────────────

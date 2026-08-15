@@ -305,6 +305,30 @@ export class AuthService {
     return result.status === 'dev-mode' && result.otp ? { devOtp: result.otp } : {};
   }
 
+  // ─── 3.5b Login with OTP (passwordless) ─────────────────────────────────────
+
+  async loginWithOtp(phone: string, otp: string): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    const verifyResult = await this.msg91OtpService.verifyOtp(phone, otp);
+    if (!verifyResult.success) {
+      throw new BadRequestException(verifyResult.error ?? 'Invalid or expired OTP');
+    }
+
+    const user = await this.userRepository.findOne({ where: { phone }, relations: ['role'] });
+    if (!user) {
+      throw new BadRequestException('No account found with this phone number — please register');
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    // Update last login
+    await this.userRepository.update(user.id, { lastLoginAt: new Date() });
+
+    const { accessToken, refreshToken } = await this.buildTokens(user);
+    const { passwordHash, ...userProfile } = user;
+    return { accessToken, refreshToken, user: userProfile };
+  }
+
   // ─── 3.6 Forgot / Reset password ────────────────────────────────────────────
 
   async forgotPassword(identifier: string): Promise<void> {

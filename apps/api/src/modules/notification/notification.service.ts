@@ -83,9 +83,9 @@ export class NotificationService {
         smsBody: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
       },
       order_status: {
-        subject: 'Order Update - {{orderNumber}}',
-        body: '<h2>Order Update</h2><p>Your order <strong>{{orderNumber}}</strong> status has been updated to <strong>{{status}}</strong>.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Order {{orderNumber}}: {{status}}. - Dream Gadgets',
+        subject: '{{status}} — Order {{orderNumber}} | Dream Gadgets',
+        body: '<h2>Order Update</h2><p>Hi {{name}},</p><p>Your order <strong>{{orderNumber}}</strong> is now <strong style="color:#E50914">{{status}}</strong>.</p><p>Order amount: <strong>₹{{amount}}</strong></p><p>You can track your order anytime on our website.</p><p>— Dream Gadgets</p>',
+        smsBody: 'Order {{orderNumber}} is now {{status}}. - Dream Gadgets',
       },
       otp: {
         subject: 'Your OTP for Dream Gadgets',
@@ -137,7 +137,7 @@ export class NotificationService {
       // Use SMS-specific templates for SMS
       const defaults: Record<string, string> = {
         invoice_delivery: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
-        order_status: 'Order {{orderNumber}}: {{status}}. - Dream Gadgets',
+        order_status: 'Order {{orderNumber}} is now {{status}}. - Dream Gadgets',
         otp: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
         birthday_offer: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
         refund_processed: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. - Dream Gadgets',

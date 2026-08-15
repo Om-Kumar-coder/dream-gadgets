@@ -3,12 +3,14 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
   UseInterceptors,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -39,6 +41,43 @@ export class ExchangeController {
   @ApiOperation({ summary: 'Get market price guide per model+condition' })
   async getPriceGuide(@Query('modelId') modelId?: string) {
     return this.exchangeService.getPriceGuide(modelId);
+  }
+
+  @Get('price-guide/audits')
+  @RequirePermission('exchange.view')
+  @ApiOperation({ summary: 'Get price guide change history (audit log)' })
+  async getPriceGuideAudits(@Query('limit') limit?: string) {
+    const audits = await this.exchangeService.getPriceGuideAudits(limit ? parseInt(limit, 10) : 50);
+    return { data: audits };
+  }
+
+  @Post('price-guide')
+  @RequirePermission('exchange.edit')
+  @ApiOperation({ summary: 'Create or update a price guide entry (model + condition)' })
+  async upsertPriceGuide(
+    @Body() body: { modelId: string; condition: string; basePrice: number },
+    @CurrentUser() user: any,
+  ) {
+    if (!body?.modelId || !body?.condition || body?.basePrice == null) {
+      throw new BadRequestException({
+        code: 'INVALID_PRICE_GUIDE',
+        message: 'modelId, condition, and basePrice are required',
+      });
+    }
+    const row = await this.exchangeService.upsertPriceGuide(body.modelId, body.condition, Number(body.basePrice), user.sub);
+    return { data: row };
+  }
+
+  @Delete('price-guide/:modelId/:condition')
+  @RequirePermission('exchange.edit')
+  @ApiOperation({ summary: 'Delete a price guide entry (model + condition)' })
+  async deletePriceGuide(
+    @Param('modelId', ParseUUIDPipe) modelId: string,
+    @Param('condition') condition: string,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.exchangeService.deletePriceGuide(modelId, condition, user.sub);
+    return { data: result };
   }
 
   @Get('price-suggestion')

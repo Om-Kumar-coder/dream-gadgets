@@ -84,7 +84,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-9 md:h-11 w-auto transition-transform duration-300 group-hover:scale-105" />
+          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-11 md:h-14 w-auto transition-transform duration-300 group-hover:scale-105" />
         </Link>
 
         {/* Search (Desktop) */}
@@ -238,7 +238,7 @@ export function Header() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden animate-fade-in" onClick={() => setMobileOpen(false)} />
           <div className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl md:hidden overflow-y-auto animate-slide-in-left">
             <div className="p-4 border-b border-surface-100 flex items-center justify-between">
-              <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-8 w-auto" />
+              <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-surface-50" aria-label="Close menu">
                 <svg className="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

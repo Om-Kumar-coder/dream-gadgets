@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 const STORES = [
   {
+    slug: 'chetla',
     name: 'Dream Gadgets — Chetla (Main Branch)',
     address: '29A, Pitambar Ghatak Lane, Chetla',
     area: 'Near Chetla Police Station, Opp. CIT Market, Alipore',
@@ -33,6 +34,7 @@ const STORES = [
     mapQuery: '29A Pitambar Ghatak Lane Chetla Kolkata',
   },
   {
+    slug: 'jadavpur',
     name: 'Dream Gadgets 2.0 — Jadavpur',
     address: '17, Sukanta Setu, Sulekha More, Jadavpur',
     area: 'Jadavpur',
@@ -47,6 +49,7 @@ const STORES = [
     mapQuery: '17 Sukanta Setu Sulekha More Jadavpur Kolkata',
   },
   {
+    slug: 'champahati',
     name: 'Dream Gadgets 3.0 — Champahati',
     address: 'Champahati Station Road',
     area: 'Near Nilmanikar Vidyalaya, South 24 Parganas',
@@ -110,7 +113,9 @@ export default function StoresPage() {
           {STORES.map(s => (
             <div key={s.name} className="card p-6 hover:shadow-card-hover transition-all flex flex-col group">
               <span className="text-4xl mb-4 block">{s.emoji}</span>
-              <h2 className="font-bold text-surface-900 mb-1 group-hover:text-primary transition-colors">{s.name}</h2>
+              <h2 className="font-bold text-surface-900 mb-1 group-hover:text-primary transition-colors">
+                <a href={`/stores/${s.slug}`} className="hover:text-primary transition-colors">{s.name}</a>
+              </h2>
               <p className="text-sm text-surface-500 mb-1">{s.address}</p>
               <p className="text-xs text-surface-400 mb-3">{s.area}</p>
               <p className="text-xs text-surface-400 mb-3">{s.city}, {s.state} — {s.pincode}</p>
@@ -140,14 +145,22 @@ export default function StoresPage() {
                 </a>
               </div>
 
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(s.mapQuery)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-auto text-xs text-primary font-semibold hover:underline"
-              >
-                Get Directions →
-              </a>
+              <div className="mt-auto flex items-center justify-between gap-2">
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(s.mapQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary font-semibold hover:underline"
+                >
+                  Get Directions →
+                </a>
+                <a
+                  href={`/stores/${s.slug}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-surface-900 bg-primary/5 hover:bg-primary hover:text-white px-3 py-1.5 rounded-full transition-all"
+                >
+                  View Products
+                </a>
+              </div>
             </div>
           ))}
         </div>

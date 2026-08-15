@@ -10,7 +10,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
           {/* Column 1: Brand */}
           <div className="lg:col-span-1">
-            <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-10 w-auto brightness-0 invert mb-5" />
+            <img src="/logo-dark-bg.png" alt="Dream Gadgets" className="h-14 md:h-16 w-auto mb-5" />
             <p className="text-sm text-white/60 leading-relaxed mb-6">
               Dream Gadgets is the largest mobile store in West Bengal, offering a wide range of certified pre-owned smartphones at competitive prices with warranty and quality assurance.
             </p>

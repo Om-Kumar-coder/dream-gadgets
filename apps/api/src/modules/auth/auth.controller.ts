@@ -69,6 +69,30 @@ export class AuthController {
     return this.authService.sendOtp(body.phone);
   }
 
+  // 3.5c Login with OTP — send the code (passwordless)
+  @Post('login-otp')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send OTP for passwordless login' })
+  async loginOtpSend(@Body() body: { phone: string }) {
+    if (!body?.phone?.trim()) {
+      return { error: 'Phone is required' };
+    }
+    return this.authService.sendOtp(body.phone);
+  }
+
+  // 3.5c Login with OTP — verify and issue tokens
+  @Post('login-otp/verify')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP and log in (passwordless)' })
+  async loginOtpVerify(@Body() body: { phone: string; otp: string }) {
+    if (!body?.phone?.trim() || !body?.otp?.trim()) {
+      return { error: 'Phone and OTP are required' };
+    }
+    return this.authService.loginWithOtp(body.phone, body.otp);
+  }
+
   // 3.6 Forgot password
   @Post('forgot-password')
   @Throttle({ default: { ttl: 60000, limit: 3 } })

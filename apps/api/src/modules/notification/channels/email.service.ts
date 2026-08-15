@@ -22,6 +22,17 @@ export class EmailService {
     const smtpHost = this.configService.get<string>('SMTP_HOST');
 
     if (!smtpHost) {
+      // Never silently fall back to dev-mode in production — fail loudly so a
+      // misconfigured deployment is obvious instead of faking deliveries.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(`[Email] SMTP not configured in production — cannot send to ${to}`);
+        return {
+          success: false,
+          providerMessageId: null,
+          status: 'failed',
+          error: 'SMTP is not configured',
+        };
+      }
       this.logger.log(`[DEV] Email to ${to}: ${subject}`);
       return {
         success: true,

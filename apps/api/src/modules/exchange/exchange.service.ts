@@ -164,4 +164,117 @@ export class ExchangeService {
       return [];
     }
   }
+
+  /**
+   * Upsert a single (model, condition) price-guide row.
+   * Records an audit entry with old vs new price.
+   */
+  async upsertPriceGuide(
+    modelId: string,
+    condition: string,
+    basePrice: number,
+    updatedBy?: string,
+  ): Promise<{ modelId: string; condition: string; basePrice: number }> {
+    const manager = this.exchangeRepo.manager;
+    const normalizedCondition = condition.toLowerCase();
+
+    const existing = await manager.query(
+      `SELECT base_price FROM exchange_price_guide WHERE model_id = $1 AND condition = $2`,
+      [modelId, normalizedCondition],
+    ).catch(() => []);
+
+    await manager.query(
+      `INSERT INTO exchange_price_guide (model_id, condition, base_price, updated_by, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (model_id, condition)
+       DO UPDATE SET base_price = EXCLUDED.base_price, updated_by = EXCLUDED.updated_by, updated_at = NOW()`,
+      [modelId, normalizedCondition, basePrice, updatedBy ?? null],
+    ).catch(() => {
+      throw new BadRequestException({
+        code: 'PRICE_GUIDE_WRITE_FAILED',
+        message: 'Could not write price guide entry — is the table seeded?',
+      });
+    });
+
+    const oldPrice = existing[0]?.base_price != null ? parseFloat(existing[0].base_price) : null;
+    await this.logAudit(modelId, normalizedCondition, oldPrice, basePrice, 'upsert', updatedBy);
+
+    return { modelId, condition: normalizedCondition, basePrice };
+  }
+
+  /**
+   * Delete a (model, condition) price-guide row.
+   */
+  async deletePriceGuide(modelId: string, condition: string, updatedBy?: string): Promise<{ deleted: boolean }> {
+    const manager = this.exchangeRepo.manager;
+    const normalizedCondition = condition.toLowerCase();
+
+    const existing = await manager.query(
+      `SELECT base_price FROM exchange_price_guide WHERE model_id = $1 AND condition = $2`,
+      [modelId, normalizedCondition],
+    ).catch(() => []);
+
+    await manager.query(
+      `DELETE FROM exchange_price_guide WHERE model_id = $1 AND condition = $2`,
+      [modelId, normalizedCondition],
+    ).catch(() => {
+      throw new BadRequestException({ code: 'PRICE_GUIDE_DELETE_FAILED', message: 'Could not delete price guide entry' });
+    });
+
+    const oldPrice = existing[0]?.base_price != null ? parseFloat(existing[0].base_price) : null;
+    await this.logAudit(modelId, normalizedCondition, oldPrice, null, 'delete', updatedBy);
+
+    return { deleted: true };
+  }
+
+  async getPriceGuideAudits(limit = 50): Promise<Array<Record<string, any>>> {
+    try {
+      return await this.exchangeRepo.manager.query(
+        `SELECT
+           pga.id, pga.model_id AS "modelId", pga.model_name AS "modelName",
+           pga.condition, pga.old_price AS "oldPrice", pga.new_price AS "newPrice",
+           pga.action, pga.created_at AS "createdAt",
+           u.first_name AS "updatedByFirstName", u.last_name AS "updatedByLastName"
+         FROM price_guide_audits pga
+         LEFT JOIN users u ON u.id = pga.updated_by
+         ORDER BY pga.created_at DESC
+         LIMIT $1`,
+        [Math.min(500, Math.max(1, limit))],
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  private async logAudit(
+    modelId: string,
+    condition: string,
+    oldPrice: number | null,
+    newPrice: number | null,
+    action: string,
+    updatedBy?: string,
+  ): Promise<void> {
+    try {
+      const modelName = await this.exchangeRepo.manager.query(
+        'SELECT name FROM models WHERE id = $1',
+        [modelId],
+      ).catch(() => []);
+
+      await this.exchangeRepo.manager.query(
+        `INSERT INTO price_guide_audits (model_id, model_name, condition, old_price, new_price, action, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          modelId,
+          modelName?.[0]?.name ?? null,
+          condition,
+          oldPrice,
+          newPrice,
+          action,
+          updatedBy ?? null,
+        ],
+      );
+    } catch {
+      // Audit failures are non-critical
+    }
+  }
 }

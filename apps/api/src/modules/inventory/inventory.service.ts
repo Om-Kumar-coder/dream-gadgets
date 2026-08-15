@@ -407,6 +407,18 @@ export class InventoryService {
   // ─── 5.10 Price suggestion ──────────────────────────────────────────────────
 
   async getPriceSuggestion(modelId: string, condition: string): Promise<{ median: number | null; count: number }> {
+    const cacheKey = `price:suggestion:${modelId}:${condition}`;
+
+    // Try cache first (5-minute TTL — suggestions change slowly)
+    try {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // Cache unavailable — fall through to DB query
+    }
+
     const result = await this.dataSource.query(
       `SELECT
          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY si.unit_price) AS median,
@@ -418,10 +430,19 @@ export class InventoryService {
     ).catch(() => [{ median: null, count: 0 }]);
 
     const row = result[0] ?? { median: null, count: 0 };
-    return {
+    const suggestion = {
       median: row.median ? parseFloat(row.median) : null,
       count: parseInt(row.count, 10) || 0,
     };
+
+    // Cache best-effort
+    try {
+      await this.redisService.set(cacheKey, JSON.stringify(suggestion), { EX: 300 });
+    } catch {
+      // Non-critical
+    }
+
+    return suggestion;
   }
 
   // ─── 5.11 City stock ────────────────────────────────────────────────────────

@@ -16,7 +16,7 @@ export function organizationSchema() {
     '@type': 'Organization',
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/Logo_Dream_Gadgets.png`,
+    logo: `${SITE_URL}/logo-light-bg.png`,
     description: SITE_DESCRIPTION,
     foundingDate: '2019',
     contactPoint: [
@@ -36,7 +36,7 @@ export function localBusinessSchema() {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: SITE_NAME,
-    image: `${SITE_URL}/Logo_Dream_Gadgets.png`,
+    image: `${SITE_URL}/logo-light-bg.png`,
     '@id': `${SITE_URL}/#localbusiness`,
     url: SITE_URL,
     telephone: '+91-8282011193',
@@ -160,7 +160,7 @@ export function blogPostingSchema(post: {
     ...(post.image ? { image: post.image } : {}),
     datePublished: post.datePublished,
     author: { '@type': 'Person', name: post.author },
-    publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/Logo_Dream_Gadgets.png` } },
+    publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo-light-bg.png` } },
     url: post.url,
     mainEntityOfPage: post.url,
   };

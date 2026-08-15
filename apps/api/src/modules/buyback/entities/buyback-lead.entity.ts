@@ -38,6 +38,12 @@ export class BuybackLead {
   @Column({ name: 'battery_health', nullable: true, type: 'varchar', length: 20 })
   batteryHealth: string | null;
 
+  @Column({ nullable: true, type: 'varchar', length: 30 })
+  condition: string | null;
+
+  @Column({ name: 'estimated_price', nullable: true, type: 'decimal', precision: 12, scale: 2 })
+  estimatedPrice: number | null;
+
   @Column({ name: 'functional_issues', nullable: true, type: 'text' })
   functionalIssues: string | null;
 

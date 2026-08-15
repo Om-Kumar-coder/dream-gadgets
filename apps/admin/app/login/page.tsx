@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { apiClient } from '@/lib/api';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { Button } from '@dream-gadgets/ui';
-import { Eye, EyeOff, Shield, Smartphone } from 'lucide-react';
+import { Eye, EyeOff, Shield } from 'lucide-react';
 
 const loginSchema = z.object({
   identifier: z.string().min(1, 'Email or phone is required'),
@@ -59,9 +59,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Brand header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/20 mb-4">
-            <Smartphone className="w-8 h-8 text-white" />
-          </div>
+          <img src="/admin/logo-light-bg.png" alt="Dream Gadgets" className="h-24 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-surface-900">Dream Gadgets</h1>
           <p className="text-sm text-surface-500 mt-1">Admin Panel — Sign in to continue</p>
         </div>

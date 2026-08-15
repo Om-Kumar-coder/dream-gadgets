@@ -237,6 +237,10 @@ export function SellWizard() {
               brand={data.brand}
               modelName={data.modelName}
               condition={data.condition}
+              screenCondition={data.screenCondition}
+              bodyCondition={data.bodyCondition}
+              batteryHealth={data.batteryHealth}
+              functionalIssues={data.functionalIssues}
               estimatedPrice={data.estimatedPrice}
               onUpdate={update}
             />

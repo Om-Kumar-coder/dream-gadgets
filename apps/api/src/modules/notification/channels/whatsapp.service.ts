@@ -25,6 +25,17 @@ export class WhatsAppService {
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
 
     if (!accountSid || !authToken) {
+      // Never silently fall back to dev-mode in production — fail loudly so a
+      // misconfigured deployment is obvious instead of faking deliveries.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(`[WhatsApp] Twilio not configured in production — cannot send to ${to}`);
+        return {
+          success: false,
+          providerMessageId: null,
+          status: 'failed',
+          error: 'Twilio is not configured',
+        };
+      }
       this.logger.log(`[DEV] WhatsApp to ${to}: ${body}`);
       return {
         success: true,

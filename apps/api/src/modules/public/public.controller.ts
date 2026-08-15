@@ -78,12 +78,34 @@ export class PublicController {
   // ─── Health check ──────────────────────────────────────────────────────────────
 
   @Get('health')
-  @ApiOperation({ summary: 'Health check endpoint' })
+  @ApiOperation({ summary: 'Health check endpoint — reports DB, Redis, and queue status' })
   async health() {
+    const checks: Record<string, string> = {};
+
+    // Database
+    try {
+      await this.dataSource.query('SELECT 1');
+      checks.database = 'ok';
+    } catch (err: any) {
+      checks.database = `error: ${err?.message ?? 'unknown'}`;
+    }
+
+    // Redis
+    try {
+      const client = await this.redisService.getClient();
+      await client.ping();
+      checks.redis = 'ok';
+    } catch (err: any) {
+      checks.redis = `error: ${err?.message ?? 'unknown'}`;
+    }
+
+    const allOk = Object.values(checks).every((s) => s === 'ok');
+
     return {
-      status: 'ok',
+      status: allOk ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
+      checks,
     };
   }
 
@@ -149,6 +171,39 @@ export class PublicController {
   async getRelatedProducts(@Param('id') id: string) {
     const items = await this.searchService.getRelatedProducts(id);
     return { data: items };
+  }
+
+  // ─── Branches ─────────────────────────────────────────────────────────────────
+
+  @Get('branches')
+  @ApiOperation({ summary: 'List active store branches for the public store pages' })
+  async getPublicBranches() {
+    const branches = await this.dataSource.query(
+      `SELECT
+         id, name, code, address, city, state, pincode,
+         phone, whatsapp, email, instagram, working_hours,
+         map_url, sort_order
+       FROM branches
+       ORDER BY sort_order ASC, name ASC`,
+    );
+    return {
+      data: branches.map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        code: b.code,
+        address: b.address,
+        city: b.city,
+        state: b.state,
+        pincode: b.pincode,
+        phone: b.phone,
+        whatsapp: b.whatsapp,
+        email: b.email,
+        instagram: b.instagram,
+        workingHours: b.working_hours,
+        mapUrl: b.map_url,
+        sortOrder: b.sort_order,
+      })),
+    };
   }
 
   // ─── Orders ───────────────────────────────────────────────────────────────────

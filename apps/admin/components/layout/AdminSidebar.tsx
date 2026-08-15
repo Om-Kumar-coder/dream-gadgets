@@ -33,6 +33,7 @@ import {
   Tag,
   MessageSquare,
   CreditCard,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -42,12 +43,14 @@ const navItems = [
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/sales', label: 'Sales / POS', icon: ShoppingBag },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
+  { href: '/branches', label: 'Stores', icon: Store },
   { href: '/accessories', label: 'Accessories', icon: Package },
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/transfers', label: 'Transfers', icon: ArrowLeftRight },
   { href: '/exchange', label: 'Exchange', icon: RefreshCw },
   { href: '/orders', label: 'Online Orders', icon: ShoppingBag },
   { href: '/buyback', label: 'Buyback Leads', icon: DollarSign },
+  { href: '/price-guide', label: 'Price Guide', icon: Calculator },
   { href: '/returns', label: 'Returns', icon: RotateCcw },
   { href: '/coupons', label: 'Coupons', icon: Tag },
   { href: '/emi', label: 'EMI Plans', icon: CreditCard },
@@ -111,7 +114,7 @@ export function AdminSidebar() {
     <aside className="w-60 min-h-screen bg-surface-950 text-sidebar-foreground flex flex-col shrink-0 border-r border-surface-800">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-surface-800">
-        <img src="/Logo_Dream_Gadgets.png" alt="Dream Gadgets" className="h-8 w-auto rounded-lg ring-1 ring-white/10" />
+        <img src="/admin/logo-dark-bg.png" alt="Dream Gadgets" className="h-11 w-auto" />
         <div>
           <span className="font-bold text-white text-sm block leading-tight">Dream Gadgets</span>
           <span className="text-[10px] text-surface-400 font-medium">Admin Panel</span>

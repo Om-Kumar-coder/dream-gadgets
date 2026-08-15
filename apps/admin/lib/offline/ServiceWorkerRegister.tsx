@@ -10,7 +10,7 @@ export function ServiceWorkerRegister() {
     if ('serviceWorker' in navigator) {
       // Register service worker
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/admin/sw.js')
         .then((registration) => {
           console.log('[SW] Registered:', registration.scope);
         })

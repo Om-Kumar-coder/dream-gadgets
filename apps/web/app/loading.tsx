@@ -44,15 +44,10 @@ export default function RootLoading() {
       <div className="relative flex flex-col items-center">
         {/* Logo mark */}
         <div className="relative mb-6">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-glow-red animate-scale-in-bounce">
-            <svg className="w-10 h-10 md:w-12 md:h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="2" width="20" height="20" rx="5" />
-              <path d="M12 8v8" />
-              <path d="M8 12h8" />
-            </svg>
-          </div>
+          <img src="/logo-light-bg.png" alt="Dream Gadgets" className="w-[min(72vw,20rem)] animate-scale-in-bounce dark:hidden" />
+          <img src="/logo-dark-bg.png" alt="Dream Gadgets" className="w-[min(72vw,20rem)] hidden animate-scale-in-bounce dark:block" />
           {/* Glow ring */}
-          <div className="absolute -inset-4 rounded-3xl bg-primary/5 animate-pulse-glow" />
+          <div className="absolute -inset-6 rounded-3xl bg-primary/5 animate-pulse-glow" />
         </div>
 
         {/* Brand name */}

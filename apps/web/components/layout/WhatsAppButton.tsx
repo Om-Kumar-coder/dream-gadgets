@@ -40,7 +40,7 @@ export function WhatsAppButton() {
   );
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 group/container">
+    <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2 group/container md:bottom-6 md:right-6">
       {/* Tooltip */}
       <div className="relative opacity-0 group-hover/container:opacity-100 transition-all duration-200 translate-y-1 group-hover/container:translate-y-0 pointer-events-none">
         <div className="bg-surface-900 text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap backdrop-blur-sm">

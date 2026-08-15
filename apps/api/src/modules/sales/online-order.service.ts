@@ -10,6 +10,7 @@ import { OnlineOrder } from './entities/online-order.entity';
 import { OnlineOrderItem } from './entities/online-order-item.entity';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 import { EventService } from '../../common/events/event.service';
+import { NotificationService } from '../notification/notification.service';
 
 export interface CreateOnlineOrderDto {
   clientId?: string;
@@ -46,6 +47,7 @@ export class OnlineOrderService {
     private readonly orderItemRepo: Repository<OnlineOrderItem>,
     private readonly dataSource: DataSource,
     private readonly eventService: EventService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // ─── Generate unique order number ─────────────────────────────────────────────
@@ -227,7 +229,72 @@ export class OnlineOrderService {
       this.logger.warn(`[Event] Failed to emit order.status_changed: ${err?.message}`);
     }
 
+    // Notify the customer — fire-and-forget so a slow provider never blocks
+    // the status update itself.
+    this.notifyOrderStatusUpdate(saved).catch((err: any) =>
+      this.logger.warn(`[Notify] Failed to send order status update: ${err?.message}`),
+    );
+
     return saved;
+  }
+
+  // ─── Customer notification on status change ──────────────────────────────────
+
+  private static readonly STATUS_LABELS: Record<string, string> = {
+    [OnlineOrderStatus.PENDING_PAYMENT]: 'Payment Pending',
+    [OnlineOrderStatus.PAYMENT_CONFIRMED]: 'Payment Confirmed',
+    [OnlineOrderStatus.PROCESSING]: 'Processing',
+    [OnlineOrderStatus.PACKED]: 'Packed',
+    [OnlineOrderStatus.SHIPPED]: 'Shipped',
+    [OnlineOrderStatus.OUT_FOR_DELIVERY]: 'Out for Delivery',
+    [OnlineOrderStatus.DELIVERED]: 'Delivered',
+    [OnlineOrderStatus.RETURN_REQUESTED]: 'Return Requested',
+    [OnlineOrderStatus.RETURNED]: 'Returned',
+    [OnlineOrderStatus.CANCELLED]: 'Cancelled',
+  };
+
+  private async notifyOrderStatusUpdate(order: OnlineOrder): Promise<void> {
+    // Don't spam on the initial creation — only notify once the order moves
+    // past payment-pending into a meaningful state.
+    if (order.status === OnlineOrderStatus.PENDING_PAYMENT) return;
+
+    const customerPhone = order.shippingAddress?.phone ?? order.client?.phone ?? null;
+    const customerEmail = order.client?.email ?? null;
+    if (!customerPhone && !customerEmail) {
+      this.logger.log(`[Notify] Order ${order.orderNumber}: no customer contact — skipped`);
+      return;
+    }
+
+    const vars: Record<string, string> = {
+      name: order.shippingAddress?.name ?? 'Customer',
+      orderNumber: order.orderNumber,
+      status: OnlineOrderService.STATUS_LABELS[order.status] ?? order.status,
+      amount: Number(order.totalAmount ?? 0).toFixed(2),
+    };
+
+    const userId = order.clientId ?? undefined;
+
+    if (customerEmail) {
+      await this.notificationService.sendEmail({
+        userId,
+        to: customerEmail,
+        type: 'order_status',
+        templateKey: 'order_status',
+        templateVars: vars,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber, status: order.status },
+      });
+    }
+
+    if (customerPhone) {
+      await this.notificationService.sendWhatsApp({
+        userId,
+        to: customerPhone,
+        type: 'order_status',
+        templateKey: 'order_status',
+        templateVars: vars,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber, status: order.status },
+      });
+    }
   }
 
   // ─── Cancel an order (convenience wrapper) ───────────────────────────────────

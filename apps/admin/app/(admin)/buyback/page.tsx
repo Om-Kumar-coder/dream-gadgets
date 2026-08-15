@@ -25,6 +25,8 @@ type BuybackLead = {
   phone: string;
   deviceType: string;
   status: string;
+  condition: string | null;
+  estimatedPrice: number | null;
   screenCondition: string | null;
   bodyCondition: string | null;
   batteryHealth: string | null;
@@ -98,6 +100,12 @@ function LeadDetailModal({
               <p className="text-xs text-gray-400 mb-1">Device Type</p>
               <p className="capitalize">{lead.deviceType}</p>
             </div>
+            {lead.estimatedPrice != null && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Estimated Price</p>
+                <p className="font-bold text-primary">₹{Number(lead.estimatedPrice).toLocaleString('en-IN')}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs text-gray-400 mb-1">Status</p>
               <span
@@ -116,12 +124,16 @@ function LeadDetailModal({
             </div>
           </div>
 
-          {lead.screenCondition || lead.bodyCondition || lead.batteryHealth ? (
+          {(lead.condition || lead.screenCondition || lead.bodyCondition || lead.batteryHealth) ? (
             <div className="border-t border-gray-100 pt-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Quick Assessment
+                Condition & Assessment
               </p>
               <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Overall</p>
+                  <p className="text-sm font-medium capitalize">{lead.condition ? lead.condition.replace(/_/g, ' ') : '—'}</p>
+                </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Screen</p>
                   <p className="text-sm font-medium">{lead.screenCondition || '—'}</p>
@@ -283,15 +295,32 @@ export default function BuybackLeadsPage() {
       ),
     },
     {
+      accessorKey: 'estimatedPrice',
+      header: 'Est. Price',
+      cell: ({ row }) =>
+        row.original.estimatedPrice != null ? (
+          <span className="text-xs font-bold text-primary">
+            ₹{Number(row.original.estimatedPrice).toLocaleString('en-IN')}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        ),
+    },
+    {
       accessorKey: 'assessment',
       header: 'Condition',
       cell: ({ row }) => {
-        const { screenCondition, bodyCondition, batteryHealth } = row.original;
-        if (!screenCondition && !bodyCondition && !batteryHealth) {
+        const { condition, screenCondition, bodyCondition, batteryHealth } = row.original;
+        if (!condition && !screenCondition && !bodyCondition && !batteryHealth) {
           return <span className="text-xs text-gray-400">—</span>;
         }
         return (
           <div className="flex flex-wrap gap-1 max-w-[200px]">
+            {condition && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 font-medium whitespace-nowrap capitalize" title="Overall condition">
+                {condition.replace(/_/g, ' ')}
+              </span>
+            )}
             {screenCondition && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium whitespace-nowrap" title="Screen">
                 {screenCondition}
