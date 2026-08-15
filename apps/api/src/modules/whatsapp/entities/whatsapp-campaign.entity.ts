@@ -26,7 +26,7 @@ export class WhatsappCampaign {
   @Column({ name: 'template_id', nullable: true, type: 'varchar' })
   templateId: string | null;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ name: 'segment_filter', type: 'jsonb', nullable: true })
   segmentFilter: object | null;
 
   @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
