@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ACCESSORY_CATEGORIES, AccessoryCategory } from './create-accessory.dto';
@@ -5,11 +6,13 @@ import { ACCESSORY_CATEGORIES, AccessoryCategory } from './create-accessory.dto'
 export class QueryAccessoryDto {
   @ApiPropertyOptional({ description: 'Page number' })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   page?: number;
 
   @ApiPropertyOptional({ description: 'Items per page' })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   limit?: number;
 
@@ -31,11 +34,13 @@ export class QueryAccessoryDto {
 
   @ApiPropertyOptional({ description: 'Minimum price' })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   minPrice?: number;
 
   @ApiPropertyOptional({ description: 'Maximum price' })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   maxPrice?: number;
 
