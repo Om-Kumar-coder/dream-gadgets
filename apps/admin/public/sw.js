@@ -1,7 +1,11 @@
 // Service Worker for Dream Gadgets Admin
 // Provides offline caching for the POS terminal and admin panel.
 
-const CACHE_NAME = 'dream-gadgets-admin-v1';
+// Bumped to v2: v1's fetch handler swallowed POSTs (login etc.) by feeding
+// them to cache.put(), which the Cache API rejects for non-GET — the catch
+// then returned a synthetic 503 to the page even though the server replied
+// 200. This version never intercepts non-GET requests.
+const CACHE_NAME = 'dream-gadgets-admin-v2';
 
 // Resources to pre-cache on install
 const PRECACHE_URLS = [
@@ -58,6 +62,11 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
+
+  // NEVER intercept non-GET requests (login, POS sales, purchases, etc.).
+  // They must go straight to the network — caching them breaks them and
+  // cache.put() throws for non-GET, turning a real 200 into a fake 503.
+  if (event.request.method !== 'GET') return;
 
   // Find matching strategy
   for (const { pattern, strategy } of STRATEGIES) {

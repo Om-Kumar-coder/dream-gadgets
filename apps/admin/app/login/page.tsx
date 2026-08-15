@@ -44,7 +44,8 @@ export default function LoginPage() {
       setTokens(accessToken, refreshToken, jwtPayload);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Login failed. Please try again.');
+      const msg = err.response?.data?.error?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Login failed. Please try again.'));
     }
   };
 

@@ -34,7 +34,8 @@ export default function LoginPage() {
       setTokens(accessToken, refreshToken, payload);
       router.push('/account');
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Login failed. Please check your credentials.');
+      const msg = err?.response?.data?.error?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Login failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,8 @@ export default function LoginPage() {
       if (data?.devOtp) setDevOtp(data.devOtp);
       setOtpSent(true);
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Could not send the code. Please try again.');
+      const msg = err?.response?.data?.error?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Could not send the code. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +104,8 @@ export default function LoginPage() {
       setTokens(accessToken, refreshToken, payload);
       router.push('/account');
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Invalid or expired code. Please try again.');
+      const msg = err?.response?.data?.error?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Invalid or expired code. Please try again.'));
     } finally {
       setLoading(false);
     }

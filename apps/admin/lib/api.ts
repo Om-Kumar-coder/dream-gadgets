@@ -40,10 +40,28 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
+// Auth endpoints must never carry a (possibly stale) session token. A stale
+// bearer on /auth/login would make the response interceptor treat a login
+// 401 as an expired-session 401 and try to refresh — wasting the click and
+// showing a confusing error instead of "Invalid credentials".
+const AUTH_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/login-otp',
+  '/auth/login-otp/verify',
+  '/auth/refresh',
+  '/auth/send-otp',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
+
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('admin_access_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((p) => config.url?.includes(p));
+    if (!isAuthEndpoint) {
+      const token = localStorage.getItem('admin_access_token');
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
