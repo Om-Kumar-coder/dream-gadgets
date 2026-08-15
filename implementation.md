@@ -79,7 +79,7 @@
 | Stores (incl. per-store pages) | 98 | 7 branches from DB, live counts, no placeholders |
 | Content pages (about, faq, terms, policies, contact) | 92 | |
 | Blog | 95 | 12 articles with detail pages + JSON-LD (was 60%) |
-| SEO (JSON-LD, sitemap) | 92 | |
+| SEO (JSON-LD, sitemap) | 97 | full sitemap (60 URLs), robots.txt, branded 404 page |
 | Splash screen / logos | 95 | |
 
 ### 4. Cross-cutting areas
@@ -183,6 +183,7 @@
   - **Home sections repeated cards (B6)**: home fetches 24 products once and slices non-overlapping windows — 17 distinct cards across 4 sections, zero repeats.
   - **Catalog wall of one model (B7)**: default/popular sort interleaves one unit per model (`ROW_NUMBER()` partition by `model_id`) — page 1 shows 24 distinct cards / 14 distinct models.
   - **Cache flushes after deploy**: the per-role permission cache (Redis, 15-min TTL) and the Next.js fetch cache (`revalidate: 300`) held stale data; both flushed on the VPS. Full live suite re-run: **96/96** (QA_REPORT.md + QA_BROWSER_TESTING_PROMPT.md document the run).
+- **Live page audit — missing storefront pages created (`e49f3d2`)**: checked every route on dreamgadgets.in. Fixed `/brands/itel` + `/brands/lava` (rendered "Brand Not Found" — brands existed as assets but were missing from the list), added `/robots.txt` (was serving the home HTML), a branded 404 page (`app/not-found.tsx`), and expanded the sitemap from 9 → 60 URLs. Created four previously-404 feature pages: `/track-order` (public order lookup via `GET /public/orders/:id` with status timeline), `/wishlist` (localStorage wishlist + heart toggle on product cards, enabled in the user menu), `/deals` (discounted products), `/offers` (active banner showcase), and a `/buyback` sell-landing page (was linked from the user menu + buyback notifications). Footer now links "Track Order". All verified live: 200 across the board, Itel/Lava render real brand pages, robots/sitemap/404 correct.
 - **Launch content filled (`20f289a` + `a142d86`)**: migration `037` seeds 9 banners (home slider ×3, middle ×2, bottom ×1, offer ×1; promotional middle/offer for brand pages) and `brand_hero:{slug}` images for all 17 brands. Added the 7 blog articles that were listed on `/blog` but had no detail page (404 → full articles with SEO/JSON-LD). Generated branded SVG assets (dark + brand-red design language) into `apps/web/public/banners/` and `apps/web/public/brand-hero/` so the home hero and brand pages no longer run on fallback gradients. Verified live: banners API returns all placements, all 12 `/blog/*` pages 200, all 17 brand heroes return image URLs, and every SVG serves `200 image/svg+xml` ✅
 
 ### Live verification (Aug 15, dreamgadgets.in)
