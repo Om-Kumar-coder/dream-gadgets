@@ -86,6 +86,14 @@
 - **Health endpoint**: `/public/health` now includes DB/Redis/queue status ✅
 - **PWA/branding**: admin manifest + icons + SW under `/admin` basePath; web apple-touch-icon fixed ✅
 
+### Live verification (Aug 15, dreamgadgets.in)
+
+- **Buyback estimator** verified end-to-end: S23/mint → ₹48,750, iPhone 15 Pro Max/good → ₹66,000, OnePlus 12/fair → ₹26,000 — all from `price_guide` (high confidence); screen 0.6× and battery 0.65× adjustments confirmed live
+- **Found & fixed live bug**: `BATTERY_FACTORS` had a mixed-case key (`'Below 50%'`) but `factorFor` lowercased only the input → the "Below 50%" battery option silently fell through to ×1. Fixed with case-insensitive map matching (`1a5e94e`), deployed & verified (₹22,800–25,350 on fresh cache keys)
+- **Store pages**: `/stores/{main,chetla,jadavpur,champahati}` all 200 with products; bad slug renders "Store Not Found" (served as HTTP 200 by nginx — minor SEO nit)
+- **Admin price-guide editor**: `/admin/price-guide` auth-redirects (307 → login), all `/exchanges/price-guide*` endpoints 401 without token ✅
+- **OTP login**: send/verify endpoints live, rate-limited, no account enumeration, clean errors; login page Password/OTP toggle present in served HTML + bundle ✅
+
 All three apps typecheck clean (`tsc --noEmit`).
 
 ---
