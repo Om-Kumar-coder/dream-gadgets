@@ -16,11 +16,18 @@ export const metadata: Metadata = {
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
-const BRANCHES = [
-  { name: 'Barrackpore', address: 'Kolkata, West Bengal', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
-  { name: 'Salt Lake', address: 'Sector 5, Salt Lake City, Kolkata', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
-  { name: 'Howrah', address: 'Howrah Station Area, Howrah', phone: '8017999888', email: 'dreamgadgetskolkata@gmail.com', status: 'Open', hours: '10:30 AM - 9:30 PM' },
-];
+/** Fetch real store branches from the API (single source of truth). */
+async function getHomeBranches() {
+  try {
+    const res = await fetch(`${API}/public/branches`, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const raw = json?.data ?? json ?? [];
+    return (Array.isArray(raw) ? raw : (raw?.data ?? [])) as any[];
+  } catch {
+    return [];
+  }
+}
 
 async function getHomeProducts() {
   try {
@@ -41,6 +48,7 @@ const HOME_JSONLD = webPageSchema(
 
 export default async function HomePage() {
   const products = await getHomeProducts();
+  const branches = await getHomeBranches();
   const trending = products.slice(0, 6);
   const dealOfDay = products.slice(0, 3);
   const hotDeals = products.slice(0, 4);
@@ -271,45 +279,52 @@ export default async function HomePage() {
           <h3><span>Our</span> Branches</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {BRANCHES.map(b => (
-            <div key={b.name} className="mobi-branch-item">
-              <div className="mobi-branch-item-img bg-gradient-to-br from-surface-100 to-surface-200 flex items-center justify-center">
-                <span className="brnchstatus">{b.status}</span>
-                <div className="w-full h-full flex items-center justify-center">
-                  <svg className="w-12 h-12 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                  </svg>
+          {branches.length === 0 && (
+            <p className="text-surface-400 text-sm md:col-span-3 text-center">Store list is being updated — check back soon.</p>
+          )}
+          {branches.map(b => {
+            const slug = String(b.code ?? '').toLowerCase();
+            const address = [b.address, b.city, b.state, b.pincode].filter(Boolean).join(', ');
+            return (
+              <div key={b.id ?? b.name} className="mobi-branch-item">
+                <div className="mobi-branch-item-img bg-gradient-to-br from-surface-100 to-surface-200 flex items-center justify-center">
+                  <span className="brnchstatus">Open</span>
+                  <div className="w-full h-full flex items-center justify-center">
+                    <svg className="w-12 h-12 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <span className="branchTime">
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    {b.workingHours}
+                  </span>
                 </div>
-                <span className="branchTime">
-                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {b.hours}
-                </span>
+                <div className="mobi-branch-item-details">
+                  <h2><Link href={`/stores/${slug}`} className="hover:text-primary transition-colors">{b.name}</Link></h2>
+                  <p>
+                    <svg className="w-4 h-4 mt-0.5 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span>{address}</span>
+                  </p>
+                  <p>
+                    <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                    </svg>
+                    <a href={`tel:${b.phone}`} className="text-primary font-semibold hover:text-surface-600 transition-colors">{b.phone}</a>
+                  </p>
+                  <p>
+                    <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <a href={`mailto:${b.email}`} className="text-primary hover:text-surface-600 transition-colors truncate">{b.email}</a>
+                  </p>
+                </div>
               </div>
-              <div className="mobi-branch-item-details">
-                <h2>{b.name}</h2>
-                <p>
-                  <svg className="w-4 h-4 mt-0.5 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span>{b.address}</span>
-                </p>
-                <p>
-                  <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                  </svg>
-                  <a href={`tel:${b.phone}`} className="text-primary font-semibold hover:text-surface-600 transition-colors">{b.phone}</a>
-                </p>
-                <p>
-                  <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
-                  </svg>
-                  <a href={`mailto:${b.email}`} className="text-primary hover:text-surface-600 transition-colors truncate">{b.email}</a>
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

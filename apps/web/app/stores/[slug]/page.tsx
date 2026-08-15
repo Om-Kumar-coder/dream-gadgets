@@ -11,12 +11,18 @@ interface Props {
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
+/** Unwrap the API envelope — the response is { status, data: { data: [...] } }. */
+async function getArray(json: any): Promise<any[]> {
+  const raw = json?.data ?? json ?? [];
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
+}
+
 async function getBranch(slug: string) {
   try {
     const res = await fetch(`${API}/public/branches`, { next: { revalidate: 300 } });
     if (!res.ok) return null;
     const json = await res.json();
-    const branches: any[] = json.data ?? json ?? [];
+    const branches = await getArray(json);
     return branches.find((b: any) => String(b.code ?? '').toLowerCase() === slug.toLowerCase()) ?? null;
   } catch {
     return null;
@@ -31,7 +37,7 @@ async function getBranchProducts(branchId: string) {
     );
     if (!res.ok) return [];
     const json = await res.json();
-    return json.data ?? json.items ?? [];
+    return getArray(json);
   } catch {
     return [];
   }
