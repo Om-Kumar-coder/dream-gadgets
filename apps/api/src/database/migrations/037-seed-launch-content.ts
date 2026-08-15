@@ -7,13 +7,19 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 //
 // The images are static SVGs served from the web app's public folder
 // (https://dreamgadgets.in/banners/*.svg, /brand-hero/*.svg).
+//
+// Values are inlined as SQL literals (no bind parameters): the earlier
+// INSERT..SELECT..WHERE NOT EXISTS variant hit Postgres "inconsistent types
+// deduced for parameter $1" when a parameter was reused across contexts.
 const SITE = 'https://dreamgadgets.in';
 
 export class SeedLaunchContent1750000000037 implements MigrationInterface {
   name = 'SeedLaunchContent1750000000037';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const banners: Array<[string, string | null, string, string | null, string, string, string, number]> = [
+    // Each banner: [title, subtitle, imageUrl, linkUrl, ctaText, pageType, position, sortOrder].
+    // Titles use a literal newline so the hero slider renders two lines.
+    const banners: Array<[string, string, string, string, string, string, string, number]> = [
       // ── Home hero slider ──
       ['Premium Phones\nBest Prices', 'Certified & Verified', `${SITE}/banners/hero-1.svg`, '/products', 'Shop Now', 'home', 'slider', 1],
       ['Sell Your Phone\nGet Paid Instantly', 'Instant Payment', `${SITE}/banners/hero-2.svg`, '/sell', 'Get Estimate', 'home', 'slider', 2],
@@ -31,17 +37,17 @@ export class SeedLaunchContent1750000000037 implements MigrationInterface {
     ];
 
     for (const [title, subtitle, imageUrl, linkUrl, ctaText, pageType, position, sortOrder] of banners) {
-      await queryRunner.query(
-        `INSERT INTO "content_banners"
-           ("title","subtitle","image_url","mobile_image_url","link_url","cta_text",
-            "page_type","position","device_type","sort_order","is_active","click_count")
-         SELECT $1, $2, $3, NULL, $4, $5, $6, $7, 'all', $8, true, 0
-         WHERE NOT EXISTS (
-           SELECT 1 FROM "content_banners"
-           WHERE "page_type" = $6 AND "position" = $7 AND "title" = $1
-         )`,
-        [title, subtitle, imageUrl, linkUrl, ctaText, pageType, position, sortOrder],
-      );
+      const sql =
+        `INSERT INTO "content_banners"` +
+        ` ("title","subtitle","image_url","mobile_image_url","link_url","cta_text",` +
+        ` "page_type","position","device_type","sort_order","is_active","click_count")` +
+        ` SELECT '${title.replace(/'/g, "''")}', '${subtitle.replace(/'/g, "''")}', '${imageUrl}', NULL,` +
+        ` '${linkUrl}', '${ctaText}', '${pageType}', '${position}', 'all', ${sortOrder}, true, 0` +
+        ` WHERE NOT EXISTS (` +
+        `   SELECT 1 FROM "content_banners"` +
+        `   WHERE "page_type" = '${pageType}' AND "position" = '${position}' AND "title" = '${title.replace(/'/g, "''")}'` +
+        ` )`;
+      await queryRunner.query(sql);
     }
 
     // ── Brand hero images ──
@@ -52,14 +58,12 @@ export class SeedLaunchContent1750000000037 implements MigrationInterface {
     ];
 
     for (const slug of brands) {
-      const value = JSON.stringify({ imageUrl: `${SITE}/brand-hero/${slug}.svg` });
       await queryRunner.query(
-        `INSERT INTO "settings" ("key", "value", "description")
-         VALUES ($1, $2::jsonb, $3)
-         ON CONFLICT ("key") DO UPDATE SET
-           "value" = EXCLUDED."value",
-           "description" = EXCLUDED."description"`,
-        [`brand_hero:${slug}`, value, `Brand hero image for ${slug}`],
+        `INSERT INTO "settings" ("key", "value", "description")` +
+        ` VALUES ('brand_hero:${slug}', '{"imageUrl":"${SITE}/brand-hero/${slug}.svg"}'::jsonb, 'Brand hero image for ${slug}')` +
+        ` ON CONFLICT ("key") DO UPDATE SET` +
+        `   "value" = EXCLUDED."value",` +
+        `   "description" = EXCLUDED."description"`,
       );
     }
   }
