@@ -87,6 +87,7 @@
 - **PWA/branding**: admin manifest + icons + SW under `/admin` basePath; web apple-touch-icon fixed ✅
 - **Full fitted logo**: splash + loading keep the 90%-width full logo (`min(90vw, 72vh)`); the header shows the complete `logo-header-light.png` (margins trimmed, content uncropped) fitted at 100×48px mobile / 116×56px desktop — left-aligned, search centered, actions right; mobile nav drawer + search overlay portaled to `<body>` so they no longer get trapped/clipped by the scrolled header's `backdrop-blur` containing block ✅
 - **Store pages single source of truth**: fixed `/stores/[slug]` returning "Store Not Found" for every store (nested `data.data` envelope bug); `/stores` listing and home "Our Branches" now fetch from `/public/branches` instead of hardcoded data — one store list (DB) drives all pages ✅
+- **Branches master data**: migration `033` adds Barrackpore (BARRACK), Salt Lake (SALT_LAKE), Howrah (HOWRAH) branches — idempotent `ON CONFLICT (code)` upsert so re-runs are safe; all 7 stores now live in the DB ✅
 
 ### Live verification (Aug 15, dreamgadgets.in)
 
