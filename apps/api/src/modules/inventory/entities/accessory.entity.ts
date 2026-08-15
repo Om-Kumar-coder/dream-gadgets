@@ -43,31 +43,32 @@ export class Accessory {
   @Column({ type: 'varchar', length: 50 })
   category: string; // charger, case, screen_guard, earphones, cable, power_bank, etc.
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  // DB columns are snake_case (migration 007) — explicit name mappings required.
+  @Column({ name: 'purchase_price', type: 'decimal', precision: 12, scale: 2 })
   purchasePrice: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  @Column({ name: 'selling_price', type: 'decimal', precision: 12, scale: 2, nullable: true })
   sellingPrice: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  @Column({ name: 'wholesale_price', type: 'decimal', precision: 12, scale: 2, nullable: true })
   wholesalePrice: number;
 
-  @Column({ type: 'smallint', default: 0 })
+  @Column({ name: 'stock_quantity', type: 'smallint', default: 0 })
   stockQuantity: number;
 
-  @Column({ type: 'smallint', default: 10 })
+  @Column({ name: 'reorder_level', type: 'smallint', default: 10 })
   reorderLevel: number;
 
   @Column({ type: 'varchar', length: 20, default: 'available' })
   status: string;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ name: 'is_online', type: 'boolean', default: false })
   isOnline: boolean;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ name: 'hsn_code', type: 'varchar', length: 50, nullable: true })
   hsnCode: string;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+  @Column({ name: 'tax_rate', type: 'decimal', precision: 5, scale: 2, default: 0 })
   taxRate: number;
 
   @Column({ type: 'text', nullable: true })
