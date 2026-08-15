@@ -89,6 +89,7 @@
 - **Store pages single source of truth**: fixed `/stores/[slug]` returning "Store Not Found" for every store (nested `data.data` envelope bug); `/stores` listing and home "Our Branches" now fetch from `/public/branches` instead of hardcoded data — one store list (DB) drives all pages ✅
 - **Branches master data**: migration `033` adds Barrackpore (BARRACK), Salt Lake (SALT_LAKE), Howrah (HOWRAH) branches — idempotent `ON CONFLICT (code)` upsert so re-runs are safe; all 7 stores now live in the DB ✅
 - **Per-store product counts**: `/public/branches` and `/admin/branches` now return `productCount` (inventory items per branch via subquery); web `/stores` cards and admin store cards show live product counts ✅
+- **Admin login multi-click fix**: root cause found via nginx access logs — 60+ `POST /auth/login` all returning 200 while the user stayed stuck on the login page. The admin service worker intercepted the same-origin login POST and fed the 200 into `cache.put()` (Cache API rejects non-GET) → catch returned a synthetic 503 "Offline" to the page. Fix (`dcdada8`): SW never intercepts non-GET requests (cache bumped to v2 so it activates on next load); api clients (admin + web) no longer attach a stale session token to auth endpoints; login pages now show the real backend error message ✅
 
 ### Live verification (Aug 15, dreamgadgets.in)
 
