@@ -9,6 +9,7 @@ import { Footer } from '../components/layout/Footer';
 import { WhatsAppButton } from '../components/layout/WhatsAppButton';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { ServiceWorkerRegister } from '../components/layout/ServiceWorkerRegister';
 import { JsonLd } from '../components/seo/JsonLd';
 import { organizationSchema, localBusinessSchema, webSiteSchema } from '../lib/seo/schemas';
 
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <MobileBottomNav />
           </Suspense>
         </Providers>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
