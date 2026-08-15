@@ -38,3 +38,8 @@ NUL
 .env.local
 vps-*.js
 run-emi-*.js
+# Local VPS helper scripts (contain production SSH credentials — never commit)
+check-channels-vps.*
+deploy-ssh.js
+deploy-to-vps.js
+deploy-emi*.js
