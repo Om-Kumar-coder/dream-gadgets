@@ -254,8 +254,8 @@ export function UserMenu() {
               <div className="py-1.5" role="none">
                 <DropdownItem href="/account" icon={<IconUser size={16} />} label="My Profile" onClick={() => setDropdownOpen(false)} />
                 <DropdownItem href="/orders" icon={<IconPackage size={16} />} label="My Orders" onClick={() => setDropdownOpen(false)} />
-                <DropdownItem href="/buyback" icon={<IconRefreshCw size={16} />} label="Buyback Orders" onClick={() => setDropdownOpen(false)} disabled />
-                <DropdownItem href="/wishlist" icon={<IconHeart size={16} />} label="Wishlist" onClick={() => setDropdownOpen(false)} disabled />
+                <DropdownItem href="/buyback" icon={<IconRefreshCw size={16} />} label="Sell / Buyback" onClick={() => setDropdownOpen(false)} />
+                <DropdownItem href="/wishlist" icon={<IconHeart size={16} />} label="Wishlist" onClick={() => setDropdownOpen(false)} />
                 <DropdownItem href="/account/edit" icon={<IconSettings size={16} />} label="Settings" onClick={() => setDropdownOpen(false)} />
               </div>
 

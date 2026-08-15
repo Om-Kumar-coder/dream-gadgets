@@ -47,6 +47,7 @@ export function Footer() {
                 { label: 'Contact Us', href: '/contact' },
                 { label: 'Our Stores', href: '/stores' },
                 { label: 'Sell Your Phone', href: '/sell' },
+                { label: 'Track Order', href: '/track-order' },
                 { label: 'Blog', href: '/blog' },
                 { label: 'FAQ', href: '/faq' },
               ].map(link => (

@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { toggleWishlist, isWished, onWishlistChange, type WishlistItem } from '../../lib/wishlist';
 
 interface ProductCardProps {
   /** Raw product data from the API */
@@ -52,6 +54,35 @@ function StarRating({ rating }: { rating: number }) {
         </svg>
       ))}
     </div>
+  );
+}
+
+/** Heart toggle — saves a product snapshot to the localStorage wishlist. */
+function WishlistHeart({ item }: { item: Omit<WishlistItem, 'addedAt'> }) {
+  const [active, setActive] = useState(() => (typeof window !== 'undefined' ? isWished(item.id) : false));
+
+  useEffect(() => onWishlistChange(() => setActive(isWished(item.id))), [item.id]);
+
+  return (
+    <button
+      type="button"
+      aria-label={active ? 'Remove from wishlist' : 'Add to wishlist'}
+      aria-pressed={active}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWishlist(item);
+      }}
+      className={`absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-all active:scale-90 ${
+        active
+          ? 'bg-primary text-white shadow-md shadow-primary/30'
+          : 'bg-white/80 text-surface-500 hover:text-primary hover:bg-white shadow-sm'
+      }`}
+    >
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+    </button>
   );
 }
 
@@ -136,8 +167,20 @@ export default function ProductCardDefault({ product: p, variant = 'grid', index
       <div
         className={`relative ${isSquare ? 'aspect-square' : 'aspect-[4/3]'} bg-gradient-to-br from-surface-50 to-surface-100 overflow-hidden`}
       >
+        <WishlistHeart
+          item={{
+            id: String(p.id ?? index),
+            name,
+            price,
+            originalPrice: origPrice,
+            image: img,
+            condition: p.condition,
+          }}
+        />
         {discount && (
-          <span className="absolute top-3 right-3 z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+          <span className={`absolute z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg ${
+            isInStock ? 'top-3 left-3' : 'top-12 left-3'
+          }`}>
             -{discount}%
           </span>
         )}
