@@ -103,29 +103,45 @@ export async function seedExchangePriceGuide(dataSource: DataSource): Promise<vo
       }
 
       // ── Ensure model exists ──────────────────────────────────────────────
+      // Match by slug first (production names may carry storage/variant
+      // suffixes), then by exact name + brand. When inserting, keep the slug
+      // unique so we never violate models_slug_key.
       let modelId = modelMap.get(modelName);
       if (!modelId) {
-        const [existingModel] = await queryRunner.query(
-          'SELECT id FROM models WHERE name = $1 AND brand_id = $2',
-          [modelName, brandId],
-        );
-        if (existingModel) {
-          modelId = existingModel.id;
+        const slug = slugify(modelName);
+        const [bySlug] = await queryRunner.query('SELECT id FROM models WHERE slug = $1', [slug]);
+        if (bySlug) {
+          modelId = bySlug.id;
         } else {
-          modelId = uuid();
-          await queryRunner.query(
-            `INSERT INTO models (id, name, brand_id, slug, description, specs, is_active, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-            [
-              modelId,
-              modelName,
-              brandId!,
-              slugify(modelName),
-              `Buyback reference model — ${modelName}`,
-              JSON.stringify({}),
-              true,
-            ],
+          const [existingModel] = await queryRunner.query(
+            'SELECT id FROM models WHERE name = $1 AND brand_id = $2',
+            [modelName, brandId],
           );
+          if (existingModel) {
+            modelId = existingModel.id;
+          } else {
+            let uniqueSlug = slug;
+            let suffix = 2;
+            for (;;) {
+              const [taken] = await queryRunner.query('SELECT id FROM models WHERE slug = $1', [uniqueSlug]);
+              if (!taken) break;
+              uniqueSlug = `${slug}-${suffix++}`;
+            }
+            modelId = uuid();
+            await queryRunner.query(
+              `INSERT INTO models (id, name, brand_id, slug, description, specs, is_active, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+              [
+                modelId,
+                modelName,
+                brandId!,
+                uniqueSlug,
+                `Buyback reference model — ${modelName}`,
+                JSON.stringify({}),
+                true,
+              ],
+            );
+          }
         }
         modelMap.set(modelName, modelId!);
       }

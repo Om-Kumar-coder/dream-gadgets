@@ -158,7 +158,8 @@ export class BuybackService {
       // Cache unavailable — fall through
     }
 
-    // 1. Resolve model against the catalog
+    // 1. Resolve model against the catalog (exact name first, slug fallback —
+    //    production catalog names may include storage/variant suffixes)
     let modelRow: { id: string; name: string; brand: string } | null = null;
     try {
       const rows = await this.dataSource.query(
@@ -170,6 +171,23 @@ export class BuybackService {
         [modelName],
       );
       modelRow = rows?.[0] ?? null;
+      if (!modelRow) {
+        const slug = modelName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+        if (slug) {
+          const slugRows = await this.dataSource.query(
+            `SELECT m.id, m.name, b.name AS brand
+             FROM models m
+             JOIN brands b ON b.id = m.brand_id
+             WHERE m.slug = $1
+             LIMIT 1`,
+            [slug],
+          );
+          modelRow = slugRows?.[0] ?? null;
+        }
+      }
     } catch {
       modelRow = null;
     }
