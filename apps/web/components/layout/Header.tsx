@@ -81,35 +81,22 @@ export function Header() {
         </div>
       </div>
 
-      {/* ── Full-Width Logo Row (desktop + mobile — ~90% of viewport) ── */}
-      <div className="max-w-7xl mx-auto px-4 pt-3 md:pt-5">
-        <Link href="/" className="block group">
-          <img
-            src="/logo-light-bg.png"
-            alt="Dream Gadgets"
-            className="w-[min(90vw,44rem)] mx-auto h-auto transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        </Link>
-      </div>
-
       {/* ── Main Header ── */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        {/* Mobile Menu Toggle (left on mobile) */}
-        <button
-          onClick={() => setMobileOpen(o => !o)}
-          className="md:hidden p-2 rounded-xl hover:bg-surface-50 transition-colors"
-          aria-label="Toggle menu"
-        >
-          <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-          </svg>
-        </button>
+        {/* Logo — compact lockup (Hostinger-style: mark + wordmark, left-aligned) */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          <img src="/logo-mark-192.png" alt="" className="h-8 md:h-9 w-auto object-contain" />
+          <span className="text-base md:text-lg font-extrabold tracking-tight leading-none whitespace-nowrap">
+            <span className="text-surface-900 dark:text-white">DREAM</span>{' '}
+            <span className="text-primary">GADGETS</span>
+          </span>
+        </Link>
 
         {/* Search (Desktop) */}
         <form
           ref={searchRef}
           onSubmit={handleSearch}
-          className="hidden md:flex flex-1 max-w-xl mx-auto"
+          className="hidden md:flex flex-1 max-w-xl mx-4"
         >
           <div className="relative w-full group">
             <div className={`flex items-center gap-2 rounded-xl border transition-all duration-200 px-3 py-2 ${
@@ -209,6 +196,16 @@ export function Header() {
             </svg>
           </button>
 
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileOpen(o => !o)}
+            className="md:hidden p-2 rounded-xl hover:bg-surface-50 transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -249,7 +246,13 @@ export function Header() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden animate-fade-in" onClick={() => setMobileOpen(false)} />
           <div className="fixed top-0 left-0 bottom-0 w-72 bg-white z-[70] shadow-2xl md:hidden overflow-y-auto animate-slide-in-left">
             <div className="p-4 border-b border-surface-100 flex items-center justify-between">
-              <img src="/logo-light-bg.png" alt="Dream Gadgets" className="h-10 w-auto" />
+              <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 group">
+                <img src="/logo-mark-192.png" alt="" className="h-7 w-auto object-contain" />
+                <span className="text-sm font-extrabold tracking-tight leading-none whitespace-nowrap">
+                  <span className="text-surface-900 dark:text-white">DREAM</span>{' '}
+                  <span className="text-primary">GADGETS</span>
+                </span>
+              </Link>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-surface-50" aria-label="Close menu">
                 <svg className="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
