@@ -11,9 +11,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { ReportService, ReportType, ReportFilters } from './report.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '@dream-gadgets/shared-types';
+import { PermissionGuard } from '../../common/guards/permission.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @Controller('reports')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionGuard)
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
@@ -23,6 +25,7 @@ export class ReportController {
    * Branch user: sees only their branch's operational data; net income is zeroed.
    */
   @Get('dashboard')
+  @RequirePermission('reports.view')
   async getDashboard(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
     // Backend enforces branch scope: non-owners cannot request other branches' data
     const isOwner = !user.branchId;
@@ -36,6 +39,7 @@ export class ReportController {
   }
 
   @Get('weekly-sales')
+  @RequirePermission('reports.view')
   async getWeeklySales(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
     const isOwner = !user.branchId;
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
@@ -44,6 +48,7 @@ export class ReportController {
   }
 
   @Get('stock-by-condition')
+  @RequirePermission('reports.view')
   async getStockByCondition(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
     const isOwner = !user.branchId;
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
@@ -53,6 +58,7 @@ export class ReportController {
 
   // GET /reports/:type/excel
   @Get(':type/excel')
+  @RequirePermission('reports.export')
   async downloadExcel(
     @Param('type') type: ReportType,
     @Query('branchId') branchId: string,
@@ -76,6 +82,7 @@ export class ReportController {
 
   // GET /reports/:type/pdf
   @Get(':type/pdf')
+  @RequirePermission('reports.export')
   async downloadPdf(
     @Param('type') type: ReportType,
     @Query('branchId') branchId: string,
@@ -99,6 +106,7 @@ export class ReportController {
 
   // GET /reports/:type/async
   @Get(':type/async')
+  @RequirePermission('reports.view')
   async enqueueReport(
     @Param('type') type: ReportType,
     @Query('branchId') branchId: string,
