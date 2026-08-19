@@ -160,11 +160,19 @@ export class AdminService {
     await this.userRepo.save(user);
   }
 
-  async listUsers(branchId?: string, search?: string): Promise<User[]> {
+  async listUsers(branchId?: string, search?: string): Promise<Omit<User, 'passwordHash'>[]> {
     const qb = this.userRepo
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('user.branch', 'branch')
+      .select([
+        'user.id', 'user.email', 'user.phone', 'user.firstName', 'user.lastName',
+        'user.roleId', 'user.branchId', 'user.isActive', 'user.avatarUrl',
+        'user.emailEnabled', 'user.smsEnabled', 'user.whatsappEnabled',
+        'user.lastLoginAt', 'user.createdAt', 'user.updatedAt',
+        'role.id', 'role.name', 'role.description',
+        'branch.id', 'branch.name', 'branch.code',
+      ])
       .orderBy('user.createdAt', 'DESC');
 
     if (branchId) qb.andWhere('user.branchId = :branchId', { branchId });
@@ -188,6 +196,10 @@ export class AdminService {
 
   async listRoles(): Promise<Role[]> {
     return this.roleRepo.find({ order: { name: 'ASC' } });
+  }
+
+  async findRoleById(id: string): Promise<Role | null> {
+    return this.roleRepo.findOne({ where: { id } });
   }
 
   async createRole(dto: CreateRoleDto): Promise<Role & { permissions: string[] }> {

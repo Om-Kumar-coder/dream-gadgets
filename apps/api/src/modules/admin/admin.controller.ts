@@ -13,6 +13,7 @@ import {
   UploadedFile,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -65,7 +66,31 @@ export class AdminController {
 
   @Patch('users/:id')
   @RequirePermission('users.edit')
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() currentUser: any,
+  ) {
+    // SECURITY: Prevent self-escalation
+    if (currentUser?.sub === id) {
+      // Users cannot change their own role or branch
+      if (dto.roleId !== undefined || dto.branchId !== undefined) {
+        throw new ForbiddenException({
+          code: 'SELF_ESCALATION_BLOCKED',
+          message: 'You cannot modify your own role or branch assignment',
+        });
+      }
+    }
+    // SECURITY: Only owner can assign shop_owner role
+    if (dto.roleId && currentUser?.role !== 'shop_owner') {
+      const targetRole = await this.adminService.findRoleById(dto.roleId);
+      if (targetRole?.name === 'shop_owner') {
+        throw new ForbiddenException({
+          code: 'ROLE_ESCALATION_BLOCKED',
+          message: 'Only the shop owner can assign the owner role',
+        });
+      }
+    }
     const user = await this.adminService.updateUser(id, dto);
     return { status: 'success', data: user };
   }
@@ -169,6 +194,7 @@ export class AdminController {
   // ─── Banners ──────────────────────────────────────────────────────────────────
 
   @Get('banners')
+  @RequirePermission('content.view')
   async listBanners(
     @Query('pageType') pageType?: string,
     @Query('position') position?: string,
@@ -279,6 +305,7 @@ export class AdminController {
   // ─── Content pages ────────────────────────────────────────────────────────────
 
   @Get('pages')
+  @RequirePermission('content.view')
   async listContentPages() {
     const pages = await this.adminService.listContentPages();
     return { status: 'success', data: pages };
