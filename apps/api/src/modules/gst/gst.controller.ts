@@ -9,15 +9,18 @@ import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { GstService } from './gst.service';
+import { PermissionGuard } from '../../common/guards/permission.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('GST Reports')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionGuard)
 @Controller('gst')
 export class GstController {
   constructor(private readonly gstService: GstService) {}
 
   @Get('gstr1')
+  @RequirePermission('gst.view')
   @ApiOperation({ summary: 'Generate GSTR-1 data (B2B, B2CL, B2CS, CDNR)' })
   @ApiQuery({ name: 'from', required: true, example: '2025-01-01' })
   @ApiQuery({ name: 'to', required: true, example: '2025-01-31' })
@@ -36,6 +39,7 @@ export class GstController {
   }
 
   @Get('gstr1/export')
+  @RequirePermission('gst.export')
   @ApiOperation({ summary: 'Export GSTR-1 as Excel file' })
   @ApiQuery({ name: 'from', required: true, example: '2025-01-01' })
   @ApiQuery({ name: 'to', required: true, example: '2025-01-31' })

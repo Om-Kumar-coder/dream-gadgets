@@ -49,8 +49,8 @@ export class AuthService {
   /**
    * Fetches permissions for a role, with Redis caching.
    * Cache is invalidated whenever role permissions are updated (admin action).
-   * TTL: 15 minutes — permissions rarely change, so this dramatically reduces
-   * DB load on every login and token refresh.
+   * TTL: 5 minutes — balances DB load reduction with security responsiveness.
+   * When permissions change, invalidatePermissionCache() is called immediately.
    */
   private async getUserPermissions(roleId: string): Promise<string[]> {
     if (!roleId) return [];
@@ -76,9 +76,9 @@ export class AuthService {
     );
     const permissions = rows.map((r: any) => `${r.module}.${r.action}`);
 
-    // Cache for 15 minutes (permissions rarely change)
+    // Cache for 5 minutes (balance between DB load and security responsiveness)
     try {
-      await this.redisService.set(cacheKey, JSON.stringify(permissions), { EX: 900 });
+      await this.redisService.set(cacheKey, JSON.stringify(permissions), { EX: 300 });
     } catch {
       // Non-critical — cache is best-effort
     }

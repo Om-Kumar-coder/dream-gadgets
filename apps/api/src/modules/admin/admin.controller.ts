@@ -25,6 +25,7 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
+import { Throttle } from '@nestjs/throttler';
 import {
   AdminService,
   CreateUserDto,
@@ -59,6 +60,7 @@ export class AdminController {
 
   @Post('users')
   @RequirePermission('users.create')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   async createUser(@Body() dto: CreateUserDto) {
     const user = await this.adminService.createUser(dto);
     return { status: 'success', data: user };
@@ -92,14 +94,21 @@ export class AdminController {
       }
     }
     const user = await this.adminService.updateUser(id, dto);
+    // If role changed, invalidate the user's sessions so new permissions take effect
+    if (dto.roleId) {
+      await this.authService.invalidateUserSessions(id);
+    }
     return { status: 'success', data: user };
   }
 
   @Delete('users/:id')
   @RequirePermission('users.delete')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteUser(@Param('id') id: string) {
     await this.adminService.deleteUser(id);
+    // Invalidate all sessions for deactivated user
+    await this.authService.invalidateUserSessions(id);
   }
 
   // ─── Roles ────────────────────────────────────────────────────────────────────
@@ -113,6 +122,7 @@ export class AdminController {
 
   @Post('roles')
   @RequirePermission('settings.create')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   async createRole(@Body() dto: CreateRoleDto) {
     const role = await this.adminService.createRole(dto);
     return { status: 'success', data: role };
@@ -120,6 +130,7 @@ export class AdminController {
 
   @Patch('roles/:id/permissions')
   @RequirePermission('settings.edit')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   async updateRolePermissions(
     @Param('id') id: string,
     @Body() dto: UpdateRolePermissionsDto,

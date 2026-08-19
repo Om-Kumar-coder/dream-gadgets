@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { DataSource } from 'typeorm';
 
 const SENSITIVE_METHODS = ['POST', 'PATCH', 'PUT', 'DELETE'];
-const SENSITIVE_PATHS = ['/sales', '/purchases', '/returns', '/admin/users', '/admin/roles', '/inventory'];
+const SENSITIVE_PATHS = ['/sales', '/purchases', '/returns', '/admin/users', '/admin/roles', '/inventory', '/payments', '/admin/notifications'];
 
 @Injectable()
 export class AuditLogMiddleware implements NestMiddleware {

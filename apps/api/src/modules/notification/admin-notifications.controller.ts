@@ -11,15 +11,18 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationService } from './notification.service';
+import { PermissionGuard } from '../../common/guards/permission.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('Admin Notifications')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionGuard)
 @Controller('admin/notifications')
 export class AdminNotificationsController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
+  @RequirePermission('notifications.view')
   @ApiOperation({ summary: 'List all notifications with filtering' })
   async findAll(
     @Query('page') page?: string,
@@ -38,6 +41,7 @@ export class AdminNotificationsController {
   }
 
   @Get('failed')
+  @RequirePermission('notifications.view')
   @ApiOperation({ summary: 'Get all failed notifications' })
   async getFailed() {
     const notifications = await this.notificationService.getFailedNotifications();
@@ -45,6 +49,7 @@ export class AdminNotificationsController {
   }
 
   @Post(':id/retry')
+  @RequirePermission('notifications.retry')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Retry a failed notification' })
   async retry(@Param('id') id: string) {
@@ -53,6 +58,7 @@ export class AdminNotificationsController {
   }
 
   @Post('retry-all')
+  @RequirePermission('notifications.retry')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Retry all failed notifications' })
   async retryAll() {

@@ -17,9 +17,14 @@ const MODULES = [
   'content',
   'buyback',
   'whatsapp',
+  'coupons',
+  'emi',
+  'gst',
+  'notifications',
+  'payments',
 ];
 
-const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send'];
+const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send', 'retry'];
 
 // Role permission matrix
 // Format: { module: actions[] }
@@ -42,6 +47,11 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     content: [],
     buyback: ['view', 'edit'],
     whatsapp: ['view', 'edit', 'send'],
+    coupons: ['view', 'create', 'edit'],
+    emi: ['view', 'create', 'edit'],
+    gst: ['view', 'export'],
+    notifications: ['view'],
+    payments: ['view', 'approve'],
   },
 
   shop_sales: {
@@ -60,6 +70,11 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     content: [],
     buyback: ['view'],
     whatsapp: ['view', 'send'],
+    coupons: ['view'],
+    emi: ['view'],
+    gst: [],
+    notifications: [],
+    payments: ['view'],
   },
 
   store_sales: {
@@ -78,6 +93,11 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     content: [],
     buyback: ['view'],
     whatsapp: ['view'],
+    coupons: ['view'],
+    emi: ['view'],
+    gst: [],
+    notifications: [],
+    payments: ['view'],
   },
 
   calling_staff: {
@@ -96,6 +116,11 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     content: [],
     buyback: ['view', 'edit'],
     whatsapp: ['view', 'edit', 'send'],
+    coupons: ['view'],
+    emi: ['view'],
+    gst: [],
+    notifications: [],
+    payments: [],
   },
 
   employee: {
@@ -114,6 +139,11 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     content: [],
     buyback: [],
     whatsapp: [],
+    coupons: [],
+    emi: [],
+    gst: [],
+    notifications: [],
+    payments: [],
   },
 };
 
