@@ -60,12 +60,18 @@ export default function TransfersPage() {
     {
       accessorKey: 'fromBranch',
       header: 'From',
-      cell: ({ row }) => <span className="text-sm">{row.original.fromBranch?.name}</span>,
+      cell: ({ row }) => {
+        const b = row.original.fromBranch;
+        return <span className="text-sm">{typeof b === 'string' ? b : b?.name ?? '—'}</span>;
+      },
     },
     {
       accessorKey: 'toBranch',
       header: 'To',
-      cell: ({ row }) => <span className="text-sm">{row.original.toBranch?.name}</span>,
+      cell: ({ row }) => {
+        const b = row.original.toBranch;
+        return <span className="text-sm">{typeof b === 'string' ? b : b?.name ?? '—'}</span>;
+      },
     },
     {
       accessorKey: 'items',
@@ -221,10 +227,24 @@ export default function TransfersPage() {
     const [itemIds, setItemIds] = useState('');
     const [notes, setNotes] = useState('');
 
+    // Load branches dynamically from API
+    const { data: branchesData } = useQuery({
+      queryKey: ['branches-list'],
+      queryFn: async () => {
+        const { data } = await apiClient.get('/public/branches');
+        return data?.data ?? data ?? [];
+      },
+    });
+    const branches: Array<{ id: string; name: string }> = Array.isArray(branchesData) ? branchesData : [];
+
     return (
       <Form
         onSubmit={(e) => {
           e.preventDefault();
+          if (fromBranchId === toBranchId) {
+            toast.error('Source and destination branches must be different');
+            return;
+          }
           createMutation.mutate({
             fromBranchId,
             toBranchId,
@@ -243,8 +263,9 @@ export default function TransfersPage() {
                 required
               >
                 <option value="">Select source branch</option>
-                <option value="branch1">Branch 1</option>
-                <option value="branch2">Branch 2</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
               </select>
             </FormField>
             <FormField label="To Branch" required>
@@ -255,8 +276,9 @@ export default function TransfersPage() {
                 required
               >
                 <option value="">Select destination branch</option>
-                <option value="branch1">Branch 1</option>
-                <option value="branch2">Branch 2</option>
+                {branches.filter(b => b.id !== fromBranchId).map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
               </select>
             </FormField>
           </div>
@@ -341,7 +363,7 @@ export default function TransfersPage() {
           <h1 className="heading-sm text-surface-900">Stock Transfers</h1>
           <p className="text-sm text-surface-500">Move inventory between branches</p>
         </div>
-        <Button variant="default" size="md">
+        <Button variant="default" size="md" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" />
           New Transfer
         </Button>

@@ -16,22 +16,32 @@ function processQueue(error: any, token: string | null = null) {
 }
 
 /**
+ * Update the session cookie so the Next.js middleware doesn't redirect to login.
+ * The cookie max-age matches the refresh token lifetime (7 days).
+ */
+function updateSessionCookie(accessToken: string) {
+  const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
+  document.cookie = `admin_access_token=${accessToken}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+/**
  * Fully clear all admin auth state — localStorage tokens AND the zustand persisted store.
- * This prevents the redirect loop where persist rehydrates expired tokens.
+ * Also clear the session cookie.
  */
 function clearAllAuth() {
   localStorage.removeItem('admin_access_token');
   localStorage.removeItem('admin_refresh_token');
   localStorage.removeItem('admin-auth-storage'); // zustand persist key
+  // Clear session cookie
+  document.cookie = 'admin_access_token=; path=/; max-age=0; SameSite=Lax';
 }
 
 /**
  * Redirect to login only if we are not already on the login page.
- * This prevents a redirect loop.
  */
 function safeRedirectToLogin() {
   const currentPath = window.location.pathname;
-  if (currentPath === '/login') return; // Already on login — don't redirect again
+  if (currentPath === '/login') return;
   window.location.href = '/login';
 }
 
@@ -40,10 +50,7 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Auth endpoints must never carry a (possibly stale) session token. A stale
-// bearer on /auth/login would make the response interceptor treat a login
-// 401 as an expired-session 401 and try to refresh — wasting the click and
-// showing a confusing error instead of "Invalid credentials".
+// Auth endpoints must never carry a (possibly stale) session token.
 const AUTH_ENDPOINTS = [
   '/auth/login',
   '/auth/register',
@@ -74,7 +81,7 @@ apiClient.interceptors.response.use(
 
     // Don't retry if:
     // - No response (network error)
-    // - Not a 401
+    // - Not a 401 (403 = authorized but not permitted — do NOT refresh)
     // - Already retried
     // - Was the refresh endpoint itself (avoid infinite loop)
     // - No auth header was present
@@ -118,11 +125,15 @@ apiClient.interceptors.response.use(
         { refreshToken },
       );
 
+      // Backend returns { status: 'success', data: { accessToken, refreshToken } }
       if (!data?.data?.accessToken) throw new Error('Invalid refresh response');
 
       const { accessToken, refreshToken: newRefreshToken } = data.data;
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', newRefreshToken);
+
+      // Sync the session cookie so Next.js middleware doesn't redirect
+      updateSessionCookie(accessToken);
 
       processQueue(null, accessToken);
       original.headers.Authorization = `Bearer ${accessToken}`;

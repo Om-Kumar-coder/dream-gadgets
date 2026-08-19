@@ -145,10 +145,8 @@ export class BuybackController {
 
     const lead = await this.buybackService.create(dto);
     return {
-      data: {
-        id: lead.id,
-        message: 'Your request has been submitted. Our team will contact you shortly.',
-      },
+      id: lead.id,
+      message: 'Your request has been submitted. Our team will contact you shortly.',
     };
   }
 
@@ -166,7 +164,7 @@ export class BuybackController {
       });
     }
     const result = await this.buybackService.estimatePrice(dto);
-    return { data: result };
+    return result;
   }
 
   // ─── Public: Upload photos for a lead ─────────────────────────────────────────
@@ -242,7 +240,7 @@ export class BuybackController {
     if (!lead) {
       throw new BadRequestException({ code: 'LEAD_NOT_FOUND', message: 'Lead not found' });
     }
-    return { data: lead };
+    return lead;
   }
 
   // ─── Admin: Update lead status ────────────────────────────────────────────────
@@ -261,6 +259,6 @@ export class BuybackController {
     if (!lead) {
       throw new BadRequestException({ code: 'LEAD_NOT_FOUND', message: 'Lead not found' });
     }
-    return { data: lead };
+    return lead;
   }
 }

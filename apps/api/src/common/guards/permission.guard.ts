@@ -16,11 +16,6 @@ export class PermissionGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    // DEBUG bypass — allow all requests when DEBUG=true
-    if (process.env.DEBUG === 'true') {
-      return true;
-    }
-
     const { user, method, path } = context.switchToHttp().getRequest();
     const hasPermission = user?.permissions?.includes(required) ?? false;
 

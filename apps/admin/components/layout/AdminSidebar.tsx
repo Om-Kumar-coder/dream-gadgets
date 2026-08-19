@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useAdminAuthStore } from '@/store/auth.store';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -92,6 +93,7 @@ const settingsItems = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   const [settingsOpen, setSettingsOpen] = useState(
     pathname === '/settings' || pathname.startsWith('/settings')
   );
@@ -101,6 +103,38 @@ export function AdminSidebar() {
   const [whatsappOpen, setWhatsappOpen] = useState(
     pathname === '/whatsapp' || pathname.startsWith('/whatsapp')
   );
+
+  // Permission-to-nav-item mapping — hide items user cannot access
+  const navPermissionMap: Record<string, string> = {
+    '/dashboard': 'dashboard.view',
+    '/purchases': 'purchases.view',
+    '/sales': 'sales.view',
+    '/inventory': 'inventory.view',
+    '/branches': 'branches.view',
+    '/accessories': 'accessories.view',
+    '/clients': 'clients.view',
+    '/transfers': 'transfers.view',
+    '/exchange': 'exchange.view',
+    '/orders': 'orders.view',
+    '/buyback': 'buyback.view',
+    '/price-guide': 'price_guide.view',
+    '/returns': 'returns.view',
+    '/coupons': 'coupons.view',
+    '/emi': 'emi.view',
+    '/refunds': 'refunds.view',
+    '/reports': 'reports.view',
+    '/gst': 'gst.view',
+    '/notifications': 'notifications.view',
+    '/users': 'users.view',
+    '/brands': 'brands.view',
+    '/announcement-bar': 'banners.view',
+  };
+
+  const isVisible = (href: string) => {
+    const perm = navPermissionMap[href];
+    if (!perm) return true; // no restriction
+    return hasPermission(perm);
+  };
 
   const isActive = (href: string, tab?: string) => {
     const base = href.split('?')[0];
@@ -123,7 +157,9 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => isVisible(item.href))
+          .map((item) => {
           const { href, label, icon: Icon } = item;
           const active = isActive(href);
           return (
@@ -146,93 +182,97 @@ export function AdminSidebar() {
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />
 
-        {/* WhatsApp Communication dropdown */}
-        <div>
-          <button
-            onClick={() => setWhatsappOpen(!whatsappOpen)}
-            className={cn(
-              'flex items-center justify-between w-full gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              whatsappOpen
-                ? 'bg-surface-900 text-white'
-                : 'text-surface-400 hover:bg-surface-900 hover:text-white',
+        {/* WhatsApp Communication dropdown — visible to users with whatsapp.view */}
+        {hasPermission('whatsapp.view') && (
+          <div>
+            <button
+              onClick={() => setWhatsappOpen(!whatsappOpen)}
+              className={cn(
+                'flex items-center justify-between w-full gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                whatsappOpen
+                  ? 'bg-surface-900 text-white'
+                  : 'text-surface-400 hover:bg-surface-900 hover:text-white',
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span>WhatsApp</span>
+              </div>
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', whatsappOpen && 'rotate-180')} />
+            </button>
+            {whatsappOpen && (
+              <div className="ml-2 mt-0.5 space-y-0.5 pl-6 border-l border-surface-800">
+                {whatsappItems.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200',
+                        active
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'text-surface-500 hover:text-white',
+                      )}
+                    >
+                      <item.icon className="w-3.5 h-3.5 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          >
-            <div className="flex items-center gap-3">
-              <MessageSquare className="w-4 h-4 shrink-0" />
-              <span>WhatsApp</span>
-            </div>
-            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', whatsappOpen && 'rotate-180')} />
-          </button>
-          {whatsappOpen && (
-            <div className="ml-2 mt-0.5 space-y-0.5 pl-6 border-l border-surface-800">
-              {whatsappItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200',
-                      active
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'text-surface-500 hover:text-white',
-                    )}
-                  >
-                    <item.icon className="w-3.5 h-3.5 shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />
 
-        {/* Banner Management dropdown */}
-        <div>
-          <button
-            onClick={() => setBannersOpen(!bannersOpen)}
-            className={cn(
-              'flex items-center justify-between w-full gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              bannersOpen
-                ? 'bg-surface-900 text-white'
-                : 'text-surface-400 hover:bg-surface-900 hover:text-white',
+        {/* Banner Management dropdown — visible to users with banners.view */}
+        {hasPermission('banners.view') && (
+          <div>
+            <button
+              onClick={() => setBannersOpen(!bannersOpen)}
+              className={cn(
+                'flex items-center justify-between w-full gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                bannersOpen
+                  ? 'bg-surface-900 text-white'
+                  : 'text-surface-400 hover:bg-surface-900 hover:text-white',
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <ImageIcon className="w-4 h-4 shrink-0" />
+                <span>Banner Management</span>
+              </div>
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', bannersOpen && 'rotate-180')} />
+            </button>
+            {bannersOpen && (
+              <div className="ml-2 mt-0.5 space-y-0.5 pl-6 border-l border-surface-800">
+                {bannerItems.map((item) => {
+                  const currentPageType = searchParams.get('pageType');
+                  const active = item.isExact
+                    ? pathname === '/banners' && !currentPageType
+                    : pathname === '/banners' && (currentPageType || 'home') === (item.pageType || 'home');
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.pageType ? `/banners?pageType=${item.pageType}` : '/banners'}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200',
+                        active
+                          ? 'bg-primary/20 text-primary'
+                          : 'text-surface-500 hover:text-white',
+                      )}
+                    >
+                      <item.icon className="w-3.5 h-3.5 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          >
-            <div className="flex items-center gap-3">
-              <ImageIcon className="w-4 h-4 shrink-0" />
-              <span>Banner Management</span>
-            </div>
-            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', bannersOpen && 'rotate-180')} />
-          </button>
-          {bannersOpen && (
-            <div className="ml-2 mt-0.5 space-y-0.5 pl-6 border-l border-surface-800">
-              {bannerItems.map((item) => {
-                const currentPageType = searchParams.get('pageType');
-                const active = item.isExact
-                  ? pathname === '/banners' && !currentPageType
-                  : pathname === '/banners' && (currentPageType || 'home') === (item.pageType || 'home');
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.pageType ? `/banners?pageType=${item.pageType}` : '/banners'}
-                    className={cn(
-                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200',
-                      active
-                        ? 'bg-primary/20 text-primary'
-                        : 'text-surface-500 hover:text-white',
-                    )}
-                  >
-                    <item.icon className="w-3.5 h-3.5 shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />

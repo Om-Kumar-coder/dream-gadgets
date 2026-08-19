@@ -9,29 +9,44 @@ import {
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ReportService, ReportType, ReportFilters } from './report.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtPayload } from '@dream-gadgets/shared-types';
 
 @Controller('reports')
 @UseGuards(AuthGuard('jwt'))
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
-  // GET /reports/dashboard
+  /**
+   * Dashboard KPIs — scoped by user role.
+   * Owner (branchId=null in JWT): sees business-wide data including net income.
+   * Branch user: sees only their branch's operational data; net income is zeroed.
+   */
   @Get('dashboard')
-  async getDashboard(@Query('branchId') branchId?: string) {
+  async getDashboard(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
+    // Backend enforces branch scope: non-owners cannot request other branches' data
+    const isOwner = !user.branchId;
+    const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const kpis = await this.reportService.getDashboardKpis(branchId);
+    // Non-owners should not see business-wide net income
+    if (!isOwner) {
+      kpis.netIncome = 0;
+    }
     return { status: 'success', data: kpis };
   }
 
-  // GET /reports/weekly-sales — last 7 days sales per day for chart
   @Get('weekly-sales')
-  async getWeeklySales(@Query('branchId') branchId?: string) {
+  async getWeeklySales(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
+    const isOwner = !user.branchId;
+    const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const data = await this.reportService.getWeeklySalesChart(branchId);
     return { status: 'success', data };
   }
 
-  // GET /reports/stock-by-condition — inventory count grouped by condition
   @Get('stock-by-condition')
-  async getStockByCondition(@Query('branchId') branchId?: string) {
+  async getStockByCondition(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
+    const isOwner = !user.branchId;
+    const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const data = await this.reportService.getStockByConditionChart(branchId);
     return { status: 'success', data };
   }

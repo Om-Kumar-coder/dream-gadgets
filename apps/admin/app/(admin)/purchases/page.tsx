@@ -14,10 +14,10 @@ type Purchase = {
   id: string;
   invoiceNumber: string;
   vendorName: string;
-  branch: {
-    name: string;
-  };
-  items: { id: string }[];
+  branch?: {
+    name?: string;
+  } | string | null;
+  items?: { id: string }[];
   totalAmount: number;
   purchaseDate: string;
 };
@@ -37,12 +37,16 @@ export default function PurchasesPage() {
     {
       accessorKey: 'branch',
       header: 'Branch',
-      cell: ({ row }) => <span className="text-sm">{row.original.branch?.name}</span>,
+      cell: ({ row }) => {
+        const b = row.original.branch;
+        const name = typeof b === 'string' ? b : b?.name;
+        return <span className="text-sm">{String(name ?? '—')}</span>;
+      },
     },
     {
       accessorKey: 'items',
       header: 'Items',
-      cell: ({ row }) => <span>{row.original.items?.length ?? 0}</span>,
+      cell: ({ row }) => <span>{Array.isArray(row.original.items) ? row.original.items.length : 0}</span>,
     },
     {
       accessorKey: 'totalAmount',

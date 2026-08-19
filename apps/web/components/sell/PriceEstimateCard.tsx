@@ -91,7 +91,8 @@ export function PriceEstimateCard({
       })
       .then((json) => {
         if (seq !== requestSeq.current) return; // stale response
-        const data: EstimateResponse = json?.data ?? json;
+        // Handle both single and double-nested API responses
+        const data: EstimateResponse = json?.data?.data ?? json?.data ?? json;
         setEstimate(data);
         onUpdate({ estimatedPrice: data.estimatedPrice });
       })

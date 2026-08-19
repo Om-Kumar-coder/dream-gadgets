@@ -26,6 +26,111 @@ const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-gray-100 text-gray-600',
 };
 
+const DEVICE_CONDITIONS = [
+  { value: 'sealed_pack', label: 'Sealed Pack' },
+  { value: 'open_box', label: 'Open Box' },
+  { value: 'super_mint', label: 'Super Mint' },
+  { value: 'mint', label: 'Mint' },
+  { value: 'good', label: 'Good' },
+];
+
+function ExchangeForm({
+  branches,
+  onSubmit,
+  onCancel,
+  saving,
+}: {
+  branches: Array<{ id: string; name: string }>;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [brand, setBrand] = useState('');
+  const [modelName, setModelName] = useState('');
+  const [imei, setImei] = useState('');
+  const [colour, setColour] = useState('');
+  const [storage, setStorage] = useState('');
+  const [condition, setCondition] = useState('good');
+  const [batteryHealth, setBatteryHealth] = useState(100);
+  const [exchangePrice, setExchangePrice] = useState(0);
+  const [branchId, setBranchId] = useState('');
+  const [phone, setPhone] = useState('');
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({ brand, modelName, imei: imei || undefined, colour: colour || undefined, storage: storage || undefined, condition, batteryHealth, exchangePrice, branchId: branchId || undefined, phone: phone || undefined });
+      }}
+      className="p-6 space-y-4 max-h-[65vh] overflow-y-auto"
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Brand <span className="text-red-400">*</span></label>
+          <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="input text-sm" required placeholder="Samsung" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Model <span className="text-red-400">*</span></label>
+          <input type="text" value={modelName} onChange={(e) => setModelName(e.target.value)} className="input text-sm" required placeholder="Galaxy S24" />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">IMEI</label>
+          <input type="text" value={imei} onChange={(e) => setImei(e.target.value)} className="input text-sm" placeholder="15-digit IMEI" maxLength={15} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Colour</label>
+          <input type="text" value={colour} onChange={(e) => setColour(e.target.value)} className="input text-sm" placeholder="Black" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Storage</label>
+          <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} className="input text-sm" placeholder="128GB" />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Condition <span className="text-red-400">*</span></label>
+          <select value={condition} onChange={(e) => setCondition(e.target.value)} className="input text-sm" required>
+            {DEVICE_CONDITIONS.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Battery Health (%)</label>
+          <input type="number" value={batteryHealth} onChange={(e) => setBatteryHealth(Number(e.target.value))} className="input text-sm" min={0} max={100} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Exchange Price (₹) <span className="text-red-400">*</span></label>
+          <input type="number" value={exchangePrice} onChange={(e) => setExchangePrice(Number(e.target.value))} className="input text-sm" min={0} step={100} required />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Customer Phone</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input text-sm" placeholder="10-digit phone" maxLength={10} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Store Branch</label>
+          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="input text-sm">
+            <option value="">—</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
+        <button type="button" onClick={onCancel} className="btn-outline btn-sm">Cancel</button>
+        <button type="submit" disabled={saving || !brand || !modelName} className="btn-primary btn-sm">
+          {saving ? 'Creating...' : 'Create Exchange'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 type Exchange = {
   id: string;
   brand: string;
@@ -43,6 +148,27 @@ type Exchange = {
 export default function ExchangePage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+
+  // Fetch available inventory items for exchange
+  const { data: branchesData } = useQuery({
+    queryKey: ['branches-list'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/public/branches');
+      return data?.data ?? data ?? [];
+    },
+  });
+  const branches: Array<{ id: string; name: string }> = Array.isArray(branchesData) ? branchesData : [];
+
+  const createExchange = useMutation({
+    mutationFn: (form: any) => apiClient.post('/exchanges', form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['exchanges'] });
+      setShowCreate(false);
+      toast.success('Exchange created');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create exchange'),
+  });
 
   const columns: ColumnDef<Exchange, any>[] = [
     {
@@ -120,11 +246,31 @@ export default function ExchangePage() {
           <h1 className="heading-sm text-surface-900">Exchange Devices</h1>
           <p className="text-sm text-surface-500">Manage exchange devices</p>
         </div>
-        <Button variant="default" size="md">
+        <Button variant="default" size="md" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4" />
           New Exchange
         </Button>
       </div>
+
+      {/* Create Exchange Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreate(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-100">
+              <h3 className="font-semibold text-surface-900">New Exchange</h3>
+              <button onClick={() => setShowCreate(false)} className="text-surface-400 hover:text-surface-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <ExchangeForm
+              branches={branches}
+              onSubmit={(form) => createExchange.mutate(form)}
+              onCancel={() => setShowCreate(false)}
+              saving={createExchange.isPending}
+            />
+          </div>
+        </div>
+      )}
 
       <DataTable<Exchange, any>
         columns={columns}

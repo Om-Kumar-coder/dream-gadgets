@@ -88,6 +88,7 @@ export class ReportService {
           COALESCE(SUM(s.total_amount), 0)::numeric AS value
         FROM sales s
         WHERE s.sale_date >= $1 AND s.sale_date < $2
+          AND s.is_voided = false
         ${branchFilter}
       `, [today, tomorrow]);
 
@@ -121,8 +122,17 @@ export class ReportService {
         ${branchFilterClients}
       `, [today, tomorrow]);
 
+      const branchFilterOrders = branchId ? `AND o.branch_id = '${branchId}'` : '';
+      const [ordersResult] = await this.dataSource.query(`
+        SELECT COUNT(*)::int AS count
+        FROM online_orders o
+        WHERE o.ordered_at >= $1 AND o.ordered_at < $2
+          AND o.status NOT IN ('cancelled')
+        ${branchFilterOrders}
+      `, [today, tomorrow]).catch(() => [{ count: 0 }]);
+
       const todaySalesValue = parseFloat(salesResult?.value ?? '0');
-      const todayPurchasesValue = 0; // simplified for MVP
+      const todayPurchasesValue = 0;
       const netIncome = todaySalesValue - todayPurchasesValue;
 
       return {
@@ -135,7 +145,7 @@ export class ReportService {
         bookedItems: inventoryResult?.booked ?? 0,
         pendingReturns: returnsResult?.count ?? 0,
         newClientsToday: clientsResult?.count ?? 0,
-        onlineOrdersCount: 0, // online orders table not yet in scope
+        onlineOrdersCount: ordersResult?.count ?? 0,
       };
     } catch (err: any) {
       this.logger.warn(`Dashboard KPI query failed: ${err?.message}`);
@@ -165,6 +175,7 @@ export class ReportService {
           COALESCE(SUM(total_amount), 0)::numeric AS sales
         FROM sales
         WHERE sale_date >= NOW() - INTERVAL '7 days'
+          AND is_voided = false
         ${branchFilter}
         GROUP BY TO_CHAR(sale_date, 'Dy'), DATE_TRUNC('day', sale_date)
         ORDER BY DATE_TRUNC('day', sale_date)
@@ -257,6 +268,7 @@ export class ReportService {
       LEFT JOIN users u ON u.id = s.created_by_id
       LEFT JOIN branches b ON b.id = s.branch_id
       WHERE s.sale_date BETWEEN $1 AND $2
+        AND s.is_voided = false
       ${branchFilter}
       ORDER BY s.sale_date DESC
     `, [start, end]);

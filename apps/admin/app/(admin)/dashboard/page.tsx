@@ -19,6 +19,7 @@ import {
 import { BannerAnalyticsWidget } from '@/components/banners/BannerAnalyticsWidget';
 import { apiClient } from '@/lib/api';
 import { useSocket } from '@/lib/useSocket';
+import { useAdminAuthStore } from '@/store/auth.store';
 
 interface KPI {
   todaySalesCount: number;
@@ -93,6 +94,8 @@ function KpiCard({
 }
 
 export default function DashboardPage() {
+  const user = useAdminAuthStore((s) => s.user);
+  const isOwner = !user?.branchId;
   const [liveKpi, setLiveKpi] = useState<KPI | null>(null);
 
   const { data: kpiData, isLoading: kpiLoading } = useQuery({
@@ -229,14 +232,17 @@ export default function DashboardPage() {
           icon={Users}
           color="bg-amber-500"
         />
-        <KpiCard
-          title="Net Income"
-          value={kpiLoading ? '—' : fmt(kpi.netIncome)}
-          sub="today"
-          icon={TrendingUp}
-          color="bg-teal-500"
-          trend="up"
-        />
+        {/* Net Income — owner-only */}
+        {isOwner && (
+          <KpiCard
+            title="Net Income"
+            value={kpiLoading ? '—' : fmt(kpi.netIncome)}
+            sub="today"
+            icon={TrendingUp}
+            color="bg-teal-500"
+            trend="up"
+          />
+        )}
         <KpiCard
           title="Online Orders"
           value={kpiLoading ? '—' : String(kpi.onlineOrdersCount)}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Eye, XCircle, Package } from 'lucide-react';
+import { Eye, XCircle, CheckCircle, Package } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
@@ -74,6 +74,20 @@ export default function OnlineOrdersPage() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to cancel order');
+    },
+  });
+
+  const confirmPayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.post(`/orders/${id}/status`, { status: 'payment_confirmed' });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Payment confirmed');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to confirm payment');
     },
   });
 
@@ -187,6 +201,20 @@ export default function OnlineOrdersPage() {
             >
               <Eye className="w-3.5 h-3.5" />
             </Link>
+            {order.status === 'pending_payment' && (
+              <button
+                onClick={() => {
+                  if (confirm(`Confirm payment for order ${order.orderNumber}?`)) {
+                    confirmPayment.mutate(order.id);
+                  }
+                }}
+                disabled={confirmPayment.isPending}
+                className="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
+                title="Confirm payment"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+              </button>
+            )}
             {order.status !== 'cancelled' && order.status !== 'delivered' && (
               <button
                 onClick={() => {

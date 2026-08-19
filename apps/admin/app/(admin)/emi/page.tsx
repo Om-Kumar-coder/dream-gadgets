@@ -645,8 +645,12 @@ export default function EmiAdminPage() {
     queryKey: ['emi-providers'],
     queryFn: () =>
       apiClient.get('/admin/emi/providers').then((r) => {
-        const payload = r.data?.data ?? r.data ?? [];
-        return Array.isArray(payload) ? payload : [];
+        // Backend returns { data: providers }, TransformInterceptor wraps as { status, data: { data: providers } }
+        const payload = r.data?.data;
+        if (Array.isArray(payload)) return payload;
+        // Fallback: unwrap nested if needed
+        const inner = payload?.data;
+        return Array.isArray(inner) ? inner : [];
       }),
   });
 
@@ -816,7 +820,9 @@ export default function EmiAdminPage() {
             <RefreshCw className="w-6 h-6 text-red-500" />
           </div>
           <h3 className="font-semibold text-surface-900 mb-1">Failed to load EMI data</h3>
-          <p className="text-sm text-surface-500 mb-4">Could not fetch EMI providers and plans.</p>
+          <p className="text-sm text-surface-500 mb-4">
+            Could not fetch EMI providers. You may not have permission to view this page.
+          </p>
           <button onClick={() => refetch()} className="btn-primary btn-sm">
             Try Again
           </button>

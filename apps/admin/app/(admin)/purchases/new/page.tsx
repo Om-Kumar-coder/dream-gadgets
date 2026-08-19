@@ -212,8 +212,14 @@ export default function NewPurchasePage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-surface-600 mb-1">Battery Health (%)</label>
-              <input {...register('batteryHealth')} type="number" min={0} max={100} placeholder="e.g. 87"
-                className="input" />
+              <input
+                {...register('batteryHealth', { valueAsNumber: true })}
+                type="number"
+                min={0}
+                max={100}
+                placeholder="e.g. 87"
+                className="input"
+              />
             </div>
           </div>
         </div>
@@ -224,13 +230,13 @@ export default function NewPurchasePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-surface-600 mb-1">Purchase Price (₹) *</label>
-              <input {...register('purchasePrice')} type="number" min={0} placeholder="e.g. 45000"
+              <input {...register('purchasePrice', { valueAsNumber: true })} type="number" min={0} placeholder="e.g. 45000"
                 className="input" />
               {errors.purchasePrice && <p className="text-red-500 text-xs mt-1">{errors.purchasePrice.message}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-surface-600 mb-1">Tax Rate (%)</label>
-              <input {...register('taxRate')} type="number" min={0} max={100}
+              <input {...register('taxRate', { valueAsNumber: true })} type="number" min={0} max={100}
                 className="input" />
             </div>
           </div>
