@@ -1,0 +1,5 @@
+{
+  "subject": "{{status}} — Order {{orderNumber}} | Dream Gadgets",
+  "body": "<h2>Order Update</h2><p>Hi {{name}},</p><p>Your order <strong>{{orderNumber}}</strong> is now <strong style=\"color:#E50914\">{{status}}</strong>.</p><p>Order amount: <strong>₹{{amount}}</strong></p><p>You can track your order anytime on our website.</p><p>— Dream Gadgets</p>",
+  "smsBody": "Order {{orderNumber}} is now {{status}}. - Dream Gadgets"
+}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { JsonLd } from '../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
 import { webPageSchema } from '../../lib/seo/schemas';
+import { SUPPORT_PHONE_DISPLAY } from '../../lib/contact';
 
 export const metadata: Metadata = {
   title: 'Cancellation & Refunds — Dream Gadgets',
@@ -55,7 +56,7 @@ const SECTIONS = [
 
     list: [
       { icon: '👤', title: 'Via Your Account', desc: 'Log in to your Dream Gadgets account, go to "My Orders", find your order, and click "Cancel Order" if the option is available.' },
-      { icon: '📞', title: 'Via Phone', desc: 'Call our support team at +91 98765 43210. Have your order number ready for quick processing.' },
+      { icon: '📞', title: 'Via Phone', desc: `Call our support team at ${SUPPORT_PHONE_DISPLAY}. Have your order number ready for quick processing.` },
       { icon: '✉️', title: 'Via Email', desc: 'Send a cancellation request to support@dreamgadgets.in with your order number and reason for cancellation.' },
       { icon: '💬', title: 'Via WhatsApp', desc: 'Send a message on WhatsApp with your order number and "CANCEL" to initiate the cancellation process.' },
     ],
@@ -226,7 +227,7 @@ export default function CancellationPage() {
                   <h2 className="heading-sm text-surface-900 mb-2">{section.title}</h2>
                   <p className="text-sm text-surface-600 mb-4">{section.content}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="tel:+919876543210" className="btn-secondary btn-md">Call +91 98765 43210</a>
+                    <a href={`tel:${SUPPORT_PHONE_DISPLAY.replace(/\s/g, '')}`} className="btn-secondary btn-md">Call {SUPPORT_PHONE_DISPLAY}</a>
                     <a href="mailto:support@dreamgadgets.in" className="btn-outline btn-md">Email Support</a>
                     <a href="/contact" className="btn-outline btn-md">Contact Form</a>
                   </div>

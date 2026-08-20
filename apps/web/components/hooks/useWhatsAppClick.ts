@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
+import { WHATSAPP_NUMBER } from '@/lib/contact';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210';
 
 interface WhatsAppClickOptions {
   /** Source/location of the click: 'floating_button' | 'product_page' | 'contact_page' | 'stores_page' | 'footer' | 'blog_share' | 'buy_panel' */

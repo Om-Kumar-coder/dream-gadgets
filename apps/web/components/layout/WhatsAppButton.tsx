@@ -2,10 +2,11 @@
 
 import { useCallback, useRef } from 'react';
 import { buildWhatsAppUrl } from '../hooks/useWhatsAppClick';
+import { WHATSAPP_NUMBER } from '@/lib/contact';
 
 export function WhatsAppButton() {
   const btnRef = useRef<HTMLAnchorElement>(null);
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210';
+  const phone = WHATSAPP_NUMBER;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
   const onClick = useCallback(
@@ -53,7 +54,7 @@ export function WhatsAppButton() {
       <a
         ref={btnRef}
         onClick={onClick}
-        href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent('Hi! I am interested in buying a phone from Dream Gadgets.')}`}
+        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi! I am interested in buying a phone from Dream Gadgets.')}`}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"

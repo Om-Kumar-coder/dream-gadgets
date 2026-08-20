@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { WHATSAPP_NUMBER, SUPPORT_PHONE_DISPLAY } from '@/lib/contact';
 
 export function Footer() {
   return (
@@ -22,10 +23,10 @@ export function Footer() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                8017 999 888
+                {SUPPORT_PHONE_DISPLAY.replace('+91 ', '')}
               </a>
               <a
-                href="https://wa.me/919876543210"
+                href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl text-emerald-400 transition-colors"

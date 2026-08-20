@@ -10,6 +10,8 @@ import { SmsService } from './channels/sms.service';
 import { WhatsAppService } from './channels/whatsapp.service';
 import { EventService } from '../../common/events/event.service';
 import { User } from '../auth/entities/user.entity';
+import { getTemplate } from './templates';
+import type { TemplateDef } from './templates';
 
 export interface NotificationPayload {
   userId?: string;
@@ -75,49 +77,17 @@ export class NotificationService {
       // fallback to default
     }
 
-    // Default templates with channel-appropriate formatting
-    const defaults: Record<string, { subject: string; body: string; smsBody?: string }> = {
-      invoice_delivery: {
-        subject: 'Your Invoice from Dream Gadgets',
-        body: '<h2>Invoice Ready</h2><p>Dear {{name}},</p><p>Your invoice <strong>{{invoiceNumber}}</strong> for <strong>₹{{amount}}</strong> is ready.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
-      },
-      order_status: {
-        subject: '{{status}} — Order {{orderNumber}} | Dream Gadgets',
-        body: '<h2>Order Update</h2><p>Hi {{name}},</p><p>Your order <strong>{{orderNumber}}</strong> is now <strong style="color:#E50914">{{status}}</strong>.</p><p>Order amount: <strong>₹{{amount}}</strong></p><p>You can track your order anytime on our website.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Order {{orderNumber}} is now {{status}}. - Dream Gadgets',
-      },
-      otp: {
-        subject: 'Your OTP for Dream Gadgets',
-        body: '<p>Your OTP is <strong>{{otp}}</strong>. Valid for 10 minutes.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
-      },
-      birthday_offer: {
-        subject: 'Happy Birthday from Dream Gadgets! 🎂',
-        body: '<h2>Happy Birthday! 🎂</h2><p>Dear {{name}},</p><p>Wishing you a wonderful birthday! Enjoy a special offer just for you.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
-      },
-      buyback_lead: {
-        subject: 'New Buyback Request — {{brand}} {{model}}',
-        body: '<h2>New Buyback Lead</h2><p><strong>Device:</strong> {{brand}} {{model}}</p><p><strong>Phone:</strong> {{phone}}</p><p><strong>Submitted:</strong> {{date}}</p><p><a href="{{adminUrl}}">View in Admin Panel</a></p>',
-      },
-      refund_processed: {
-        subject: 'Refund Initiated — {{orderNumber}}',
-        body: '<h2>Refund Initiated</h2><p>Dear {{name}},</p><p>A refund of <strong>₹{{amount}}</strong> for your order <strong>{{orderNumber}}</strong> has been initiated.</p><p>The refund will be credited to your original payment method within <strong>2–5 business days</strong>.</p><p>Refund ID: {{refundId}}</p><p>— Dream Gadgets</p>',
-        smsBody: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. Will credit within 2-5 business days. - Dream Gadgets',
-      },
-      password_reset: {
-        subject: 'Reset Your Dream Gadgets Password',
-        body: '<h2>Password Reset</h2><p>Hi {{name}},</p><p>We received a request to reset your password.</p><p>Click the link below to reset it. This link is valid for <strong>1 hour</strong>.</p><p><a href="{{resetUrl}}" style="display:inline-block;padding:12px 24px;background:#E50914;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Reset Password</a></p><p>If you did not request this, please ignore this email.</p><p>— Dream Gadgets</p>',
-        smsBody: 'Reset your Dream Gadgets password. Use this link: {{resetUrl}}. Valid for 1 hour. - Dream Gadgets',
-      },
-    };
+    // Load from JSON template files (see templates/*.json)
+    const tpl = getTemplate(templateKey);
+    if (tpl) {
+      return {
+        subject: this.substituteVars(tpl.subject, vars),
+        body: this.substituteVars(tpl.body, vars),
+      };
+    }
 
-    const tpl = defaults[templateKey] ?? { subject: templateKey, body: '' };
-    return {
-      subject: this.substituteVars(tpl.subject, vars),
-      body: this.substituteVars(tpl.body, vars),
-    };
+    // Empty fallback for unknown template keys
+    return { subject: templateKey, body: '' };
   }
 
   private substituteVars(template: string, vars: Record<string, string>): string {
@@ -134,17 +104,9 @@ export class NotificationService {
     vars?: Record<string, string>,
   ): { subject: string; body: string } {
     if (channel === 'sms' && templateKey) {
-      // Use SMS-specific templates for SMS
-      const defaults: Record<string, string> = {
-        invoice_delivery: 'Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets',
-        order_status: 'Order {{orderNumber}} is now {{status}}. - Dream Gadgets',
-        otp: 'Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets',
-        birthday_offer: 'Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets.',
-        refund_processed: 'Refund of ₹{{amount}} initiated for order {{orderNumber}}. - Dream Gadgets',
-        password_reset: 'Reset your Dream Gadgets password: {{resetUrl}}. Valid 1 hour. - Dream Gadgets',
-      };
-
-      const shortBody = defaults[templateKey] ?? htmlBody.replace(/<[^>]*>/g, '');
+      // Use SMS-specific template from JSON files
+      const tpl = getTemplate(templateKey);
+      const shortBody = tpl?.smsBody ?? htmlBody.replace(/<[^>]*>/g, '');
       const finalBody = vars ? this.substituteVars(shortBody, vars) : shortBody;
       return { subject: '', body: finalBody.substring(0, 160) }; // SMS: 160 char limit
     }

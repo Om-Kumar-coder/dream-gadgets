@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 import ProductCard from '../../../components/product/ProductCard';
 import { JsonLd } from '../../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
+
+/** Force dynamic rendering so notFound() returns proper HTTP 404 status. */
+export const dynamic = 'force-dynamic';
 import { webPageSchema } from '../../../lib/seo/schemas';
 
 interface Props {

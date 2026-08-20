@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { JsonLd } from '../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../components/seo/BreadcrumbJsonLd';
 import { webPageSchema } from '../../lib/seo/schemas';
+import { WHATSAPP_NUMBER, SUPPORT_PHONE_DISPLAY } from '../../lib/contact';
 
 export const metadata: Metadata = {
   title: 'Shipping Policy — Dream Gadgets',
@@ -168,7 +169,7 @@ export default function ShippingPage() {
                   <h2 className="heading-sm text-surface-900 mb-2">{section.title}</h2>
                   <p className="text-sm text-surface-600 mb-4">{section.content}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="tel:+919876543210" className="btn-secondary btn-md">Call +91 98765 43210</a>
+                    <a href={`tel:${SUPPORT_PHONE_DISPLAY.replace(/\s/g, '')}`} className="btn-secondary btn-md">Call {SUPPORT_PHONE_DISPLAY}</a>
                     <a href="mailto:support@dreamgadgets.in" className="btn-outline btn-md">Email Support</a>
                     <a href="/contact" className="btn-outline btn-md">Contact Form</a>
                   </div>

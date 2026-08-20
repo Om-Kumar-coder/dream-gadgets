@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCartStore } from '../../store/cart.store';
+import { WHATSAPP_NUMBER } from '@/lib/contact';
 
 interface ProductBuyPanelProps {
   name: string;
@@ -73,7 +74,7 @@ export function ProductBuyPanel({ name, price, originalPrice, imageUrl, productI
         {/* Actions */}
         <div className="flex items-center gap-2">
           <a
-            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent(`Hi! I am interested in ${name}`)}`}
+            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi! I am interested in ${name}`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:flex items-center justify-center w-11 h-11 rounded-xl border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 active:scale-[0.97] transition-all"

@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Query,
+  Body,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -13,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationService } from './notification.service';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { getTemplate, getTemplateKeys } from './templates';
 
 @ApiTags('Admin Notifications')
 @ApiBearerAuth()
@@ -64,5 +66,36 @@ export class AdminNotificationsController {
   async retryAll() {
     const result = await this.notificationService.retryAllFailed();
     return { message: `Retried ${result.retried} notifications`, data: result };
+  }
+
+  // ─── Template management ───────────────────────────────────────────────────
+
+  @Get('templates')
+  @RequirePermission('notifications.view')
+  @ApiOperation({ summary: 'List all notification template keys' })
+  listTemplates() {
+    const keys = getTemplateKeys();
+    return { data: keys.map(key => ({ key, ...getTemplate(key) })) };
+  }
+
+  @Get('templates/:key')
+  @RequirePermission('notifications.view')
+  @ApiOperation({ summary: 'Get a single template by key' })
+  getTemplate(@Param('key') key: string) {
+    const tpl = getTemplate(key);
+    if (!tpl) return { status: 'error', message: `Template '${key}' not found` };
+    return { data: { key, ...tpl } };
+  }
+
+  @Post('templates/:key/preview')
+  @RequirePermission('notifications.view')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Preview a template with sample variables' })
+  async previewTemplate(
+    @Param('key') key: string,
+    @Body() body: { vars?: Record<string, string> },
+  ) {
+    const result = await this.notificationService.resolveTemplate(key, body.vars ?? {});
+    return { data: result };
   }
 }

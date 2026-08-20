@@ -5,6 +5,9 @@ import { JsonLd } from '../../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
 import { blogPostingSchema } from '../../../lib/seo/schemas';
 
+/** Force dynamic rendering so notFound() returns proper HTTP 404 status. */
+export const dynamic = 'force-dynamic';
+
 const POSTS: Record<string, {
   title: string;
   date: string;

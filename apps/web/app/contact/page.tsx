@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { apiClient } from '../../lib/api';
 import { StaticOfferBanner } from '../../components/banner/StaticPageBanners';
+import { WHATSAPP_NUMBER } from '../../lib/contact';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', message: '' });
@@ -191,7 +192,7 @@ export default function ContactPage() {
             <div className="rounded-2xl p-5 border" style={{ backgroundColor: 'rgba(229, 9, 20, 0.06)', borderColor: 'rgba(229, 9, 20, 0.15)' }}>
               <p className="font-semibold text-white text-sm mb-1">💬 WhatsApp Support</p>
               <p className="text-xs text-gray-400 mb-3">Chat with us directly on WhatsApp for quick help.</p>                <a
-                href="https://wa.me/918282011193"
+                href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-4 py-2 btn-red text-xs font-bold rounded-lg transition-all"

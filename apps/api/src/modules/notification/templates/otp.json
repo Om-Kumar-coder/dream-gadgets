@@ -1,0 +1,5 @@
+{
+  "subject": "Your OTP for Dream Gadgets",
+  "body": "<p>Your OTP is <strong>{{otp}}</strong>. Valid for 10 minutes.</p><p>— Dream Gadgets</p>",
+  "smsBody": "Your OTP is {{otp}}. Valid for 10 minutes. - Dream Gadgets"
+}

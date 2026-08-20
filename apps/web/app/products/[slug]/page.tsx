@@ -2,35 +2,39 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '../../../components/product/ProductGallery';
 import { AddToCartButton } from '../../../components/product/AddToCartButton';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { ProductBuyPanel } from '../../../components/product/ProductBuyPanel';
 import { UrgencyBadge } from '../../../components/product/UrgencyBadge';
 import { PriceComparison } from '../../../components/product/PriceComparison';
 import { JsonLd } from '../../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
+import { WHATSAPP_NUMBER } from '../../../lib/contact';
+
+/** Force dynamic rendering so notFound() returns proper HTTP 404 status. */
+export const dynamic = 'force-dynamic';
 
 // Lazy-load below-the-fold interactive components to reduce initial bundle size
-const EMICalculator = dynamic(
+const EMICalculator = dynamicImport(
   () => import('../../../components/product/EMICalculator').then((mod) => ({ default: mod.EMICalculator })),
   { ssr: false, loading: () => <div className="h-32 bg-surface-50 animate-pulse rounded-2xl" /> },
 );
 
-const ReviewSection = dynamic(
+const ReviewSection = dynamicImport(
   () => import('../../../components/product/ReviewSection').then((mod) => ({ default: mod.ReviewSection })),
   { loading: () => <div className="h-48 bg-surface-50 animate-pulse rounded-2xl" /> },
 );
 
-const RelatedProducts = dynamic(
+const RelatedProducts = dynamicImport(
   () => import('../../../components/product/RelatedProducts').then((mod) => ({ default: mod.RelatedProducts })),
   { loading: () => <div className="h-40 bg-surface-50 animate-pulse rounded-2xl" /> },
 );
 
-const ProductSpecs = dynamic(
+const ProductSpecs = dynamicImport(
   () => import('../../../components/product/ProductSpecs').then((mod) => ({ default: mod.ProductSpecs })),
   { loading: () => <div className="h-40 bg-surface-50 animate-pulse rounded-2xl" /> },
 );
 
-const TrustElements = dynamic(
+const TrustElements = dynamicImport(
   () => import('../../../components/product/TrustElements').then((mod) => ({ default: mod.TrustElements })),
   { loading: () => <div className="h-24 bg-surface-50 animate-pulse rounded-2xl" /> },
 );
@@ -319,7 +323,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
                 }}
               />
               <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent(`Hi! I am interested in ${name} (IMEI: ${product.imei?.slice(0, 8)}*****)`)}`}
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi! I am interested in ${name} (IMEI: ${product.imei?.slice(0, 8)}*****)`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-bold text-sm text-center hover:bg-emerald-50 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5"

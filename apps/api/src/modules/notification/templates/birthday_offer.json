@@ -1,0 +1,5 @@
+{
+  "subject": "Happy Birthday from Dream Gadgets! 🎂",
+  "body": "<h2>Happy Birthday! 🎂</h2><p>Dear {{name}},</p><p>Wishing you a wonderful birthday! Enjoy a special offer just for you.</p><p>— Dream Gadgets</p>",
+  "smsBody": "Happy Birthday {{name}}! Enjoy a special offer from Dream Gadgets."
+}

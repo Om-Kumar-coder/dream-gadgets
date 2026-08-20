@@ -8,6 +8,9 @@ import { DynamicBrandHero } from '../../../components/banner/BrandHero';
 import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
 import { JsonLd } from '../../../components/seo/JsonLd';
 
+/** Force dynamic rendering so notFound() returns proper HTTP 404 status. */
+export const dynamic = 'force-dynamic';
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
 interface Props {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCartStore } from '../../../store/cart.store';
+import { WHATSAPP_NUMBER } from '../../../lib/contact';
 
 interface ProductBuyPanelProps {
   name: string;
@@ -76,7 +77,7 @@ export function ProductBuyPanel({
         )}
 
         <a
-          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '919876543210'}?text=${encodeURIComponent(`Hi! I am interested in ${name}`)}`}
+          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi! I am interested in ${name}`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="px-3 py-2.5 border-2 border-green-500 text-green-600 rounded-xl active:scale-95 transition-all whitespace-nowrap"

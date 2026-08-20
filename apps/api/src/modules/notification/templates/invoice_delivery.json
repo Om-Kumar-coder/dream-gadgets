@@ -1,0 +1,5 @@
+{
+  "subject": "Your Invoice from Dream Gadgets",
+  "body": "<h2>Invoice Ready</h2><p>Dear {{name}},</p><p>Your invoice <strong>{{invoiceNumber}}</strong> for <strong>₹{{amount}}</strong> is ready.</p><p>— Dream Gadgets</p>",
+  "smsBody": "Your invoice {{invoiceNumber}} for ₹{{amount}} is ready. - Dream Gadgets"
+}
