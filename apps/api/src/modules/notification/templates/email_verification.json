@@ -1,0 +1,5 @@
+{
+  "subject": "Verify Your Email — Dream Gadgets",
+  "body": "<h2>Welcome to Dream Gadgets! 🎉</h2><p>Hi {{name}},</p><p>Thanks for registering. Please verify your email address by clicking the button below:</p><p><a href=\"{{verifyUrl}}\" style=\"display:inline-block;padding:12px 24px;background:#E50914;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold\">Verify Email</a></p><p>This link is valid for <strong>24 hours</strong>.</p><p>If you did not create an account, please ignore this email.</p><p>— Dream Gadgets</p>",
+  "smsBody": "Verify your Dream Gadgets email: {{verifyUrl}}. Valid 24 hours. - Dream Gadgets"
+}

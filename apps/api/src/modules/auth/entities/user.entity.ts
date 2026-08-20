@@ -132,6 +132,9 @@ export class User {
   @Column({ name: 'whatsapp_enabled', default: true })
   whatsappEnabled: boolean;
 
+  @Column({ name: 'email_verified_at', nullable: true, type: 'timestamptz' })
+  emailVerifiedAt: Date | null;
+
   @Column({ name: 'last_login_at', nullable: true, type: 'timestamptz' })
   lastLoginAt: Date;
 

@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@dream-gadgets/ui', '@dream-gadgets/shared-types'],
@@ -15,4 +17,18 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Wrap with Sentry — handles source maps upload + tunneling in production
+module.exports = withSentryConfig(nextConfig, {
+  // Org/project values from sentry.io (used during `npx @sentry/wizard`)
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT ?? 'dream-gadgets-web',
+
+  // Only upload source maps in production CI builds
+  silent: !process.env.CI,
+
+  // Automatically tree-shake Sentry logger to reduce bundle size
+  disableLogger: true,
+
+  // Upload source maps even in development for better stack traces
+  hideSourceMaps: true,
+});

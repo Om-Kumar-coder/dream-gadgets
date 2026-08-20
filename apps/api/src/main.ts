@@ -1,3 +1,6 @@
+import { initSentry } from './sentry';
+initSentry();
+
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';

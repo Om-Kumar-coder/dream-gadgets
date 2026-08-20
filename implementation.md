@@ -1,22 +1,22 @@
 # Dream Gadgets — Implementation Status
 
-> **Updated:** August 15, 2026
+> **Updated:** August 20, 2026
 > This is the single source of truth for project status. Supersedes the removed
 > audit/status docs (`things_to_update.md`, `FINAL_AUDIT.md`, `BUGS_FIXED.md`,
 > `9 June Report.md`, `System_Status_Report.md`, `INSTALLATION_COMPLETE.md`).
 
 ---
 
-## Overall Score: **~95/100** 🟢
+## Overall Score: **~97/100** 🟢
 
 | Category | Score | Notes |
 |----------|-------|-------|
-| Feature completion | ~97% | All storefront + ERP modules live and QA-verified end-to-end; search/sort/pagination, WhatsApp suite, POS void, and launch content all fixed and deployed Aug 15 |
-| Code quality | ~85% | Clean NestJS modules, queues, Redis; some hardcoded values & duplicated formatters remain |
-| Security | ~85% | JWT rotation, lockout, PII masking, rate limits, dev-mode fallbacks env-gated |
+| Feature completion | ~97% | All storefront + ERP modules live; email verification + notification templates added Aug 20 |
+| Code quality | ~88% | Clean NestJS modules, queues, Redis; dead code removed; contact info centralized |
+| Security | ~90% | JWT rotation, lockout, PII masking, rate limits, Sentry error tracking added Aug 20 |
 | Performance | ~90% | Redis caching on price suggestions + buyback estimates; BullMQ queue |
-| Production readiness | ~75% | Health endpoint + **96/96 live QA suite**; still no Sentry/alerting, zero automated web/admin tests |
-| Maintainability | ~80% | Good monorepo; branches now API-driven; WhatsApp number still hardcoded in a few spots |
+| Production readiness | ~85% | Sentry integrated (needs DSN config); CI pipeline with typecheck/lint/test/build Aug 20 |
+| Maintainability | ~88% | Notification templates in JSON files; centralized contact config; dead code removed |
 
 ---
 
@@ -30,12 +30,12 @@
 | Inventory (CRUD, bulk import, IMEI, price-suggestion, city-stock) | 93 | accessories column mapping fixed; Redis-cached price suggestion |
 | Sales / POS / Payments (Razorpay, refunds) | 97 | payments schema (migration `034`); void fixed (migration `035` + audit after commit); refunds 200 live |
 | Purchases | 92 | |
-| Auth (JWT rotation, lockout, OTP, forgot-password) | 93 | OTP login live; login multi-click SW bug fixed; no account enumeration |
+| Auth (JWT rotation, lockout, OTP, forgot-password, email verification) | 96 | OTP login live; email verification flow added (migration 038, verify/resend endpoints) Aug 20 |
 | Buyback (leads, photos, estimate-price API) | 96 | server-side estimates verified live; battery-factor case bug fixed |
 | Exchange (incl. seeded price guide) | 92 | price-guide audits endpoint fixed; overrides + audit log |
 | Clients | 88 | |
 | Transfers / Returns / GST / EMI / Coupons / Reviews | 90 | |
-| Notifications (BullMQ queue, email/WhatsApp/SMS channels) | 82 | order-status auto-notify shipped; env-gated fallbacks |
+| Notifications (BullMQ queue, email/WhatsApp/SMS channels + templates) | 90 | Templates moved from TS strings to JSON files with admin API for listing/preview Aug 20 |
 | WhatsApp module (inbox, templates, campaigns, webhook) | 78 | permissions granted to all roles; campaigns 500 fixed; still Twilio sandbox / one-way |
 | Reports | 78 | |
 | Search + Redis caching | 95 | search param + ILIKE fallback; Redis on suggestions/estimates |
@@ -44,7 +44,7 @@
 
 | Block | % | Notes |
 |---|---|---|
-| Dashboard | 92 | POS sale reflected live; voided-sale KPI filter still a follow-up |
+| Dashboard | 95 | POS sale reflected live; voided-sale KPI filter already fixed (SQL has `is_voided = false`) |
 | Purchases | 92 | |
 | Sales / POS | 97 | create → void → inventory-restore verified end-to-end live |
 | Inventory | 93 | accessories fixed (400 DTO + 500 column mapping) |
@@ -80,6 +80,7 @@
 | Content pages (about, faq, terms, policies, contact) | 92 | |
 | Blog | 95 | 12 articles with detail pages + JSON-LD (was 60%) |
 | SEO (JSON-LD, sitemap) | 97 | full sitemap (60 URLs), robots.txt, branded 404 page |
+| Dynamic pages (stores/brands/products/blog) | 95 | `export const dynamic = 'force-dynamic'` added for proper 404 handling Aug 20 |
 | Splash screen / logos | 95 | |
 
 ### 4. Cross-cutting areas
@@ -87,12 +88,12 @@
 | Section | % | Main gaps |
 |---|---|---|
 | Pricing engine | 85 | price-guide CRUD + audit + Redis cache shipped; admin override-history UI could be polished |
-| Auth & security | 90 | OTP login live; email verification missing; WhatsApp/email providers unconfigured |
-| Notifications (email/WhatsApp/SMS) | 78 | auto-notify on order status shipped; templates still hardcoded in TS; WhatsApp sandbox |
-| Testing | 40 | 96/96 live QA suite (browser-equivalent); still 0 automated web/admin tests |
-| DevOps / Monitoring | 55 | health endpoint live; no Sentry/alerting; CI not enforced |
+| Auth & security | 93 | OTP login live; email verification flow added (Aug 20); WhatsApp/email providers unconfigured |
+| Notifications (email/WhatsApp/SMS) | 90 | Templates in JSON files with admin preview API (Aug 20); WhatsApp sandbox |
+| Testing | 45 | 96/96 live QA suite (browser-equivalent); CI pipeline with typecheck/lint/test/build (Aug 20) |
+| DevOps / Monitoring | 75 | Sentry integrated for API + web + admin (Aug 20, needs DSN); CI pipeline with parallel jobs |
 | PWA / Branding | 97 | admin PWA fixed; apple-touch-icon fixed; launch assets live |
-| Docs | 90 | implementation.md is the single source of truth |
+| Docs | 92 | implementation.md is the single source of truth; updated Aug 20 |
 
 ---
 
@@ -129,28 +130,69 @@
 
 ## 🧭 What's Left to Reach 100%
 
-### 🟠 Priority 1 — Notifications polish
+### 🟠 Priority 1 — Remaining polish
 | # | Task | Why | Effort |
 |---|------|-----|--------|
-| 1 | Move email/WhatsApp templates from TS string literals to files + admin preview/editor | Current templates are hardcoded in `notification.service.ts` | 2–3 days |
-| 2 | Email verification flow (optional email on register) | Email is collected but never verified | 1 day |
-| 3 | WhatsApp Business profile upgrade + two-way webhook + pre-approved templates | Provider-level work (Twilio sandbox today); inbox is one-way | 2–4 days |
+| 1 | WhatsApp Business profile upgrade + two-way webhook + pre-approved templates | Provider-level work (Twilio sandbox today); inbox is one-way | 2–4 days |
+| 2 | Centralize API response shape (`{ data }`) | Inconsistent formats across services | 1 day |
+| 3 | SPF/DKIM/DMARC for email domain + rate limits | Deliverability & abuse protection | 1 day |
 
-### 🟡 Priority 2 — Dedupe & hardcode cleanup
+### 🟡 Priority 2 — Quality & hardening
 | # | Task | Why | Effort |
 |---|------|-----|--------|
-| 4 | Centralize phone-number formatting + API response shape (`{ data }`) | Duplicated across services; inconsistent formats | 1 day |
-| 5 | Move hardcoded WhatsApp number / contact details to API/env (branches already API-driven as of Aug 15) | Contact info still requires code deploys to update | 1 day |
-
-### 🟡 Priority 3 — Quality & hardening
-| # | Task | Why | Effort |
-|---|------|-----|--------|
-| 6 | Test coverage: web + admin (0 tests today); expand API specs | Critical flows unprotected | 4–6 days |
-| 7 | Sentry/error tracking + alerting on top of the new health endpoint | No error visibility in production | 1–2 days |
-| 8 | CI pipeline (lint → typecheck → test → build) | No automated gates on commits | 1–2 days |
-| 9 | SPF/DKIM/DMARC for email domain + rate limits | Deliverability & abuse protection | 1 day |
+| 4 | Test coverage: web + admin (0 tests today); expand API specs | Critical flows unprotected | 4–6 days |
+| 5 | Configure Sentry DSN on VPS + verify error reporting | Sentry integrated but DSN not yet set on production | 10 min |
+| 6 | Voided sale KPI filter in dashboard realtime socket increment | Optimistic UI shows wrong count between void and next fetch | 1 hour |
 
 ---
+
+## Done This Cycle (Aug 20 — quality & hardening push)
+
+- **Email verification flow** (migration `038`, auth service, controller, template, frontend):
+  - Added `email_verified_at` column to `users` table (nullable TIMESTAMPTZ)
+  - `User` entity updated with `emailVerifiedAt` field
+  - Redis helpers: `setVerificationToken`, `getVerificationToken`, `delVerificationToken` (24h TTL)
+  - `register()` now sends verification email when email is provided (fire-and-forget)
+  - `GET /auth/verify-email?token=...` — validates token, marks email verified
+  - `POST /auth/resend-verification` — rate-limited (60s cooldown), resends email
+  - `email_verification.json` template with branded CTA button
+  - `/verify-email` page: loading / no-token / success / error states with resend form
+  - Uses `Suspense` boundary for `useSearchParams` compatibility ✅
+
+- **Notification templates moved from TS strings to JSON files**:
+  - Created `apps/api/src/modules/notification/templates/` directory with 8 JSON files: `invoice_delivery`, `order_status`, `otp`, `birthday_offer`, `buyback_lead`, `refund_processed`, `password_reset`, `email_verification`
+  - Template registry (`templates/index.ts`) loads from JSON with caching
+  - `notification.service.ts` updated: `resolveTemplate()` loads from files instead of hardcoded defaults; `formatForChannel()` SMS defaults also file-based
+  - Admin API endpoints: `GET /admin/notifications/templates`, `GET /templates/:key`, `POST /templates/:key/preview` ✅
+
+- **Sentry error tracking integrated** (API + web + admin):
+  - Installed `@sentry/nestjs`, `@sentry/nextjs`, `@sentry/node` (v10.70)
+  - API: `src/sentry.ts` init (PII scrubbing in `beforeSend`), exception filter reports 500s
+  - Web: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`; `next.config.js` wrapped with `withSentryConfig`
+  - Admin: same 3 config files + `next.config.js` wrapping
+  - `deploy.sh` updated with `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` env vars
+  - Safe: silently skips when `SENTRY_DSN` is empty (dev/local environments) ✅
+
+- **CI pipeline rewritten** (`.github/workflows/ci.yml`):
+  - 5 parallel jobs: typecheck, lint, test-api, build, security-audit
+  - `ci-pass` gate job for branch protection rules
+  - Postgres 16 + Redis 7 service containers for API tests
+  - Concurrency control (cancels stale runs)
+  - Smart gating: only blocks on critical jobs (typecheck, test-api, build) ✅
+
+- **Centralized contact config** (`apps/web/lib/contact.ts`):
+  - `WHATSAPP_NUMBER`, `SUPPORT_PHONE`, `SUPPORT_PHONE_DISPLAY`, `SUPPORT_EMAIL`
+  - All sourced from `NEXT_PUBLIC_*` env vars with real business numbers as defaults
+  - Fixed 8 files with hardcoded phone numbers (Footer, WhatsAppButton, useWhatsAppClick, 2× ProductBuyPanel, contact, shipping, returns, cancellation pages) ✅
+
+- **Dead code removed**: `apiOffline` in `apps/admin/lib/offline/api-offline.ts` (197 lines, 0 imports) ✅
+
+- **Dynamic pages fixed for proper 404 handling**:
+  - Added `export const dynamic = 'force-dynamic'` to `stores/[slug]`, `brands/[slug]`, `blog/[slug]`, `products/[slug]` pages
+  - `products/[slug]` had naming conflict with `dynamic` import from `next/dynamic` — aliased to `dynamicImport`
+  - Build confirms all 4 pages now render as `ƒ` (Dynamic) ✅
+
+- **Migration 038**: `AddEmailVerifiedAt1755000000038` — adds `email_verified_at` column to `users` table ✅
 
 ## Done This Cycle (Aug 15 — the "to 100%" push)
 

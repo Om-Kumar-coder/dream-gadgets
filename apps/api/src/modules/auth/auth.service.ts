@@ -28,6 +28,7 @@ const LOCKOUT_TTL_SECONDS = 15 * 60; // 15 minutes
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const RESET_TTL_SECONDS = 60 * 60; // 1 hour
 const FORGOT_PASSWORD_COOLDOWN_SECONDS = 60; // 60 seconds between reset requests per identifier
+const EMAIL_VERIFICATION_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 @Injectable()
 export class AuthService {
@@ -289,6 +290,14 @@ export class AuthService {
     // Reload with role
     const saved = await this.userRepository.findOne({ where: { id: user.id }, relations: ['role'] });
     const { accessToken, refreshToken } = await this.buildTokens(saved!);
+
+    // Send verification email if email was provided
+    if (dto.email) {
+      this.sendVerificationEmail(saved!).catch((err) =>
+        this.logger.warn(`[Register] Failed to send verification email to ${dto.email}: ${err?.message}`),
+      );
+    }
+
     const { passwordHash: _ph, ...userProfile } = saved!;
     return { accessToken, refreshToken, user: userProfile };
   }
@@ -485,6 +494,89 @@ export class AuthService {
     // Invalidate all sessions except current one
     // For security, user will need to log in again
     await this.invalidateAllFamilies(userId);
+  }
+
+  // ─── 3.8 Email verification ─────────────────────────────────────────────────
+
+  /**
+   * Generate a verification token, store it in Redis, and send the
+   * verification email to the user.
+   */
+  private async sendVerificationEmail(user: User): Promise<void> {
+    if (!user.email) return;
+
+    const token = uuidv4();
+    await this.redisService.setVerificationToken(token, user.id, EMAIL_VERIFICATION_TTL_SECONDS);
+
+    const webUrl = this.configService.get<string>('app.webUrl') ?? 'http://localhost:3001';
+    const verifyUrl = `${webUrl}/verify-email?token=${token}`;
+
+    await this.notificationService.sendEmail({
+      to: user.email,
+      userId: user.id,
+      type: 'email_verification',
+      templateKey: 'email_verification',
+      templateVars: {
+        name: user.firstName ?? 'User',
+        verifyUrl,
+      },
+    });
+  }
+
+  /**
+   * Verify a user's email address using the token from the verification link.
+   */
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    const userId = await this.redisService.getVerificationToken(token);
+    if (!userId) {
+      throw new BadRequestException('Invalid or expired verification link');
+    }
+
+    // Mark email as verified
+    await this.userRepository.update(userId, { emailVerifiedAt: new Date() });
+    await this.redisService.delVerificationToken(token);
+
+    return { success: true, message: 'Email verified successfully' };
+  }
+
+  /**
+   * Resend the verification email to the user.
+   * Rate-limited to once per 60 seconds.
+   */
+  async resendVerificationEmail(identifier: string): Promise<{ message: string }> {
+    // Find user by email or phone
+    const user = await this.userRepository
+      .createQueryBuilder('u')
+      .where('u.email = :id OR u.phone = :id', { id: identifier })
+      .getOne();
+
+    if (!user) {
+      // Don't reveal whether user exists
+      return { message: 'If an account with that email exists, a verification link has been sent.' };
+    }
+
+    if (user.emailVerifiedAt) {
+      return { message: 'Email is already verified.' };
+    }
+
+    if (!user.email) {
+      return { message: 'No email address on file. Please update your profile.' };
+    }
+
+    // Rate limit: check if we recently sent one
+    const cooldownKey = `verify-email:cooldown:${user.id}`;
+    const cooldown = await this.redisService.get(cooldownKey);
+    if (cooldown) {
+      throw new HttpException(
+        { statusCode: HttpStatus.TOO_MANY_REQUESTS, message: 'Please wait before requesting another verification email.', retryAfter: 60 },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    await this.sendVerificationEmail(user);
+    await this.redisService.set(cooldownKey, '1', { EX: 60 });
+
+    return { message: 'Verification email sent.' };
   }
 
   // ─── Invalidate all sessions for a user (used by admin deactivation) ────────

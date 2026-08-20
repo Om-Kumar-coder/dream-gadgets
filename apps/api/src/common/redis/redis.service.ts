@@ -159,6 +159,19 @@ export class RedisService implements OnModuleDestroy {
     await this.del(`otp:${phone}`);
   }
 
+  // Email verification tokens
+  async setVerificationToken(token: string, userId: string, ttlSeconds: number): Promise<void> {
+    await this.set(`verify-email:${token}`, userId, { EX: ttlSeconds });
+  }
+
+  async getVerificationToken(token: string): Promise<string | null> {
+    return this.get(`verify-email:${token}`);
+  }
+
+  async delVerificationToken(token: string): Promise<void> {
+    await this.del(`verify-email:${token}`);
+  }
+
   // OTP verification attempt limiting (brute-force protection)
   async incrementOtpAttempts(phone: string, ttlSeconds: number): Promise<number> {
     const key = `otp:attempts:${phone}`;

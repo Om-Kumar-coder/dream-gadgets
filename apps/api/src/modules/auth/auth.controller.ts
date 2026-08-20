@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -11,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -137,5 +138,24 @@ export class AuthController {
   async changePassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangePasswordDto) {
     await this.authService.changePassword(user.sub, dto);
     return { message: 'Password changed successfully. Please log in again.' };
+  }
+
+  // 3.8 Email verification
+  @Get('verify-email')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email address via token' })
+  @ApiQuery({ name: 'token', required: true, description: 'Verification token from email' })
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  // 3.8 Resend verification email
+  @Post('resend-verification')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend verification email' })
+  async resendVerification(@Body() body: { identifier: string }) {
+    return this.authService.resendVerificationEmail(body.identifier);
   }
 }

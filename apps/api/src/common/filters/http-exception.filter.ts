@@ -1,5 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
+import * as Sentry from '@sentry/nestjs';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -39,6 +40,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : undefined,
         'ExceptionFilter',
       );
+      // Report 500s to Sentry (unhandled errors, DB failures, etc.)
+      if (exception instanceof Error) {
+        Sentry.captureException(exception, {
+          extra: { url, method, status },
+        });
+      }
     } else if (status >= 400) {
       this.logger.warn(logMsg, 'ExceptionFilter');
     }
