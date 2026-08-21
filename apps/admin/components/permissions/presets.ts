@@ -50,6 +50,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
       ['notifications', ['view', 'retry']],
       ['payments', ['view', 'approve']],
       ['financial', ['view', 'reports', 'pnl', 'export']],
+      ['products', ['publish']],
     ),
   },
   {
@@ -76,6 +77,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
       ['gst', ['view', 'export']],
       ['notifications', ['view']],
       ['payments', ['view', 'approve']],
+      ['products', ['publish']],
     ),
   },
   {
@@ -103,6 +105,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
       ['notifications', ['view']],
       ['payments', ['view', 'approve']],
       ['financial', ['view', 'reports']],
+      ['products', ['publish']],
     ),
   },
   {
@@ -112,7 +115,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     color: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
     permissions: perms(
       ['dashboard', ['view']],
-      ['inventory', ['view']],
+      ['inventory', ['view', 'create', 'edit']],
       ['purchases', ['view', 'create']],
       ['sales', ['view', 'create']],
       ['clients', ['view', 'create', 'edit']],

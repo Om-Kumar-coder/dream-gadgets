@@ -11,6 +11,7 @@ import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
 import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 import { PermissionGate } from '@/components/auth/PermissionGate';
+import { useAdminAuthStore } from '@/store/auth.store';
 
 const CONDITIONS = ['sealed_pack', 'open_box', 'super_mint', 'mint', 'good'];
 const STATUSES = ['available', 'sold', 'transferred', 'returned', 'booked', 'in_cart', 'scrapped'];
@@ -156,6 +157,12 @@ export default function InventoryPage() {
   });
 
   const OnlineToggle = ({ item }: { item: InventoryItem }) => {
+    const hasPublish = useAdminAuthStore((s) => s.hasPermission('products.publish'));
+    if (!hasPublish) {
+      return (
+        <span className="text-xs text-gray-400">{item.isOnline ? 'Live' : '—'}</span>
+      );
+    }
     return (
       <button
         onClick={() => toggleOnline.mutate(item.id)}

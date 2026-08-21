@@ -23,6 +23,7 @@ const MODULES = [
   'notifications',
   'payments',
   'financial',
+  'products',
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send', 'retry'];
@@ -54,11 +55,12 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     notifications: ['view'],
     payments: ['view', 'approve'],
     financial: ['view', 'reports'],
+    products: ['publish'],
   },
 
   shop_sales: {
     dashboard: ['view'],
-    inventory: ['view'],
+    inventory: ['view', 'create', 'edit'],
     purchases: ['view', 'create'],
     sales: ['view', 'create'],
     clients: ['view', 'create', 'edit'],
@@ -82,7 +84,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
 
   store_sales: {
     dashboard: ['view'],
-    inventory: ['view'],
+    inventory: ['view', 'create', 'edit'],
     purchases: ['view', 'create'],
     sales: ['view', 'create'],
     clients: ['view', 'create', 'edit'],
@@ -131,6 +133,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
   multi_store_manager: {
     dashboard: ['view'],
     inventory: ['view', 'create', 'edit', 'export'],
+    products: ['publish'],
     purchases: ['view', 'create', 'edit', 'export'],
     sales: ['view', 'create', 'edit', 'export', 'approve'],
     clients: ['view', 'create', 'edit', 'export'],
