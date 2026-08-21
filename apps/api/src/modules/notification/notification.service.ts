@@ -223,7 +223,7 @@ export class NotificationService {
   ): Promise<void> {
     try {
       await this.notificationQueue.add(
-        `send-${channel}`,
+        channel,
         { notificationId, channel, to, subject, body },
         {
           attempts: MAX_RETRY_ATTEMPTS,

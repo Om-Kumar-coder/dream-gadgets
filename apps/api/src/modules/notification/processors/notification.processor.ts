@@ -17,8 +17,22 @@ export class NotificationProcessor {
 
   constructor(private readonly notificationService: NotificationService) {}
 
-  @Process()
-  async process(job: Job<NotificationJobData>): Promise<void> {
+  @Process('email')
+  async processEmail(job: Job<NotificationJobData>): Promise<void> {
+    return this.processJob(job);
+  }
+
+  @Process('sms')
+  async processSms(job: Job<NotificationJobData>): Promise<void> {
+    return this.processJob(job);
+  }
+
+  @Process('whatsapp')
+  async processWhatsApp(job: Job<NotificationJobData>): Promise<void> {
+    return this.processJob(job);
+  }
+
+  private async processJob(job: Job<NotificationJobData>): Promise<void> {
     const { notificationId, channel, to, subject, body } = job.data;
 
     this.logger.log(
