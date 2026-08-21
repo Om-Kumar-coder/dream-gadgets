@@ -13,6 +13,7 @@ import { Modal } from '@dream-gadgets/ui';
 import { Button } from '@dream-gadgets/ui';
 import { Form, FormField, FormActions } from '@dream-gadgets/ui';
 import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -357,6 +358,7 @@ export default function TransfersPage() {
   };
 
   return (
+    <PermissionGate permission="transfers.view">
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
@@ -397,5 +399,6 @@ export default function TransfersPage() {
         <TransferDetails />
       </Modal>
     </div>
+    </PermissionGate>
   );
 }
