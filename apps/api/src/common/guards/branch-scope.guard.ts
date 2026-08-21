@@ -4,13 +4,22 @@ import { Reflector } from '@nestjs/core';
 export const BRANCH_SCOPED_KEY = 'branchScoped';
 
 /**
+ * Roles that can see ALL branches (not forced to their own branch).
+ */
+const CROSS_BRANCH_ROLES = new Set([
+  'shop_owner',
+  'multi_store_manager',
+  'store_manager',
+]);
+
+/**
  * Validates that the authenticated user can only access resources
- * belonging to their assigned branch. Owners (branchId=null) have
- * global access and are always allowed.
+ * belonging to their assigned branch. Owners, multi-store managers,
+ * and store managers have global access.
  *
  * Usage: @UseGuards(BranchScopeGuard) + @BranchScoped()
  *
- * For GET list queries: injects branchId into query params
+ * For GET list queries: injects branchId for store-level staff
  * For mutations (POST/PATCH/PUT/DELETE): validates branchId in body/params
  */
 @Injectable()
@@ -30,13 +39,16 @@ export class BranchScopeGuard implements CanActivate {
     const user = request.user;
     if (!user) return false;
 
-    // Owners have global access
+    // Owners (branchId=null) have global access
     if (!user.branchId) return true;
+
+    // Cross-branch roles (owner, multi-store manager, store manager) can see all branches
+    if (CROSS_BRANCH_ROLES.has(user.role)) return true;
 
     const method = request.method;
     const path = request.path;
 
-    // GET queries: inject branchId so service layer filters
+    // GET queries: inject branchId so service layer filters (only for store staff)
     if (method === 'GET') {
       request.query = { ...request.query, branchId: user.branchId };
       return true;
