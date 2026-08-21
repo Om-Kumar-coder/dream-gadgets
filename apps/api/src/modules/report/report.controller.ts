@@ -29,15 +29,15 @@ export class ReportController {
    */
   @Get('dashboard')
   @RequirePermission('reports.view')
-  @UseGuards(FinancialScopeGuard)
-  @RequireFinancialAccess()
   async getDashboard(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
-    // Backend enforces branch scope: non-owners cannot request other branches' data
+    // All users with reports.view can see dashboard KPIs
+    // Financial data (netIncome) is zeroed for non-financial users
+    const hasFinancial = user.permissions?.includes('financial.view') || user.financialScope === 'all';
     const isOwner = user.financialScope === 'all';
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const kpis = await this.reportService.getDashboardKpis(branchId);
-    // Users without 'all' financial scope should not see business-wide net income
-    if (!isOwner) {
+    // Non-financial users see operational data only
+    if (!hasFinancial) {
       kpis.netIncome = 0;
     }
     return { status: 'success', data: kpis };
