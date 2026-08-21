@@ -13,6 +13,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '@dream-gadgets/shared-types';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { FinancialScopeGuard } from '../../common/guards/financial-scope.guard';
+import { RequireFinancialAccess } from '../../common/decorators/require-financial-access.decorator';
 
 @Controller('reports')
 @UseGuards(AuthGuard('jwt'), PermissionGuard)
@@ -21,17 +23,20 @@ export class ReportController {
 
   /**
    * Dashboard KPIs — scoped by user role.
-   * Owner (branchId=null in JWT): sees business-wide data including net income.
+   * Owner (financialScope='all'): sees business-wide data including net income.
    * Branch user: sees only their branch's operational data; net income is zeroed.
+   * Multi-store manager: sees all stores' operational data; net income zeroed unless financial.view.
    */
   @Get('dashboard')
   @RequirePermission('reports.view')
+  @UseGuards(FinancialScopeGuard)
+  @RequireFinancialAccess()
   async getDashboard(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
     // Backend enforces branch scope: non-owners cannot request other branches' data
-    const isOwner = !user.branchId;
+    const isOwner = user.financialScope === 'all';
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const kpis = await this.reportService.getDashboardKpis(branchId);
-    // Non-owners should not see business-wide net income
+    // Users without 'all' financial scope should not see business-wide net income
     if (!isOwner) {
       kpis.netIncome = 0;
     }
@@ -41,7 +46,7 @@ export class ReportController {
   @Get('weekly-sales')
   @RequirePermission('reports.view')
   async getWeeklySales(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
-    const isOwner = !user.branchId;
+    const isOwner = user.financialScope === 'all';
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const data = await this.reportService.getWeeklySalesChart(branchId);
     return { status: 'success', data };
@@ -50,7 +55,7 @@ export class ReportController {
   @Get('stock-by-condition')
   @RequirePermission('reports.view')
   async getStockByCondition(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
-    const isOwner = !user.branchId;
+    const isOwner = user.financialScope === 'all';
     const branchId = isOwner ? (queryBranchId || undefined) : (user.branchId ?? undefined);
     const data = await this.reportService.getStockByConditionChart(branchId);
     return { status: 'success', data };

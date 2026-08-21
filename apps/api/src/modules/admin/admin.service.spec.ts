@@ -4,8 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { User, Role, Branch } from '../auth/entities/user.entity';
+import { DataSource } from 'typeorm';
 import { Setting } from './entities/setting.entity';
 import { Banner, ContentPage } from './entities/banner.entity';
+import { NotificationService } from '../notification/notification.service';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -142,6 +144,18 @@ describe('AdminService', () => {
         { provide: getRepositoryToken(Setting), useValue: settingRepo },
         { provide: getRepositoryToken(Banner), useValue: bannerRepo },
         { provide: getRepositoryToken(ContentPage), useValue: contentPageRepo },
+        {
+          provide: DataSource,
+          useValue: {
+            query: jest.fn(async () => []),
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendEmail: jest.fn(async () => ({ id: 'notif-1' })) as any,
+          },
+        },
       ],
     }).compile();
 
@@ -229,10 +243,9 @@ describe('AdminService', () => {
   describe('listUsers()', () => {
     it('should return all users', async () => {
       const users = [makeUser(), makeUser({ id: 'user-uuid-2', phone: '+919876543211' })];
-      // listUsers() uses createQueryBuilder, not find
-      // We must use mockReturnValue because createQueryBuilder() creates a new QB each call
       const mockQb = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getMany: jest.fn<() => Promise<User[]>>().mockResolvedValue(users),
@@ -247,6 +260,7 @@ describe('AdminService', () => {
     it('should filter by branchId when provided', async () => {
       const mockQb = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getMany: jest.fn<() => Promise<User[]>>().mockResolvedValue([makeUser()]),

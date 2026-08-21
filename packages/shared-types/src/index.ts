@@ -129,6 +129,7 @@ export interface JwtPayload {
   role: string;
   permissions: string[];
   branchId: string | null;
+  financialScope?: 'all' | 'branch' | 'none';
   iat: number;
   exp: number;
 }

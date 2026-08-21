@@ -25,10 +25,12 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BranchFilterInterceptor } from '../../common/interceptors/branch-filter.interceptor';
+import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { BranchScoped } from '../../common/decorators/branch-scoped.decorator';
 
 @ApiTags('Inventory')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), PermissionGuard)
+@UseGuards(AuthGuard('jwt'), PermissionGuard, BranchScopeGuard)
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
@@ -88,6 +90,7 @@ export class InventoryController {
 
   @Get()
   @RequirePermission('inventory.view')
+  @BranchScoped()
   @UseInterceptors(BranchFilterInterceptor)
   @ApiOperation({ summary: 'List inventory items (paginated, filtered)' })
   async findAll(@Query() query: QueryInventoryDto) {
@@ -96,6 +99,7 @@ export class InventoryController {
 
   @Post()
   @RequirePermission('inventory.create')
+  @BranchScoped()
   @ApiOperation({ summary: 'Create a new inventory item (purchase entry)' })
   async create(@Body() dto: CreateInventoryItemDto, @CurrentUser() user: any) {
     return this.inventoryService.create(dto, user.sub);

@@ -99,14 +99,30 @@ export class AuthService {
     }
   }
 
+  /**
+   * Determine the user's financial data scope:
+   * - 'all': owner — sees all financial data across all branches
+   * - 'branch': has financial_access flag or financial.view permission + branchId
+   * - 'none': no financial access
+   */
+  private async getFinancialScope(user: User, permissions: string[]): Promise<'all' | 'branch' | 'none'> {
+    // Owner (no branchId) has full financial access
+    if (!user.branchId) return 'all';
+    // Has financial.view permission (granted via role) and user-level financial_access flag
+    if (permissions.includes('financial.view') && user.financialAccess) return 'branch';
+    return 'none';
+  }
+
   private async buildTokens(user: User): Promise<{ accessToken: string; refreshToken: string; family: string }> {
     const permissions = await this.getUserPermissions(user.roleId);
+    const financialScope = await this.getFinancialScope(user, permissions);
     const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
       sub: user.id,
       email: user.email ?? '',
       role: user.role?.name ?? '',
       permissions,
       branchId: user.branchId ?? null,
+      financialScope,
     };
 
     const accessToken = this.jwtService.sign(payload, {

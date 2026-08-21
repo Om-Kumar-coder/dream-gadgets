@@ -23,10 +23,12 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BranchFilterInterceptor } from '../../common/interceptors/branch-filter.interceptor';
+import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { BranchScoped } from '../../common/decorators/branch-scoped.decorator';
 
 @ApiTags('Purchases')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), PermissionGuard)
+@UseGuards(AuthGuard('jwt'), PermissionGuard, BranchScopeGuard)
 @Controller('purchases')
 export class PurchaseController {
   constructor(private readonly purchaseService: PurchaseService) {}
@@ -40,6 +42,7 @@ export class PurchaseController {
 
   @Get()
   @RequirePermission('purchases.view')
+  @BranchScoped()
   @UseInterceptors(BranchFilterInterceptor)
   @ApiOperation({ summary: 'List purchases with optional filters' })
   async findAll(@Query() query: QueryPurchaseDto) {

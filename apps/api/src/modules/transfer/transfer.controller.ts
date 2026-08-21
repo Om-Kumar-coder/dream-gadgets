@@ -22,10 +22,12 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BranchFilterInterceptor } from '../../common/interceptors/branch-filter.interceptor';
+import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { BranchScoped } from '../../common/decorators/branch-scoped.decorator';
 
 @ApiTags('Transfers')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), PermissionGuard)
+@UseGuards(AuthGuard('jwt'), PermissionGuard, BranchScopeGuard)
 @Controller('transfers')
 export class TransferController {
   constructor(private readonly transferService: TransferService) {}
@@ -39,6 +41,7 @@ export class TransferController {
 
   @Get()
   @RequirePermission('transfers.view')
+  @BranchScoped()
   @UseInterceptors(BranchFilterInterceptor)
   @ApiOperation({ summary: 'List transfers with optional filters' })
   async findAll(@Query() query: QueryTransferDto) {

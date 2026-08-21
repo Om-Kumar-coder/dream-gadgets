@@ -22,6 +22,7 @@ const MODULES = [
   'gst',
   'notifications',
   'payments',
+  'financial',
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send', 'retry'];
@@ -52,6 +53,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     gst: ['view', 'export'],
     notifications: ['view'],
     payments: ['view', 'approve'],
+    financial: ['view', 'reports'],
   },
 
   shop_sales: {
@@ -75,6 +77,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     gst: [],
     notifications: [],
     payments: ['view'],
+    financial: [],
   },
 
   store_sales: {
@@ -98,6 +101,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     gst: [],
     notifications: [],
     payments: ['view'],
+    financial: [],
   },
 
   calling_staff: {
@@ -121,6 +125,31 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     gst: [],
     notifications: [],
     payments: [],
+    financial: [],
+  },
+
+  multi_store_manager: {
+    dashboard: ['view'],
+    inventory: ['view', 'create', 'edit', 'export'],
+    purchases: ['view', 'create', 'edit', 'export'],
+    sales: ['view', 'create', 'edit', 'export', 'approve'],
+    clients: ['view', 'create', 'edit', 'export'],
+    transfers: ['view', 'create', 'edit'],
+    exchange: ['view', 'create', 'edit', 'approve'],
+    orders: ['view', 'edit'],
+    returns: ['view', 'create', 'approve'],
+    reports: ['view', 'export'],
+    users: ['view', 'create', 'edit'],
+    settings: [],
+    content: [],
+    buyback: ['view', 'edit'],
+    whatsapp: ['view', 'edit', 'send'],
+    coupons: ['view', 'create', 'edit'],
+    emi: ['view', 'create', 'edit'],
+    gst: ['view', 'export'],
+    notifications: ['view'],
+    payments: ['view', 'approve'],
+    financial: [],
   },
 
   employee: {
@@ -144,6 +173,7 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     gst: [],
     notifications: [],
     payments: [],
+    financial: [],
   },
 };
 

@@ -4,11 +4,12 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { User, Role, Branch } from '../auth/entities/user.entity';
 import { Setting } from './entities/setting.entity';
 import { Banner, ContentPage } from './entities/banner.entity';
+import { NotificationService } from '../notification/notification.service';
 import * as bcrypt from 'bcrypt';
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ export interface UpdateUserDto {
   roleId?: string;
   branchId?: string;
   isActive?: boolean;
+  financialAccess?: boolean;
 }
 
 export interface CreateRoleDto {
@@ -118,6 +120,9 @@ export class AdminService {
     private bannerRepo: Repository<Banner>,
     @InjectRepository(ContentPage)
     private contentPageRepo: Repository<ContentPage>,
+    @InjectDataSource()
+    private dataSource: DataSource,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── 16.1 User management ─────────────────────────────────────────────────────
@@ -170,6 +175,7 @@ export class AdminService {
         'user.roleId', 'user.branchId', 'user.isActive', 'user.avatarUrl',
         'user.emailEnabled', 'user.smsEnabled', 'user.whatsappEnabled',
         'user.lastLoginAt', 'user.createdAt', 'user.updatedAt',
+        'user.financialAccess',
         'role.id', 'role.name', 'role.description',
         'branch.id', 'branch.name', 'branch.code',
       ])
@@ -190,6 +196,153 @@ export class AdminService {
     const user = await this.userRepo.findOne({ where: { id }, relations: ['role', 'branch'] });
     if (!user) throw new NotFoundException(`User ${id} not found`);
     return user;
+  }
+
+  // ─── 16.1b Financial access audit logging ───────────────────────────────────
+
+  /**
+   * Log a financial access change to the audit_logs table.
+   * Called before the updateUser mutation so we can capture the old value.
+   */
+  async logFinancialAccessChange(
+    targetUserId: string,
+    newValue: boolean,
+    performedById?: string,
+  ): Promise<void> {
+    try {
+      // Fetch current value for the audit record
+      const targetUser = await this.userRepo.findOne({ where: { id: targetUserId }, select: ['id', 'financialAccess'] });
+      const oldValue = targetUser?.financialAccess ?? false;
+
+      // Resolve performer name for the audit record
+      let performerName = 'unknown';
+      if (performedById) {
+        const performer = await this.userRepo.findOne({ where: { id: performedById }, select: ['firstName', 'lastName'] });
+        if (performer) {
+          performerName = `${performer.firstName} ${performer.lastName ?? ''}`.trim();
+        }
+      }
+
+      await this.dataSource.query(
+        `INSERT INTO audit_logs (entity_type, entity_id, action, performed_by_id, changes, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT DO NOTHING`,
+        [
+          'user',
+          targetUserId,
+          newValue ? 'financial_access_granted' : 'financial_access_revoked',
+          performedById ?? null,
+          JSON.stringify({
+            field: 'financial_access',
+            oldValue,
+            newValue,
+            targetUserId,
+            targetUserFinancialAccess: newValue,
+            performedBy: performerName,
+          }),
+        ],
+      ).catch(() => {
+        // audit_logs table may not exist in test env — ignore
+      });
+
+      // 2. Send email notification to the owner about financial access change
+      this.sendOwnerFinancialAccessEmail(
+        targetUserId, newValue, performerName,
+      ).catch(() => {
+        // Non-critical — email failure should never break the main flow
+      });
+    } catch {
+      // Non-critical — audit logging should never break the main flow
+    }
+  }
+
+  /**
+   * Send an email notification to the owner when financial access is granted or revoked.
+   */
+  private async sendOwnerFinancialAccessEmail(
+    targetUserId: string,
+    newValue: boolean,
+    performedBy: string,
+  ): Promise<void> {
+    try {
+      const ownerRole = await this.roleRepo.findOne({ where: { name: 'shop_owner' } });
+      if (!ownerRole) return;
+
+      const owners = await this.userRepo.find({
+        where: { roleId: ownerRole.id, isActive: true },
+        select: ['id', 'email', 'firstName'],
+      });
+      if (!owners.length) return;
+
+      // Resolve target user's name
+      const targetUser = await this.userRepo.findOne({ where: { id: targetUserId }, select: ['firstName', 'lastName'] });
+      const targetName = targetUser ? `${targetUser.firstName} ${targetUser.lastName ?? ''}`.trim() : 'Unknown';
+
+      const action = newValue ? 'granted to' : 'revoked from';
+      const icon = newValue ? '🔓' : '🔒';
+
+      for (const owner of owners) {
+        if (!owner.email) continue;
+        try {
+          await this.notificationService.sendEmail({
+            userId: owner.id,
+            to: owner.email,
+            type: 'financial_access_change_owner',
+            subject: `${icon} Financial Access ${newValue ? 'Granted' : 'Revoked'} — Dream Gadgets`,
+            body: `<h2>${icon} Financial Access ${newValue ? 'Granted' : 'Revoked'}</h2><p>Hi ${owner.firstName},</p><p>Financial data access has been <strong>${action}</strong> <strong>${targetName}</strong> by <strong>${performedBy}</strong>.</p><table style="border-collapse:collapse;width:100%;margin:16px 0"><tr><td style="padding:8px;border-bottom:1px solid #eee">Target user</td><td style="padding:8px;border-bottom:1px solid #eee">${targetName}</td></tr><tr><td style="padding:8px;border-bottom:1px solid #eee">Action</td><td style="padding:8px;border-bottom:1px solid #eee;color:${newValue ? '#16a34a' : '#dc2626'}">${newValue ? 'Access Granted' : 'Access Revoked'}</td></tr><tr><td style="padding:8px;border-bottom:1px solid #eee">Performed by</td><td style="padding:8px;border-bottom:1px solid #eee">${performedBy}</td></tr></table><p style="margin-top:16px;color:#666;font-size:13px">If this change was not authorized, please review it immediately.</p><p>— Dream Gadgets</p>`,
+          });
+        } catch {
+          // Non-critical
+        }
+      }
+    } catch {
+      // Non-critical
+    }
+  }
+
+  /**
+   * Fetch audit logs for a specific user, ordered by most recent first.
+   */
+  async getUserAuditLogs(
+    userId: string,
+    limit: number = 20,
+  ): Promise<Array<{
+    id: string;
+    action: string;
+    changes: any;
+    performedById: string | null;
+    performerName: string | null;
+    createdAt: Date;
+  }>> {
+    try {
+      const rows = await this.dataSource.query(
+        `SELECT
+           al.id,
+           al.action,
+           al.changes,
+           al.performed_by_id AS "performedById",
+           al.created_at AS "createdAt",
+           u.first_name || ' ' || COALESCE(u.last_name, '') AS "performerName"
+         FROM audit_logs al
+         LEFT JOIN users u ON u.id = al.performed_by_id
+         WHERE al.entity_type = 'user' AND al.entity_id = $1
+         ORDER BY al.created_at DESC
+         LIMIT $2`,
+        [userId, limit],
+      );
+
+      return rows.map((r: any) => ({
+        id: r.id,
+        action: r.action,
+        changes: typeof r.changes === 'string' ? JSON.parse(r.changes) : r.changes,
+        performedById: r.performedById,
+        performerName: r.performerName?.trim() || null,
+        createdAt: new Date(r.createdAt),
+      }));
+    } catch {
+      // audit_logs table may not exist in test env
+      return [];
+    }
   }
 
   // ─── 16.2 Role management ─────────────────────────────────────────────────────
@@ -219,18 +372,268 @@ export class AdminService {
     return { ...saved, permissions: dto.permissions ?? [] };
   }
 
-  async updateRolePermissions(id: string, dto: UpdateRolePermissionsDto): Promise<{ id: string; permissions: string[] }> {
+  async updateRolePermissions(
+    id: string,
+    dto: UpdateRolePermissionsDto,
+    performedById?: string,
+  ): Promise<{ id: string; permissions: string[] }> {
     const role = await this.roleRepo.findOne({ where: { id } });
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
-    await this.upsertSetting(`role:${id}:permissions`, dto.permissions, `Permissions for role ${role.name}`);
+    // Fetch old permissions for audit record
+    const oldSetting = await this.settingRepo.findOne({ where: { key: `role:${id}:permissions` } });
+    const oldPerms = (oldSetting?.value as string[]) ?? [];
+    const newPerms = dto.permissions;
 
-    return { id, permissions: dto.permissions };
+    // Compute diff for the audit record
+    const added = newPerms.filter((p) => !oldPerms.includes(p));
+    const removed = oldPerms.filter((p) => !newPerms.includes(p));
+
+    await this.upsertSetting(`role:${id}:permissions`, newPerms, `Permissions for role ${role.name}`);
+
+    // Log the change to audit_logs
+    await this.logRolePermissionChange(id, role.name, oldPerms, newPerms, added, removed, performedById);
+
+    return { id, permissions: newPerms };
   }
 
   async getRolePermissions(id: string): Promise<string[]> {
     const setting = await this.settingRepo.findOne({ where: { key: `role:${id}:permissions` } });
     return (setting?.value as string[]) ?? [];
+  }
+
+  /**
+   * Returns a map of roleId → user count for all roles.
+   * Used by the PermissionMatrix to show how many users have each role.
+   */
+  async getRoleUserCounts(): Promise<Record<string, number>> {
+    try {
+      const rows = await this.dataSource.query(
+        `SELECT role_id AS "roleId", COUNT(*)::int AS count
+         FROM users
+         WHERE is_active = true
+         GROUP BY role_id`,
+      );
+      const result: Record<string, number> = {};
+      for (const row of rows) {
+        result[row.roleId] = row.count;
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  }
+
+  // ─── 16.2b Role permission audit logging ──────────────────────────────────
+
+  /**
+   * Log a role permission change to the audit_logs table.
+   */
+  private async logRolePermissionChange(
+    roleId: string,
+    roleName: string,
+    oldPerms: string[],
+    newPerms: string[],
+    added: string[],
+    removed: string[],
+    performedById?: string,
+  ): Promise<void> {
+    try {
+      let performerName = 'unknown';
+      if (performedById) {
+        const performer = await this.userRepo.findOne({ where: { id: performedById }, select: ['firstName', 'lastName'] });
+        if (performer) {
+          performerName = `${performer.firstName} ${performer.lastName ?? ''}`.trim();
+        }
+      }
+
+      // 1. Write audit log
+      await this.dataSource.query(
+        `INSERT INTO audit_logs (entity_type, entity_id, action, performed_by_id, changes, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT DO NOTHING`,
+        [
+          'role',
+          roleId,
+          'permissions_updated',
+          performedById ?? null,
+          JSON.stringify({
+            roleName,
+            oldPermissionCount: oldPerms.length,
+            newPermissionCount: newPerms.length,
+            added,
+            removed,
+            addedCount: added.length,
+            removedCount: removed.length,
+            performedBy: performerName,
+          }),
+        ],
+      ).catch(() => {
+        // audit_logs table may not exist in test env — ignore
+      });
+
+      // 2. Send email notification to the owner
+      this.sendOwnerPermissionChangeEmail(
+        roleName, oldPerms.length, newPerms.length,
+        added, removed, performerName,
+      ).catch((err) => {
+        // Non-critical — email failure should never break the main flow
+        // Logger is not available here since this is a private method;
+        // the NotificationService handles its own logging.
+      });
+    } catch {
+      // Non-critical — audit logging should never break the main flow
+    }
+  }
+
+  /**
+   * Send an email notification to the owner when role permissions change.
+   * Finds all users with the 'shop_owner' role and sends them the notification.
+   */
+  private async sendOwnerPermissionChangeEmail(
+    roleName: string,
+    oldCount: number,
+    newCount: number,
+    added: string[],
+    removed: string[],
+    performedBy: string,
+  ): Promise<void> {
+    // Find the owner role by name
+    const ownerRole = await this.roleRepo.findOne({ where: { name: 'shop_owner' } });
+    if (!ownerRole) return;
+
+    // Find all active users with the owner role who have email addresses
+    const owners = await this.userRepo.find({
+      where: { roleId: ownerRole.id, isActive: true },
+      select: ['id', 'email', 'firstName'],
+    });
+
+    if (!owners.length) return;
+
+    // Build HTML lists for added/removed permissions
+    const addedDetailsHtml = added.length > 0
+      ? `<h3>Added Permissions</h3><ul>${added.map((p) => `<li style="color:#16a34a">+ ${p}</li>`).join('')}</ul>`
+      : '';
+    const removedDetailsHtml = removed.length > 0
+      ? `<h3>Removed Permissions</h3><ul>${removed.map((p) => `<li style="color:#dc2626">- ${p}</li>`).join('')}</ul>`
+      : '';
+
+    // Send to each owner who has an email
+    for (const owner of owners) {
+      if (!owner.email) continue;
+      try {
+        await this.notificationService.sendEmail({
+          userId: owner.id,
+          to: owner.email,
+          type: 'permission_change_owner',
+          templateKey: 'permission_change_owner',
+          templateVars: {
+            ownerName: owner.firstName,
+            roleName,
+            performedBy,
+            oldCount: String(oldCount),
+            newCount: String(newCount),
+            addedCount: String(added.length),
+            removedCount: String(removed.length),
+            addedDetailsHtml,
+            removedDetailsHtml,
+          },
+        });
+      } catch {
+        // Non-critical — don't let email failure break permission update flow
+      }
+    }
+  }
+
+  /**
+   * Fetch audit logs for a specific role, ordered by most recent first.
+   */
+  async getRoleAuditLogs(
+    roleId: string,
+    limit: number = 20,
+  ): Promise<Array<{
+    id: string;
+    action: string;
+    changes: any;
+    performedById: string | null;
+    performerName: string | null;
+    createdAt: Date;
+  }>> {
+    try {
+      const rows = await this.dataSource.query(
+        `SELECT
+           al.id,
+           al.action,
+           al.changes,
+           al.performed_by_id AS "performedById",
+           al.created_at AS "createdAt",
+           u.first_name || ' ' || COALESCE(u.last_name, '') AS "performerName"
+         FROM audit_logs al
+         LEFT JOIN users u ON u.id = al.performed_by_id
+         WHERE al.entity_type = 'role' AND al.entity_id = $1
+         ORDER BY al.created_at DESC
+         LIMIT $2`,
+        [roleId, limit],
+      );
+
+      return rows.map((r: any) => ({
+        id: r.id,
+        action: r.action,
+        changes: typeof r.changes === 'string' ? JSON.parse(r.changes) : r.changes,
+        performedById: r.performedById,
+        performerName: r.performerName?.trim() || null,
+        createdAt: new Date(r.createdAt),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  // ─── 16.2c Combined audit log for dashboard ────────────────────────────────
+
+  /**
+   * Fetch recent audit logs across both roles and users,
+   * ordered by most recent first. Used by the dashboard widget.
+   */
+  async getRecentAuditLogs(limit: number = 10): Promise<Array<{
+    id: string;
+    entityType: string;
+    entityId: string;
+    action: string;
+    changes: any;
+    performerName: string | null;
+    createdAt: Date;
+  }>> {
+    try {
+      const rows = await this.dataSource.query(
+        `SELECT
+           al.id,
+           al.entity_type AS "entityType",
+           al.entity_id AS "entityId",
+           al.action,
+           al.changes,
+           u.first_name || ' ' || COALESCE(u.last_name, '') AS "performerName"
+         FROM audit_logs al
+         LEFT JOIN users u ON u.id = al.performed_by_id
+         WHERE al.entity_type IN ('role', 'user')
+           AND al.action IN ('permissions_updated', 'financial_access_granted', 'financial_access_revoked')
+         ORDER BY al.created_at DESC
+         LIMIT $1`,
+        [limit],
+      );
+
+      return rows.map((r: any) => ({
+        id: r.id,
+        entityType: r.entityType,
+        entityId: r.entityId,
+        action: r.action,
+        changes: typeof r.changes === 'string' ? JSON.parse(r.changes) : r.changes,
+        performerName: r.performerName?.trim() || null,
+        createdAt: new Date(r.createdAt),
+      }));
+    } catch {
+      return [];
+    }
   }
 
   // ─── 16.3 Branch management ───────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import {
   TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock, MessageSquare, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { BannerAnalyticsWidget } from '@/components/banners/BannerAnalyticsWidget';
+import { PermissionChangesWidget } from '@/components/dashboard/PermissionChangesWidget';
 import { apiClient } from '@/lib/api';
 import { useSocket } from '@/lib/useSocket';
 import { useAdminAuthStore } from '@/store/auth.store';
@@ -95,7 +96,9 @@ function KpiCard({
 
 export default function DashboardPage() {
   const user = useAdminAuthStore((s) => s.user);
-  const isOwner = !user?.branchId;
+  const isOwner = user?.financialScope === 'all';
+  const isMultiStore = user?.role === 'multi_store_manager';
+  const hasFinancialAccess = user?.financialScope !== 'none';
   const [liveKpi, setLiveKpi] = useState<KPI | null>(null);
 
   const { data: kpiData, isLoading: kpiLoading } = useQuery({
@@ -232,8 +235,8 @@ export default function DashboardPage() {
           icon={Users}
           color="bg-amber-500"
         />
-        {/* Net Income — owner-only */}
-        {isOwner && (
+        {/* Net Income — owner-only (requires financial.view) */}
+        {isOwner && hasFinancialAccess && (
           <KpiCard
             title="Net Income"
             value={kpiLoading ? '—' : fmt(kpi.netIncome)}
@@ -324,8 +327,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Banner Analytics Widget */}
-      <BannerAnalyticsWidget />
+      {/* Permission Changes + Banner Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PermissionChangesWidget />
+        <BannerAnalyticsWidget />
+      </div>
 
       {/* Buyback Leads Section */}
       <div className="card p-5">

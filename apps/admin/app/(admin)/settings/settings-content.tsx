@@ -7,7 +7,9 @@ import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 
-const TABS = ['Branches', 'Roles', 'Content'];
+import { PermissionMatrix } from '@/components/permissions/PermissionMatrix';
+
+const TABS = ['Branches', 'Roles', 'Permissions', 'Content'];
 
 type Branch = {
   id: string;
@@ -169,6 +171,9 @@ export function SettingsPageContent() {
           pageSize={20}
         />
       );
+    }
+    if (tab === 'Permissions') {
+      return <PermissionMatrix />;
     }
     if (tab === 'Content') {
       return (

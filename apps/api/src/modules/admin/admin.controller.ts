@@ -14,8 +14,10 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuid } from 'uuid';
@@ -75,11 +77,11 @@ export class AdminController {
   ) {
     // SECURITY: Prevent self-escalation
     if (currentUser?.sub === id) {
-      // Users cannot change their own role or branch
-      if (dto.roleId !== undefined || dto.branchId !== undefined) {
+      // Users cannot change their own role, branch, or financial access
+      if (dto.roleId !== undefined || dto.branchId !== undefined || dto.financialAccess !== undefined) {
         throw new ForbiddenException({
           code: 'SELF_ESCALATION_BLOCKED',
-          message: 'You cannot modify your own role or branch assignment',
+          message: 'You cannot modify your own role, branch, or financial access',
         });
       }
     }
@@ -93,9 +95,25 @@ export class AdminController {
         });
       }
     }
+    // SECURITY: Only owner can grant financial access
+    if (dto.financialAccess !== undefined && currentUser?.role !== 'shop_owner') {
+      throw new ForbiddenException({
+        code: 'FINANCIAL_ACCESS_ESCALATION_BLOCKED',
+        message: 'Only the shop owner can grant or revoke financial access',
+      });
+    }
+    // Log financial access changes before updating
+    if (dto.financialAccess !== undefined) {
+      await this.adminService.logFinancialAccessChange(
+        id,
+        dto.financialAccess,
+        currentUser?.sub,
+      );
+    }
+
     const user = await this.adminService.updateUser(id, dto);
     // If role changed, invalidate the user's sessions so new permissions take effect
-    if (dto.roleId) {
+    if (dto.roleId || dto.financialAccess !== undefined) {
       await this.authService.invalidateUserSessions(id);
     }
     return { status: 'success', data: user };
@@ -111,6 +129,21 @@ export class AdminController {
     await this.authService.invalidateUserSessions(id);
   }
 
+  // ─── Audit Logs ──────────────────────────────────────────────────────────────
+
+  @Get('users/:id/audit-logs')
+  @RequirePermission('users.view')
+  async getUserAuditLogs(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    const logs = await this.adminService.getUserAuditLogs(
+      id,
+      limit ? parseInt(limit, 10) : 20,
+    );
+    return { status: 'success', data: logs };
+  }
+
   // ─── Roles ────────────────────────────────────────────────────────────────────
 
   @Get('roles')
@@ -118,6 +151,42 @@ export class AdminController {
   async listRoles() {
     const roles = await this.adminService.listRoles();
     return { status: 'success', data: roles };
+  }
+
+  @Get('roles/:id/permissions')
+  @RequirePermission('settings.view')
+  async getRolePermissions(@Param('id') id: string) {
+    const permissions = await this.adminService.getRolePermissions(id);
+    return { status: 'success', data: { id, permissions } };
+  }
+
+  @Get('roles/user-counts')
+  @RequirePermission('settings.view')
+  async getRoleUserCounts() {
+    const counts = await this.adminService.getRoleUserCounts();
+    return { status: 'success', data: counts };
+  }
+
+  @Get('roles/:id/audit-logs')
+  @RequirePermission('settings.view')
+  async getRoleAuditLogs(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    const logs = await this.adminService.getRoleAuditLogs(
+      id,
+      limit ? parseInt(limit, 10) : 10,
+    );
+    return { status: 'success', data: logs };
+  }
+
+  @Get('audit-logs/recent')
+  @RequirePermission('settings.view')
+  async getRecentAuditLogs(@Query('limit') limit?: string) {
+    const logs = await this.adminService.getRecentAuditLogs(
+      limit ? parseInt(limit, 10) : 10,
+    );
+    return { status: 'success', data: logs };
   }
 
   @Post('roles')
@@ -134,8 +203,9 @@ export class AdminController {
   async updateRolePermissions(
     @Param('id') id: string,
     @Body() dto: UpdateRolePermissionsDto,
+    @CurrentUser() currentUser: any,
   ) {
-    const result = await this.adminService.updateRolePermissions(id, dto);
+    const result = await this.adminService.updateRolePermissions(id, dto, currentUser?.sub);
     // Invalidate Redis cache so changes propagate instantly
     await this.authService.invalidatePermissionCache(id);
     return { status: 'success', data: result };

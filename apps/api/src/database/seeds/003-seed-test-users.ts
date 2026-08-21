@@ -21,6 +21,13 @@ const TEST_USERS = [
     email: 'manager@dreamgadgets.in',
   },
   {
+    role: 'multi_store_manager',
+    firstName: 'Multi',
+    lastName: 'Manager',
+    phone: '9800000007',
+    email: 'multimanager@dreamgadgets.in',
+  },
+  {
     role: 'shop_sales',
     firstName: 'Shop',
     lastName: 'Sales',

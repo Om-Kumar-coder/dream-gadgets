@@ -86,6 +86,7 @@ const bannerItems: Array<{
 const settingsItems = [
   { href: '/settings?tab=Branches', label: 'Branches', icon: Building2, tab: 'Branches' },
   { href: '/settings?tab=Roles', label: 'Roles', icon: ShieldCheck, tab: 'Roles' },
+  { href: '/settings?tab=Permissions', label: 'Permissions', icon: ShieldCheck, tab: 'Permissions' },
   { href: '/settings?tab=Content', label: 'Content', icon: FileText, tab: 'Content' },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
@@ -110,29 +111,38 @@ export function AdminSidebar() {
     '/purchases': 'purchases.view',
     '/sales': 'sales.view',
     '/inventory': 'inventory.view',
-    '/branches': 'branches.view',
-    '/accessories': 'accessories.view',
+    '/branches': 'settings.view',
+    '/accessories': 'inventory.view',
     '/clients': 'clients.view',
     '/transfers': 'transfers.view',
     '/exchange': 'exchange.view',
     '/orders': 'orders.view',
     '/buyback': 'buyback.view',
-    '/price-guide': 'price_guide.view',
+    '/price-guide': 'inventory.view',
     '/returns': 'returns.view',
-    '/coupons': 'coupons.view',
-    '/emi': 'emi.view',
-    '/refunds': 'refunds.view',
+    '/coupons': 'sales.view',
+    '/emi': 'sales.view',
+    '/refunds': 'sales.view',
     '/reports': 'reports.view',
-    '/gst': 'gst.view',
+    '/gst': 'financial.view',
     '/notifications': 'notifications.view',
     '/users': 'users.view',
-    '/brands': 'brands.view',
-    '/announcement-bar': 'banners.view',
+    '/brands': 'settings.view',
+    '/announcement-bar': 'content.view',
+  };
+
+  // Items that require financial permission (hidden from non-financial users)
+  const isFinancialItem = (href: string) => {
+    return ['/gst', '/reports'].includes(href);
   };
 
   const isVisible = (href: string) => {
     const perm = navPermissionMap[href];
     if (!perm) return true; // no restriction
+    // Financial items require financial.view permission
+    if (isFinancialItem(href)) {
+      return hasPermission('financial.view');
+    }
     return hasPermission(perm);
   };
 

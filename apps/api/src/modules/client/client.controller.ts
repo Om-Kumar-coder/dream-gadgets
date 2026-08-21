@@ -20,10 +20,12 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BranchFilterInterceptor } from '../../common/interceptors/branch-filter.interceptor';
+import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { BranchScoped } from '../../common/decorators/branch-scoped.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), PermissionGuard)
+@UseGuards(AuthGuard('jwt'), PermissionGuard, BranchScopeGuard)
 @Controller('clients')
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
@@ -37,6 +39,7 @@ export class ClientController {
 
   @Get()
   @RequirePermission('clients.view')
+  @BranchScoped()
   @UseInterceptors(BranchFilterInterceptor)
   @ApiOperation({ summary: 'List clients with optional search/filters' })
   async findAll(@Query() query: QueryClientDto) {

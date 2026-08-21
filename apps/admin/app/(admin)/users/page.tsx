@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { Plus, X, Loader2, History } from 'lucide-react';
+import { FinancialAccessAuditLog } from '@/components/users/FinancialAccessAuditLog';
 import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
+import { useAdminAuthStore } from '@/store/auth.store';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
@@ -23,6 +25,8 @@ type User = {
   role: {
     name: string;
   };
+  branchId: string | null;
+  financialAccess: boolean;
   isActive: boolean;
 };
 
@@ -43,6 +47,7 @@ export default function UsersPage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [auditLogUserId, setAuditLogUserId] = useState<string | null>(null);
 
   // Reset the form whenever the modal opens
   useEffect(() => {
@@ -122,7 +127,22 @@ export default function UsersPage() {
     {
       accessorKey: 'role',
       header: 'Role',
-      cell: ({ row }) => <span className="text-sm">{row.original.role?.name ?? '—'}</span>,
+      cell: ({ row }) => {
+        const roleName = row.original.role?.name ?? '—';
+        const roleColors: Record<string, string> = {
+          shop_owner: 'bg-purple-100 text-purple-700',
+          multi_store_manager: 'bg-blue-100 text-blue-700',
+          store_manager: 'bg-indigo-100 text-indigo-700',
+          shop_sales: 'bg-green-100 text-green-700',
+          store_sales: 'bg-teal-100 text-teal-700',
+          calling_staff: 'bg-amber-100 text-amber-700',
+        };
+        return (
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[roleName] ?? 'bg-gray-100 text-gray-600'}`}>
+            {roleName.replace(/_/g, ' ')}
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'isActive',
@@ -144,17 +164,42 @@ export default function UsersPage() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
-        if (row.original.isActive) {
-          return (
-            <button
-              onClick={() => deactivateMutation.mutate(row.original.id)}
-              className="text-xs text-red-600 hover:underline"
-            >
-              Deactivate
-            </button>
-          );
-        }
-        return null;
+        const isOwner = useAdminAuthStore.getState().user?.role === 'shop_owner';
+        const financialAccess = row.original.financialAccess;
+        return (
+          <div className="flex items-center gap-2">
+            {isOwner && row.original.role?.name !== 'shop_owner' && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() =>
+                    toggleFinancialAccessMutation.mutate({
+                      id: row.original.id,
+                      financialAccess: !financialAccess,
+                    })
+                  }
+                  className={`text-xs hover:underline ${financialAccess ? 'text-emerald-600' : 'text-surface-400'}`}
+                >
+                  {financialAccess ? '💰 Financial' : 'No Finance'}
+                </button>
+                <button
+                  onClick={() => setAuditLogUserId(row.original.id)}
+                  className="p-0.5 text-surface-400 hover:text-surface-600 transition-colors"
+                  title="View audit history"
+                >
+                  <History className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {row.original.isActive && (
+              <button
+                onClick={() => deactivateMutation.mutate(row.original.id)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Deactivate
+              </button>
+            )}
+          </div>
+        );
       },
     },
   ];
@@ -167,6 +212,18 @@ export default function UsersPage() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to deactivate user');
+    },
+  });
+
+  const toggleFinancialAccessMutation = useMutation({
+    mutationFn: ({ id, financialAccess }: { id: string; financialAccess: boolean }) =>
+      apiClient.patch(`/admin/users/${id}`, { financialAccess }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('Financial access updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to update financial access');
     },
   });
 
@@ -194,6 +251,26 @@ export default function UsersPage() {
         enablePagination={true}
         pageSize={20}
       />
+
+      {/* Financial Access Audit Log Panel */}
+      {auditLogUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-surface-100">
+              <h3 className="text-sm font-semibold text-surface-900">Audit History</h3>
+              <button
+                onClick={() => setAuditLogUserId(null)}
+                className="p-1 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[400px] overflow-y-auto">
+              <FinancialAccessAuditLog userId={auditLogUserId} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {showModal && (
