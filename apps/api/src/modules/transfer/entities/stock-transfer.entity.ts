@@ -60,7 +60,7 @@ export class StockTransfer {
   @Column({ name: 'received_at', nullable: true, type: 'timestamptz' })
   receivedAt: Date | null;
 
-  // rejection_reason not in DB — virtual only
+  @Column({ name: 'rejection_reason', nullable: true, type: 'text' })
   rejectionReason: string | null;
 
   @OneToMany(() => StockTransferItem, (i) => i.transfer, { cascade: true })
