@@ -8,7 +8,7 @@ import {
   TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock,
   ArrowUpRight, ArrowDownRight, Store, Phone, BarChart3, FileText,
   MessageSquare, AlertTriangle, CheckCircle, Plus, Search,
-  DollarSign, Eye, ShoppingCart as CartIcon, AlertCircle,
+  DollarSign, Eye, ShoppingCart as CartIcon, AlertCircle, Target,
 } from 'lucide-react';
 
 interface KPI {
@@ -198,6 +198,76 @@ export function StoreManagerDashboard({ kpi, loading }: { kpi: KPI; loading: boo
   );
 }
 
+// ─── Daily Sales Target Progress ─────────────────────────────────────────────
+function SalesTargetProgress() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['sales-target'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/reports/sales-target');
+      return data.data as {
+        target: number;
+        achieved: number;
+        percentage: number;
+        remaining: number;
+        transactionCount: number;
+      };
+    },
+  });
+
+  if (isLoading) return null;
+  if (!data || data.target === 0) return null;
+
+  const pct = data.percentage;
+  const barColor = pct >= 100 ? 'bg-emerald-500' : pct >= 70 ? 'bg-primary' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  const textColor = pct >= 100 ? 'text-emerald-600' : pct >= 70 ? 'text-primary' : pct >= 40 ? 'text-amber-600' : 'text-red-600';
+  const bgColor = pct >= 100 ? 'bg-emerald-50 border-emerald-200' : pct >= 70 ? 'bg-primary/5 border-primary/20' : pct >= 40 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+
+  return (
+    <div className={`card p-5 border ${bgColor}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-lg ${pct >= 100 ? 'bg-emerald-100' : 'bg-primary/10'}`}>
+            <Target className={`w-4 h-4 ${textColor}`} />
+          </div>
+          <h3 className="text-sm font-semibold text-surface-700">Daily Sales Target</h3>
+        </div>
+        <span className={`text-lg font-bold ${textColor}`}>{pct}%</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="relative h-4 bg-surface-100 rounded-full overflow-hidden mb-3">
+        <div
+          className={`absolute inset-y-0 left-0 ${barColor} rounded-full transition-all duration-700 ease-out`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+        {/* Target marker at 100% */}
+        <div className="absolute inset-y-0 right-0 w-0.5 bg-surface-300" />
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center justify-between text-xs">
+        <div>
+          <span className="text-surface-500">Achieved: </span>
+          <span className="font-semibold text-surface-800">{fmt(data.achieved)}</span>
+          <span className="text-surface-400"> / {fmt(data.target)}</span>
+        </div>
+        <div className="text-right">
+          {pct >= 100 ? (
+            <span className="text-emerald-600 font-semibold">🎉 Target achieved!</span>
+          ) : (
+            <span className="text-surface-500">
+              <span className="font-medium text-surface-700">{fmt(data.remaining)}</span> remaining
+            </span>
+          )}
+        </div>
+      </div>
+      {data.transactionCount > 0 && (
+        <p className="text-[10px] text-surface-400 mt-1.5">{data.transactionCount} transactions today</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Sales Staff Dashboard (Shop Sales + Store Sales) ──────────────────────────
 export function SalesDashboard({ kpi, loading }: { kpi: KPI; loading: boolean }) {
   return (
@@ -207,6 +277,7 @@ export function SalesDashboard({ kpi, loading }: { kpi: KPI; loading: boolean })
         <StatCard title="Stock Available" value={loading ? '—' : String(kpi.activeStockCount)} sub="in store" icon={Package} color="bg-emerald-500" />
         <StatCard title="New Clients" value={loading ? '—' : String(kpi.newClientsToday)} sub="today" icon={Users} color="bg-amber-500" />
       </div>
+      <SalesTargetProgress />
       <div className="grid grid-cols-2 gap-3">
         <QuickAction href="/sales/pos" icon={Plus} label="New Sale (POS)" color="bg-primary" />
         <QuickAction href="/inventory" icon={Search} label="Check Stock" color="bg-emerald-500" />

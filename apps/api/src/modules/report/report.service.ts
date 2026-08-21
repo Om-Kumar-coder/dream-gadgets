@@ -215,7 +215,70 @@ export class ReportService {
     }
   }
 
-  // ─── 15.3 Report data queries ─────────────────────────────────────────────────
+  // ─── 15.3 Daily Sales Target ─────────────────────────────────────────────────
+
+  async getDailySalesTarget(user: any): Promise<{
+    target: number;
+    achieved: number;
+    percentage: number;
+    remaining: number;
+    transactionCount: number;
+  }> {
+    const branchId = user.branchId ?? null;
+
+    // Get target from settings (per-branch or global)
+    let target = 0;
+    try {
+      const settingsRepo = (this.dataSource as any).getRepository?.('settings');
+      if (settingsRepo) {
+        const key = branchId ? `daily_sales_target:${branchId}` : 'daily_sales_target';
+        const setting = await settingsRepo.findOne({ where: { key } }).catch(() => null);
+        if (setting?.value) {
+          target = typeof setting.value === 'object' ? (setting.value as any).amount ?? 0 : 0;
+        }
+        // Fallback to global target
+        if (!target) {
+          const global = await settingsRepo.findOne({ where: { key: 'daily_sales_target' } }).catch(() => null);
+          if (global?.value) {
+            target = typeof global.value === 'object' ? (global.value as any).amount ?? 0 : 0;
+          }
+        }
+      }
+    } catch {
+      // Settings table may not exist yet
+    }
+
+    // Get today's sales for this user's branch
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    let achieved = 0;
+    let transactionCount = 0;
+    try {
+      const branchFilter = branchId ? `AND s.branch_id = '${branchId}'` : '';
+      const rows = await this.dataSource.query(`
+        SELECT COALESCE(SUM(s.total_amount), 0)::numeric AS achieved,
+               COUNT(*)::int AS "transactionCount"
+        FROM sales s
+        WHERE s.created_at >= $1 AND s.created_at < $2
+        AND s.payment_status = 'paid'
+        ${branchFilter}
+      `, [today, tomorrow]);
+      achieved = parseFloat(rows[0]?.achieved ?? '0');
+      transactionCount = rows[0]?.transactionCount ?? 0;
+    } catch {
+      // sales table may not exist
+    }
+
+    const percentage = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
+    const remaining = Math.max(0, target - achieved);
+
+    return { target, achieved, percentage, remaining, transactionCount };
+  }
+
+  // ─── 15.4 Report data queries ─────────────────────────────────────────────────
 
   async getReportData(type: ReportType, filters: ReportFilters): Promise<any[]> {
     const { branchId, startDate, endDate } = filters;

@@ -43,6 +43,12 @@ export class ReportController {
     return { status: 'success', data: kpis };
   }
 
+  @Get('sales-target')
+  @RequirePermission('reports.view')
+  async getSalesTarget(@CurrentUser() user: JwtPayload) {
+    return this.reportService.getDailySalesTarget(user);
+  }
+
   @Get('weekly-sales')
   @RequirePermission('reports.view')
   async getWeeklySales(@CurrentUser() user: JwtPayload, @Query('branchId') queryBranchId?: string) {
