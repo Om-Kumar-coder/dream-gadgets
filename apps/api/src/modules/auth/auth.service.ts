@@ -106,8 +106,8 @@ export class AuthService {
    * - 'none': no financial access
    */
   private async getFinancialScope(user: User, permissions: string[]): Promise<'all' | 'branch' | 'none'> {
-    // Owner (no branchId) has full financial access
-    if (!user.branchId) return 'all';
+    // Owner role has full financial access regardless of branchId
+    if (user.role?.name === 'shop_owner') return 'all';
     // Has financial.view permission (granted via role) and user-level financial_access flag
     if (permissions.includes('financial.view') && user.financialAccess) return 'branch';
     return 'none';
