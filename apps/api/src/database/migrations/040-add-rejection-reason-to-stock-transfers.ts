@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRejectionReasonToStockTransfers1724280000000
+export class AddRejectionReasonToStockTransfers1755000000040
   implements MigrationInterface
 {
-  name = '040-add-rejection-reason-to-stock-transfers';
+  name = '040-add-rejection-reason-to-stock-transfers-1755000000040';
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
