@@ -10,6 +10,7 @@ import { Scan, Upload, Lightbulb, ArrowLeft } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
 import { useAdminAuthStore } from '@/store/auth.store';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const purchaseSchema = z.object({
   imei: z.string().length(15, 'IMEI must be 15 digits').regex(/^\d+$/, 'IMEI must be numeric'),
@@ -115,7 +116,7 @@ export default function NewPurchasePage() {
   const models: any[] = modelsData ?? [];
 
   return (
-    <div className="max-w-3xl space-y-5 animate-fade-in">
+    <PermissionGate permission="purchases.create"><div className="max-w-3xl space-y-5 animate-fade-in">
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()} className="p-1.5 rounded-lg hover:bg-surface-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
@@ -286,6 +287,6 @@ export default function NewPurchasePage() {
           </Button>
         </div>
       </form>
-    </div>
+    </div></PermissionGate>
   );
 }

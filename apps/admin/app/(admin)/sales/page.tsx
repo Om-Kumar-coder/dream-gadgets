@@ -11,6 +11,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
 import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -192,19 +193,21 @@ export default function SalesPage() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="sales.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Sales</h1>
           <p className="text-sm text-surface-500">All completed transactions</p>
         </div>
-        <Link
-          href="/sales/pos"
-          className="btn-primary btn-md"
-        >
-          <Plus className="w-4 h-4" />
-          New Sale (POS)
-        </Link>
+        <PermissionGate permission="sales.create" fallback={null}>
+          <Link
+            href="/sales/pos"
+            className="btn-primary btn-md"
+          >
+            <Plus className="w-4 h-4" />
+            New Sale (POS)
+          </Link>
+        </PermissionGate>
       </div>
 
       <DataTable<Sale, any>
@@ -222,6 +225,6 @@ export default function SalesPage() {
           </div>
         )}
       />
-    </div>
+    </div></PermissionGate>
   );
 }

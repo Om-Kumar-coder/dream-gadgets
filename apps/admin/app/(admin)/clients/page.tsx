@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const EKYC_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -97,15 +98,20 @@ export default function ClientsPage() {
   ];
 
   return (
+    <PermissionGate permission="clients.view">
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Clients</h1>
           <p className="text-sm text-surface-500">All registered clients</p>
         </div>
-        <Button variant="default" size="md">
-          <span className="text-lg leading-none mr-1">+</span> New Client
-        </Button>
+        <PermissionGate permission="clients.create" fallback={null}>
+          <Link href="/clients/new">
+            <Button variant="default" size="md">
+              <span className="text-lg leading-none mr-1">+</span> New Client
+            </Button>
+          </Link>
+        </PermissionGate>
       </div>
 
       <DataTable<Client, any>
@@ -118,5 +124,6 @@ export default function ClientsPage() {
         pageSize={20}
       />
     </div>
+    </PermissionGate>
   );
 }

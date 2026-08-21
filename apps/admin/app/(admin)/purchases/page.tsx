@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 type Purchase = {
   id: string;
@@ -81,16 +82,18 @@ export default function PurchasesPage() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="purchases.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Purchases</h1>
           <p className="text-sm text-surface-500">All device acquisitions</p>
         </div>
-        <Link href="/purchases/new" className="btn-primary btn-md">
-          <Plus className="w-4 h-4" />
-          New Purchase
-        </Link>
+        <PermissionGate permission="purchases.create" fallback={null}>
+          <Link href="/purchases/new" className="btn-primary btn-md">
+            <Plus className="w-4 h-4" />
+            New Purchase
+          </Link>
+        </PermissionGate>
       </div>
 
       <DataTable<Purchase, any>
@@ -102,6 +105,6 @@ export default function PurchasesPage() {
         enablePagination={true}
         pageSize={20}
       />
-    </div>
+    </div></PermissionGate>
   );
 }

@@ -10,6 +10,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
 import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const CONDITIONS = ['sealed_pack', 'open_box', 'super_mint', 'mint', 'good'];
 const STATUSES = ['available', 'sold', 'transferred', 'returned', 'booked', 'in_cart', 'scrapped'];
@@ -170,7 +171,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="inventory.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Inventory</h1>
@@ -194,6 +195,6 @@ export default function InventoryPage() {
         enablePagination={true}
         pageSize={20}
       />
-    </div>
+    </div></PermissionGate>
   );
 }
