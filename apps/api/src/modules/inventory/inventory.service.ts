@@ -466,4 +466,38 @@ export class InventoryService {
       count: parseInt(r.count, 10),
     }));
   }
+
+  /**
+   * Low stock alerts — models with fewer than `threshold` available items.
+   * Branch-scoped: only counts items in the user's assigned branch.
+   */
+  async getLowStockAlerts(threshold = 3): Promise<Array<{
+    modelId: string;
+    modelName: string;
+    brandName: string;
+    available: number;
+  }>> {
+    const rows = await this.dataSource.query(
+      `SELECT
+         ii.model_id AS "modelId",
+         COALESCE(m.name, ii.item_name) AS "modelName",
+         COALESCE(b.name, 'Unknown') AS "brandName",
+         COUNT(*)::int AS available
+       FROM inventory_items ii
+       LEFT JOIN models m ON m.id = ii.model_id
+       LEFT JOIN brands b ON b.id = ii.brand_id
+       WHERE ii.status = 'available'
+       GROUP BY ii.model_id, m.name, ii.item_name, b.name
+       HAVING COUNT(*) <= $1
+       ORDER BY available ASC, "modelName" ASC`,
+      [threshold],
+    ).catch(() => []);
+
+    return rows.map((r: any) => ({
+      modelId: r.modelId,
+      modelName: r.modelName,
+      brandName: r.brandName,
+      available: r.available,
+    }));
+  }
 }

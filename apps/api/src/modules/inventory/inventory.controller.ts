@@ -88,6 +88,16 @@ export class InventoryController {
 
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
+  @Get('low-stock')
+  @RequirePermission('inventory.view')
+  @BranchScoped()
+  @UseInterceptors(BranchFilterInterceptor)
+  @ApiOperation({ summary: 'Get low stock alerts — models with few available items' })
+  async getLowStock(@Query('threshold') threshold?: string) {
+    const limit = threshold ? parseInt(threshold, 10) : 3;
+    return this.inventoryService.getLowStockAlerts(limit);
+  }
+
   @Get()
   @RequirePermission('inventory.view')
   @BranchScoped()

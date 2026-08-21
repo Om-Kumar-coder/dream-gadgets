@@ -8,7 +8,7 @@ import {
   TrendingUp, Package, ShoppingCart, Users, RefreshCw, Clock,
   ArrowUpRight, ArrowDownRight, Store, Phone, BarChart3, FileText,
   MessageSquare, AlertTriangle, CheckCircle, Plus, Search,
-  DollarSign, Eye, ShoppingCart as CartIcon,
+  DollarSign, Eye, ShoppingCart as CartIcon, AlertCircle,
 } from 'lucide-react';
 
 interface KPI {
@@ -122,6 +122,52 @@ export function MultiStoreManagerDashboard({ kpi, loading }: { kpi: KPI; loading
   );
 }
 
+// ─── Low Stock Alerts Widget ──────────────────────────────────────────────────
+function LowStockAlerts() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['low-stock-alerts'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/inventory/low-stock?threshold=3');
+      return data.data as Array<{ modelId: string; modelName: string; brandName: string; available: number }>;
+    },
+  });
+
+  if (isLoading) return null;
+  if (!data || data.length === 0) return null;
+
+  return (
+    <div className="card p-5 border-l-4 border-amber-400">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-amber-100">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+          </div>
+          <h3 className="text-sm font-semibold text-surface-700">Low Stock Alerts</h3>
+        </div>
+        <Link href="/inventory" className="text-xs font-medium text-primary hover:underline">View All →</Link>
+      </div>
+      <div className="space-y-2">
+        {data.map((item) => (
+          <div key={item.modelId} className="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-surface-800 truncate">
+                {item.brandName} {item.modelName}
+              </p>
+            </div>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              item.available === 0 ? 'bg-red-100 text-red-700' :
+              item.available === 1 ? 'bg-orange-100 text-orange-700' :
+              'bg-amber-100 text-amber-700'
+            }`}>
+              {item.available === 0 ? 'OUT OF STOCK' : `${item.available} left`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Store Manager Dashboard ───────────────────────────────────────────────────
 export function StoreManagerDashboard({ kpi, loading }: { kpi: KPI; loading: boolean }) {
   return (
@@ -132,6 +178,7 @@ export function StoreManagerDashboard({ kpi, loading }: { kpi: KPI; loading: boo
         <StatCard title="Purchases" value={loading ? '—' : String(kpi.todayPurchases)} sub="items today" icon={ShoppingCart} color="bg-violet-500" href="/purchases" />
         <StatCard title="New Clients" value={loading ? '—' : String(kpi.newClientsToday)} sub="today" icon={Users} color="bg-amber-500" href="/clients" />
       </div>
+      <LowStockAlerts />
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <QuickAction href="/sales/pos" icon={Plus} label="New Sale (POS)" color="bg-primary" />
         <QuickAction href="/inventory" icon={Package} label="Manage Stock" color="bg-emerald-500" />
