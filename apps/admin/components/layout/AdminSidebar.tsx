@@ -111,7 +111,7 @@ export function AdminSidebar() {
     '/purchases': 'purchases.view',
     '/sales': 'sales.view',
     '/inventory': 'inventory.view',
-    '/branches': 'settings.view',
+    '/branches': 'branches.view',
     '/accessories': 'inventory.view',
     '/clients': 'clients.view',
     '/transfers': 'transfers.view',
@@ -127,7 +127,7 @@ export function AdminSidebar() {
     '/gst': 'financial.view',
     '/notifications': 'notifications.view',
     '/users': 'users.view',
-    '/brands': 'settings.view',
+    '/brands': 'branches.view',
     '/announcement-bar': 'content.view',
   };
 
@@ -287,7 +287,8 @@ export function AdminSidebar() {
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />
 
-        {/* Settings dropdown */}
+        {/* Settings dropdown — only visible to users with settings.view */}
+        {hasPermission('settings.view') && (
         <div>
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
@@ -327,6 +328,7 @@ export function AdminSidebar() {
             </div>
           )}
         </div>
+        )}
       </nav>
     </aside>
   );

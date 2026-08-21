@@ -147,28 +147,28 @@ export class AdminController {
   // ─── Roles ────────────────────────────────────────────────────────────────────
 
   @Get('roles')
-  @RequirePermission('settings.view')
+  @RequirePermission('roles.view')
   async listRoles() {
     const roles = await this.adminService.listRoles();
     return { status: 'success', data: roles };
   }
 
   @Get('roles/:id/permissions')
-  @RequirePermission('settings.view')
+  @RequirePermission('roles.view')
   async getRolePermissions(@Param('id') id: string) {
     const permissions = await this.adminService.getRolePermissions(id);
     return { status: 'success', data: { id, permissions } };
   }
 
   @Get('roles/user-counts')
-  @RequirePermission('settings.view')
+  @RequirePermission('roles.view')
   async getRoleUserCounts() {
     const counts = await this.adminService.getRoleUserCounts();
     return { status: 'success', data: counts };
   }
 
   @Get('roles/:id/audit-logs')
-  @RequirePermission('settings.view')
+  @RequirePermission('roles.view')
   async getRoleAuditLogs(
     @Param('id') id: string,
     @Query('limit') limit?: string,
@@ -181,7 +181,7 @@ export class AdminController {
   }
 
   @Get('audit-logs/recent')
-  @RequirePermission('settings.view')
+  @RequirePermission('roles.view')
   async getRecentAuditLogs(@Query('limit') limit?: string) {
     const logs = await this.adminService.getRecentAuditLogs(
       limit ? parseInt(limit, 10) : 10,
@@ -225,7 +225,7 @@ export class AdminController {
   // ─── Branches ─────────────────────────────────────────────────────────────────
 
   @Get('branches')
-  @RequirePermission('settings.view')
+  @RequirePermission('branches.view')
   async listBranches() {
     const branches = await this.adminService.listBranches();
     return { status: 'success', data: branches };
