@@ -217,6 +217,123 @@ export function SalesDashboard({ kpi, loading }: { kpi: KPI; loading: boolean })
   );
 }
 
+// ─── Follow-Up Queue Widget ──────────────────────────────────────────────────
+interface FollowUpClient {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  phone: string;
+  email: string | null;
+  nextFollowUpAt: string;
+  followUpNotes: string | null;
+  followUpStatus: string;
+  isOverdue: boolean;
+  branchName: string | null;
+}
+
+function FollowUpQueue() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['follow-up-queue'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/clients/follow-ups/queue?limit=10');
+      return data.data as FollowUpClient[];
+    },
+  });
+
+  if (isLoading) return null;
+  if (!data || data.length === 0) return null;
+
+  const overdue = data.filter(c => c.isOverdue);
+  const upcoming = data.filter(c => !c.isOverdue);
+
+  function timeUntil(dateStr: string) {
+    const diff = new Date(dateStr).getTime() - Date.now();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `in ${days}d ${hours}h`;
+    if (hours > 0) return `in ${hours}h`;
+    return 'soon';
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days}d ${hours}h ago`;
+    if (hours > 0) return `${hours}h ago`;
+    return 'just now';
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-blue-100">
+            <Phone className="w-4 h-4 text-blue-600" />
+          </div>
+          <h3 className="text-sm font-semibold text-surface-700">Follow-Up Queue</h3>
+        </div>
+        <Link href="/clients" className="text-xs font-medium text-primary hover:underline">View All →</Link>
+      </div>
+
+      {overdue.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-medium text-red-600 mb-2 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+            OVERDUE ({overdue.length})
+          </p>
+          <div className="space-y-1.5">
+            {overdue.map((client) => (
+              <div key={client.id} className="flex items-center justify-between p-2.5 bg-red-50 rounded-lg border border-red-100">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-surface-800 truncate">
+                    {client.firstName} {client.lastName || ''}
+                  </p>
+                  <p className="text-xs text-surface-500 truncate">{client.phone}</p>
+                  {client.followUpNotes && (
+                    <p className="text-xs text-surface-400 truncate mt-0.5">📝 {client.followUpNotes}</p>
+                  )}
+                </div>
+                <div className="text-right ml-3">
+                  <span className="text-xs font-semibold text-red-600">{timeAgo(client.nextFollowUpAt)}</span>
+                  <p className="text-[10px] text-surface-400">overdue</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {upcoming.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            UPCOMING ({upcoming.length})
+          </p>
+          <div className="space-y-1.5">
+            {upcoming.map((client) => (
+              <div key={client.id} className="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg border border-amber-100">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-surface-800 truncate">
+                    {client.firstName} {client.lastName || ''}
+                  </p>
+                  <p className="text-xs text-surface-500 truncate">{client.phone}</p>
+                  {client.followUpNotes && (
+                    <p className="text-xs text-surface-400 truncate mt-0.5">📝 {client.followUpNotes}</p>
+                  )}
+                </div>
+                <div className="text-right ml-3">
+                  <span className="text-xs font-semibold text-amber-600">{timeUntil(client.nextFollowUpAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Calling Staff Dashboard ───────────────────────────────────────────────────
 export function CallingStaffDashboard({ kpi, loading }: { kpi: KPI; loading: boolean }) {
   return (
@@ -226,6 +343,7 @@ export function CallingStaffDashboard({ kpi, loading }: { kpi: KPI; loading: boo
         <StatCard title="Online Orders" value={loading ? '—' : String(kpi.onlineOrdersCount)} sub="pending" icon={CartIcon} color="bg-amber-500" />
         <StatCard title="Buyback Leads" value={loading ? '—' : String(kpi.bookedItems)} sub="to follow up" icon={MessageSquare} color="bg-pink-500" />
       </div>
+      <FollowUpQueue />
       <div className="grid grid-cols-2 gap-3">
         <QuickAction href="/clients" icon={Users} label="Manage Clients" color="bg-primary" />
         <QuickAction href="/buyback" icon={MessageSquare} label="Buyback Leads" color="bg-pink-500" />

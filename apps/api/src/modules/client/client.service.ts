@@ -233,4 +233,78 @@ export class ClientService {
 
     return { message: `WhatsApp message queued for client ${id}` };
   }
+
+  // ─── Follow-up Queue ─────────────────────────────────────────────────────────
+
+  async getFollowUpQueue(status?: string, limit = 20): Promise<Array<{
+    id: string;
+    firstName: string;
+    lastName: string | null;
+    phone: string;
+    email: string | null;
+    nextFollowUpAt: Date;
+    followUpNotes: string | null;
+    followUpStatus: string;
+    isOverdue: boolean;
+    branchName: string | null;
+  }>> {
+    const now = new Date();
+    let whereClause = `c.next_follow_up_at IS NOT NULL`;
+    const params: any[] = [];
+
+    if (status === 'overdue') {
+      whereClause += ` AND c.next_follow_up_at < $1 AND c.follow_up_status = 'pending'`;
+      params.push(now);
+    } else if (status === 'upcoming') {
+      whereClause += ` AND c.next_follow_up_at >= $1 AND c.follow_up_status = 'pending'`;
+      params.push(now);
+    } else {
+      // All pending (overdue + upcoming)
+      whereClause += ` AND c.follow_up_status = 'pending'`;
+    }
+
+    const rows = await this.clientRepo.query(`
+      SELECT
+        c.id, c.first_name AS "firstName", c.last_name AS "lastName",
+        c.phone, c.email,
+        c.next_follow_up_at AS "nextFollowUpAt",
+        c.follow_up_notes AS "followUpNotes",
+        c.follow_up_status AS "followUpStatus",
+        b.name AS "branchName"
+      FROM clients c
+      LEFT JOIN branches b ON b.id = c.branch_id
+      WHERE ${whereClause}
+      ORDER BY c.next_follow_up_at ASC
+      LIMIT $${params.length + 1}
+    `, [...params, limit]);
+
+    return rows.map((r: any) => ({
+      ...r,
+      isOverdue: new Date(r.nextFollowUpAt) < now,
+    }));
+  }
+
+  async updateFollowUp(
+    id: string,
+    data: { nextFollowUpAt?: string; followUpNotes?: string; status?: string },
+    userId: string,
+  ): Promise<Client> {
+    const client = await this.clientRepo.findOne({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+
+    if (data.nextFollowUpAt !== undefined) {
+      (client as any).nextFollowUpAt = data.nextFollowUpAt ? new Date(data.nextFollowUpAt) : null;
+    }
+    if (data.followUpNotes !== undefined) {
+      (client as any).followUpNotes = data.followUpNotes;
+    }
+    if (data.status !== undefined) {
+      (client as any).followUpStatus = data.status;
+    } else if (data.nextFollowUpAt) {
+      // Auto-set status to pending when scheduling
+      (client as any).followUpStatus = 'pending';
+    }
+
+    return this.clientRepo.save(client);
+  }
 }

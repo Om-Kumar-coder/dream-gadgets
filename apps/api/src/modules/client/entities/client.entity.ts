@@ -107,6 +107,15 @@ export class Client {
   @Column({ name: 'branch_id', nullable: true, type: 'varchar' })
   branchId: string;
 
+  @Column({ name: 'next_follow_up_at', nullable: true, type: 'timestamptz' })
+  nextFollowUpAt: Date | null;
+
+  @Column({ name: 'follow_up_notes', nullable: true, type: 'text' })
+  followUpNotes: string | null;
+
+  @Column({ name: 'follow_up_status', default: 'none' })
+  followUpStatus: string; // 'none' | 'pending' | 'completed' | 'overdue'
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

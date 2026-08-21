@@ -46,6 +46,29 @@ export class ClientController {
     return this.clientService.findAll(query);
   }
 
+  @Get('follow-ups/queue')
+  @RequirePermission('clients.view')
+  @BranchScoped()
+  @UseInterceptors(BranchFilterInterceptor)
+  @ApiOperation({ summary: 'Get follow-up queue — overdue and upcoming follow-ups' })
+  async getFollowUpQueue(
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.clientService.getFollowUpQueue(status, limit ? parseInt(limit, 10) : 20);
+  }
+
+  @Patch(':id/follow-up')
+  @RequirePermission('clients.edit')
+  @ApiOperation({ summary: 'Schedule or complete a client follow-up' })
+  async updateFollowUp(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { nextFollowUpAt?: string; followUpNotes?: string; status?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.clientService.updateFollowUp(id, body, user.sub);
+  }
+
   @Get(':id')
   @RequirePermission('clients.view')
   @ApiOperation({ summary: 'Get client by ID' })
