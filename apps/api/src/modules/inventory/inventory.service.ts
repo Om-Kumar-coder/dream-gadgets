@@ -295,6 +295,16 @@ export class InventoryService {
 
   async toggleOnline(id: string, userId: string): Promise<InventoryItem> {
     const item = await this.findById(id);
+
+    // Enforce: an item cannot be published online without a selling price.
+    // This prevents incomplete catalogue records from reaching the storefront.
+    if (item.isOnline && !item.sellingPrice) {
+      throw new BadRequestException({
+        code: 'NO_SELLING_PRICE',
+        message: `Cannot list item ${item.imei} online — selling price is not set. Set a selling price before publishing.`,
+      });
+    }
+
     item.isOnline = !item.isOnline;
     const saved = await this.itemRepo.save(item);
 

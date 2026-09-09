@@ -57,6 +57,14 @@ export class TransferService {
     // Load and validate all items
     const items = await this.itemRepo.find({ where: { id: In(itemIds) } });
 
+    // Require at least one item — zero-item transfers carry no inventory meaning.
+    if (!itemIds || itemIds.length === 0) {
+      throw new BadRequestException({
+        code: 'NO_ITEMS',
+        message: 'A transfer must include at least one inventory item',
+      });
+    }
+
     if (items.length !== itemIds.length) {
       const foundIds = items.map((i) => i.id);
       const missing = itemIds.filter((id) => !foundIds.includes(id));

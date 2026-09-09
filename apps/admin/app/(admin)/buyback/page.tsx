@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, X, Phone, CheckCircle, XCircle, MoreHorizontal, Eye } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -250,7 +251,7 @@ function StatusUpdateMenu({
   );
 }
 
-export default function BuybackLeadsPage() {
+function BuybackLeadsPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -457,3 +458,12 @@ export default function BuybackLeadsPage() {
     </div>
   );
 }
+
+export default function BuybackLeadsPageWrapper() {
+  return (
+    <PermissionGate permission="buyback.view">
+      <BuybackLeadsPage />
+    </PermissionGate>
+  );
+}
+

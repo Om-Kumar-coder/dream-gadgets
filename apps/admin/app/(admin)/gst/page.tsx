@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { cn } from '@/lib/utils';
 import {
   FileText,
@@ -236,7 +237,7 @@ function DataTable({
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export default function GstReportPage() {
+function GstReportPage() {
   const [fromDate, setFromDate] = useState(thirtyDaysAgoISO);
   const [toDate, setToDate] = useState(todayISO);
   const [branchId, setBranchId] = useState('');
@@ -565,5 +566,13 @@ export default function GstReportPage() {
         )
       )}
     </div>
+  );
+}
+
+export default function GstReportPageWrapper() {
+  return (
+    <PermissionGate permission="financial.view">
+      <GstReportPage />
+    </PermissionGate>
   );
 }

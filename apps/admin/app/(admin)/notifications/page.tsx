@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { Button } from '@dream-gadgets/ui';
 
 interface Notification {
@@ -116,7 +117,7 @@ export default function AdminNotificationsPage() {
   const failedCount = notifications.filter((n) => n.status === 'failed').length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PermissionGate permission="notifications.view"><div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Notifications</h1>
@@ -322,6 +323,7 @@ export default function AdminNotificationsPage() {
           </div>
         )}
       </div>
-    </div>
+    </div></PermissionGate>
+
   );
 }

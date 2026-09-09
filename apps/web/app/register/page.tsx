@@ -48,7 +48,7 @@ export default function RegisterPage() {
       setStep('register');
       startCooldown();
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Failed to send OTP');
+      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Failed to send OTP — check the number and try again');
     } finally {
       setLoading(false);
     }

@@ -190,14 +190,37 @@ export class SalesService {
     }
 
     // 5. Validate payment splits (7.4)
+    const paidAmount = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+
+    // Enforce a single canonical total calculated server-side so the frontend can never
+    // submit a "balanced" bill that the backend still rejects (e.g. because its split
+    // schema excludes exchange/advance from the settlement total).
+    const frontendTotal = Number(dto.frontendTotal ?? 0);
+    if (frontendTotal > 0 && Math.abs(frontendTotal - totalAmount) > 0.01) {
+      this.logger.warn(
+        `[Sales] Frontend total mismatch: frontend=${frontendTotal.toFixed(2)} backend=${totalAmount.toFixed(2)}`,
+      );
+      throw new BadRequestException({
+        code: 'PAYMENT_TOTAL_MISMATCH',
+        message: `Bill total mismatch. Server total is ${totalAmount.toFixed(2)}; your device calculated ${frontendTotal.toFixed(2)}. Reload the bill and try again.`,
+      });
+    }
+
     const valid = validatePaymentSplits(
       payments.map((p) => ({ amount: p.amount, method: p.method })),
       totalAmount,
     );
     if (!valid) {
+      const underpaid = paidAmount < totalAmount - 0.01;
+      if (underpaid) {
+        throw new BadRequestException({
+          code: 'PAYMENT_SPLIT_MISMATCH',
+          message: `Payment splits sum (${paidAmount.toFixed(2)}) is less than the total amount (${totalAmount.toFixed(2)}). Add payment for the remaining ${Math.max(0, totalAmount - paidAmount).toFixed(2)}.`,
+        });
+      }
       throw new BadRequestException({
-        code: 'PAYMENT_SPLIT_MISMATCH',
-        message: `Payment splits sum does not match total amount (${totalAmount.toFixed(2)})`,
+        code: 'PAYMENT_SPLIT_OVERPAYMENT',
+        message: `Payment splits sum (${paidAmount.toFixed(2)}) exceeds the total amount (${totalAmount.toFixed(2)}). Overpayment is not supported for this sale — reduce a payment or use a single exact payment.`,
       });
     }
 

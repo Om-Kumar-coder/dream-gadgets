@@ -24,6 +24,8 @@ interface KPI {
   pendingReturns: number;
   newClientsToday: number;
   onlineOrdersCount: number;
+
+  // Backend field name is todayPurchasesCount; mapped above.
 }
 
 interface SalesChartPoint { day: string; sales: number; }
@@ -47,7 +49,39 @@ export default function DashboardPage() {
     queryKey: ['dashboard-kpi'],
     queryFn: async () => {
       const { data } = await apiClient.get('/reports/dashboard');
-      return data.data as KPI;
+      // Backend may return either todayPurchases or todayPurchasesCount depending on version.
+      const raw = (data?.data ?? {}) as Record<string, unknown>;
+
+      // Defensive mapping: never render raw `undefined`/`null` in production KPI cards.
+      // If a field goes missing upstream, fall back to zero and log once locally.
+      if (process.env.NODE_ENV !== 'production') {
+        const missing = (Object.keys(EMPTY_KPI) as (keyof KPI)[]).filter(
+          (k) => raw[k] === undefined || raw[k] === null,
+        );
+        if (missing.length > 0) {
+          console.warn('[dashboard] KPI fields missing from backend:', missing.join(', '));
+        }
+      }
+
+      // Backend returns todayPurchasesCount; older versions may send todayPurchases.
+      // Normalize both to the KPI shape expected by components.
+      const todayPurchases =
+        Number(raw.todayPurchasesCount) ||
+        Number(raw.todayPurchases) ||
+        0;
+
+      return {
+        todaySalesCount: Number(raw.todaySalesCount) || 0,
+        todaySalesValue: Number(raw.todaySalesValue) || 0,
+        todayPurchases,
+        netIncome: Number(raw.netIncome) || 0,
+        activeStockCount: Number(raw.activeStockCount) || 0,
+        activeStockValue: Number(raw.activeStockValue) || 0,
+        bookedItems: Number(raw.bookedItems) || 0,
+        pendingReturns: Number(raw.pendingReturns) || 0,
+        newClientsToday: Number(raw.newClientsToday) || 0,
+        onlineOrdersCount: Number(raw.onlineOrdersCount) || 0,
+      } as KPI;
     },
   });
 

@@ -134,7 +134,10 @@ export default function POSPage() {
 
   const subtotal = billItems.reduce((sum, i) => sum + i.price, 0);
   const discountAmount = (subtotal * discount) / 100;
-  const taxAmount = ((subtotal - discountAmount) * 18) / 100;
+  // Tax rate is configurable per item but defaults to 18% for in-store sales.
+  // The backend recomputes the canonical total server-side and will reject mismatches.
+  const taxRate = 18;
+  const taxAmount = ((subtotal - discountAmount) * taxRate) / 100;
   const total = subtotal - discountAmount + taxAmount;
   const paidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const balance = total - paidAmount;
@@ -202,10 +205,10 @@ export default function POSPage() {
           accessoryId: i.id.replace('acc-', ''),
           quantity: 1,
           unitPrice: i.price,
-        })),
-        payments: payments
-          .filter((p) => p.amount > 0)
-          .map((p) => ({ method: p.method, amount: p.amount })),
+        })),          payments: payments
+            .filter((p) => p.amount > 0)
+            .map((p) => ({ method: p.method, amount: p.amount })),
+          frontendTotal: total,
         discountAmount: discount > 0 ? (subtotal * discount) / 100 : 0,
         notes,
       };
@@ -563,22 +566,22 @@ export default function POSPage() {
                 Math.abs(balance) < 0.01
                   ? 'text-emerald-600'
                   : balance > 0
-                    ? balance < total
-                      ? 'text-amber-600'
-                      : 'text-red-500'
+                    ? 'text-amber-600'
                     : 'text-red-500'
               }`}
             >
               {Math.abs(balance) < 0.01 ? (
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Payment balanced
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Payment balanced — ready to complete
+                </span>              ) : balance > 0 ? (
+                <span className="flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Balance due: ₹{balance.toFixed(2)}
                 </span>
-              ) : balance > 0 ? (
-                `Balance due: ₹${balance.toFixed(2)}`
               ) : (
-                `Overpaid by: ₹${Math.abs(balance).toFixed(2)}`
-              )}
-            </div>
+                <span className="flex items-center gap-1 text-red-500">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Overpaid by ₹{Math.abs(balance).toFixed(2)} — reduce a payment before completing
+                </span>
+              )}</div>
           </div>
 
           <div>
@@ -629,6 +632,10 @@ export default function POSPage() {
               'Processing…'
             ) : !offlinePOS.isOnline ? (
               `Queue Sale — ₹${total.toFixed(2)}`
+            ) : balance > 0 ? (
+              `Collect ₹${balance.toFixed(2)} more`
+            ) : balance < 0 ? (
+              `Refund ₹{Math.abs(balance).toFixed(2)} change`
             ) : (
               `Complete Sale — ₹${total.toFixed(2)}`
             )}

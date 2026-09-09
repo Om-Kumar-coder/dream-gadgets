@@ -125,7 +125,7 @@ export default function InventoryPage() {
       accessorKey: 'sellingPrice',
       header: 'Selling Price',
       cell: ({ row }) => (
-        <span>
+        <span className={row.original.sellingPrice ? 'font-medium' : 'text-amber-600'}>
           {row.original.sellingPrice ? `₹${Number(row.original.sellingPrice).toLocaleString()}` : '—'}
         </span>
       ),
@@ -158,16 +158,21 @@ export default function InventoryPage() {
 
   const OnlineToggle = ({ item }: { item: InventoryItem }) => {
     const hasPublish = useAdminAuthStore((s) => s.hasPermission('products.publish'));
+    const label = item.isOnline ? 'Online' : 'Offline';
+    const action = item.isOnline ? 'Remove from website' : 'List on website';
     if (!hasPublish) {
       return (
-        <span className="text-xs text-gray-400">{item.isOnline ? 'Live' : '—'}</span>
+        <span title={action} className="text-xs text-gray-400">
+          {label}
+        </span>
       );
     }
     return (
       <button
         onClick={() => toggleOnline.mutate(item.id)}
         disabled={toggleOnline.isPending}
-        title={item.isOnline ? 'Remove from website' : 'List on website'}
+        title={action}
+        aria-label={`${label} — ${action}`}
         className={`p-1 rounded transition-colors ${
           item.isOnline ? 'text-green-600 hover:text-red-500' : 'text-gray-400 hover:text-green-600'
         }`}

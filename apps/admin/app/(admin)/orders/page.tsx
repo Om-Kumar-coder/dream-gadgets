@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Eye, XCircle, CheckCircle, Package } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -236,7 +237,7 @@ export default function OnlineOrdersPage() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="orders.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Online Orders</h1>
@@ -299,6 +300,6 @@ export default function OnlineOrdersPage() {
           </div>
         )}
       />
-    </div>
+    </div></PermissionGate>
   );
 }

@@ -151,6 +151,12 @@ export class CreateSaleDto {
   @IsString()
   couponCode?: string;
 
+  @ApiPropertyOptional({ description: 'Frontend-calculated bill total for contract validation' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  frontendTotal?: number;
+
   @ApiPropertyOptional({ description: 'Notes' })
   @IsOptional()
   @IsString()

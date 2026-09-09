@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { MapPin, Phone, Clock, ArrowRight, Store, Loader2, Building2, Package } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 interface Branch {
   id: string;
@@ -30,7 +31,7 @@ export default function BranchesPage() {
   });
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="branches.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Stores &amp; Branches</h1>
@@ -141,6 +142,6 @@ export default function BranchesPage() {
           )}
         </div>
       )}
-    </div>
+    </div></PermissionGate>
   );
 }

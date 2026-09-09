@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -79,7 +80,7 @@ export default function ReturnsPage() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="returns.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Returns</h1>
@@ -115,6 +116,6 @@ export default function ReturnsPage() {
         enablePagination={true}
         pageSize={20}
       />
-    </div>
+    </div></PermissionGate>
   );
 }

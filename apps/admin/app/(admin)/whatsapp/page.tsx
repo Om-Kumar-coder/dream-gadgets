@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { toast } from 'react-hot-toast';
 
 interface Conversation {
@@ -173,7 +174,7 @@ export default function WhatsAppInboxPage() {
   const convMessages: Message[] = messages ?? [];
 
   return (
-    <div className="flex h-[calc(100vh-13rem)] bg-white rounded-2xl border border-surface-100 shadow-sm overflow-hidden">
+    <PermissionGate permission="whatsapp.view"><div className="flex h-[calc(100vh-13rem)] bg-white rounded-2xl border border-surface-100 shadow-sm overflow-hidden">
       {/* ─── Conversation List ─── */}
       <div className={`w-full sm:w-80 md:w-96 border-r border-surface-100 flex flex-col ${showMobileList ? 'flex' : 'hidden sm:flex'}`}>
         {/* Search & Filters */}
@@ -470,6 +471,7 @@ export default function WhatsAppInboxPage() {
           </>
         )}
       </div>
-    </div>
+    </div></PermissionGate>
+
   );
 }

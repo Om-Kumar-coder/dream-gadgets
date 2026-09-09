@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, Globe, EyeOff, ChevronDown, Package } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'react-hot-toast';
@@ -173,7 +174,7 @@ export default function AccessoriesPage() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="inventory.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Accessories</h1>
@@ -196,6 +197,7 @@ export default function AccessoriesPage() {
         enablePagination={true}
         pageSize={20}
       />
-    </div>
+    </div></PermissionGate>
+
   );
 }

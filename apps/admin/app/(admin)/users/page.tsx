@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, Loader2, History } from 'lucide-react';
 import { FinancialAccessAuditLog } from '@/components/users/FinancialAccessAuditLog';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
@@ -230,7 +231,7 @@ export default function UsersPage() {
   const inputCls = 'input w-full text-sm';
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="users.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Users & Employees</h1>
@@ -397,9 +398,10 @@ export default function UsersPage() {
                 Create User
               </Button>
             </div>
-          </div>
-        </div>
+          </div>        </div>
       )}
-    </div>
+    </div></PermissionGate>
   );
+
+
 }

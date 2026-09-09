@@ -16,6 +16,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { toast } from 'react-hot-toast';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -635,7 +636,7 @@ function ProviderCard({
 
 // ─── Main Page ──────────────────────────────────────────────────────────
 
-export default function EmiAdminPage() {
+function EmiAdminPage() {
   const qc = useQueryClient();
   const [expandedProviderIds, setExpandedProviderIds] = useState<Set<string>>(new Set());
   const [providerModal, setProviderModal] = useState<ProviderModal>({ open: false, edit: null });
@@ -909,5 +910,13 @@ export default function EmiAdminPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function EmiAdminPageWrapper() {
+  return (
+    <PermissionGate permission="emi.view">
+      <EmiAdminPage />
+    </PermissionGate>
   );
 }

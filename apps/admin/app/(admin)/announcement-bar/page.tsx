@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import toast from 'react-hot-toast';
 import { Loader2, Save, Eye, EyeOff, X, ExternalLink } from 'lucide-react';
 
@@ -93,7 +94,7 @@ export default function AnnouncementBarPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
+    <PermissionGate permission="content.view"><div className="space-y-6 animate-fade-in max-w-3xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Announcement Bar</h1>
@@ -299,6 +300,7 @@ export default function AnnouncementBarPage() {
           </span>
         </div>
       </div>
-    </div>
+    </div></PermissionGate>
+
   );
 }

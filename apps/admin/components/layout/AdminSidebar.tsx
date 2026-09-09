@@ -120,29 +120,20 @@ export function AdminSidebar() {
     '/buyback': 'buyback.view',
     '/price-guide': 'inventory.view',
     '/returns': 'returns.view',
-    '/coupons': 'sales.view',
-    '/emi': 'sales.view',
-    '/refunds': 'sales.view',
+    '/coupons': 'coupons.view',
+    '/emi': 'emi.view',
+    '/refunds': 'returns.view',
     '/reports': 'reports.view',
     '/gst': 'financial.view',
     '/notifications': 'notifications.view',
     '/users': 'users.view',
-    '/brands': 'branches.view',
+    '/brands': 'content.view',
     '/announcement-bar': 'content.view',
-  };
-
-  // Items that require financial permission (hidden from non-financial users)
-  const isFinancialItem = (href: string) => {
-    return ['/gst', '/reports'].includes(href);
   };
 
   const isVisible = (href: string) => {
     const perm = navPermissionMap[href];
     if (!perm) return true; // no restriction
-    // Financial items require financial.view permission
-    if (isFinancialItem(href)) {
-      return hasPermission('financial.view');
-    }
     return hasPermission(perm);
   };
 
@@ -238,8 +229,8 @@ export function AdminSidebar() {
         {/* Divider */}
         <div className="my-3 mx-3 h-px bg-surface-800" />
 
-        {/* Banner Management dropdown — visible to users with banners.view */}
-        {hasPermission('banners.view') && (
+        {/* Banner Management dropdown — visible to users with content.view */}
+        {hasPermission('content.view') && (
           <div>
             <button
               onClick={() => setBannersOpen(!bannersOpen)}

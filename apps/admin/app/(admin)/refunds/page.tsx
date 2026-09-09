@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { RefreshCw, Search, RotateCcw, Loader2, ShieldAlert } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -99,7 +100,7 @@ export default function AdminRefundsPage() {
     return true;
   });
 
-  return (        <div className="space-y-5 animate-fade-in">
+  return (<PermissionGate permission="returns.view"><div className="space-y-5 animate-fade-in">
       <div>
         <h1 className="heading-sm text-surface-900">Refunds</h1>
         <p className="text-sm text-surface-500 mt-1">
@@ -330,6 +331,6 @@ export default function AdminRefundsPage() {
           </div>
         </div>
       )}
-    </div>
+    </div></PermissionGate>
   );
 }

@@ -190,12 +190,24 @@ export default function ProductCardDefault({ product: p, variant = 'grid', index
           </span>
         )}
         {img ? (
-          <img
-            src={img}
-            alt={name}
-            className={`w-full h-full object-contain ${padding} transition-transform duration-500 ease-out group-hover:scale-110`}
-            loading="lazy"
-          />
+          <>
+            <img
+              src={img}
+              alt={name}
+              className={`w-full h-full object-contain ${padding} transition-transform duration-500 ease-out group-hover:scale-110`}
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div
+              className={`w-full h-full absolute inset-0 flex items-center justify-center bg-gradient-to-br from-surface-50 to-surface-100 ${padding}`}
+              aria-hidden="true"
+            >
+              <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" />
+              </svg>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg className="w-14 h-14 text-surface-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

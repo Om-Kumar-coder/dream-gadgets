@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, FileText, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Plus, FileText, CheckCircle, XCircle, Eye, Search, Package, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
@@ -225,8 +225,10 @@ export default function TransfersPage() {
   const CreateTransferForm = () => {
     const [fromBranchId, setFromBranchId] = useState('');
     const [toBranchId, setToBranchId] = useState('');
-    const [itemIds, setItemIds] = useState('');
     const [notes, setNotes] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [availableItems, setAvailableItems] = useState<Array<{ id: string; imei: string; brand: string; model: string; sellingPrice: number }>>([]);
+    const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
     // Load branches dynamically from API
     const { data: branchesData } = useQuery({
@@ -238,6 +240,37 @@ export default function TransfersPage() {
     });
     const branches: Array<{ id: string; name: string }> = Array.isArray(branchesData) ? branchesData : [];
 
+    // Search available items in source branch for transfer
+    const { data: searchResults } = useQuery({
+      queryKey: ['transfer-item-search', fromBranchId, searchQuery],
+      queryFn: async () => {
+        if (!fromBranchId || searchQuery.length < 2) return [];
+        const { data } = await apiClient.get('/inventory', {
+          params: { branchId: fromBranchId, search: searchQuery, status: 'available', limit: 50 },
+        });
+        return (data?.data ?? []) as Array<{ id: string; imei: string; brand?: { name: string }; model?: { name: string }; sellingPrice?: number | null }>;
+      },
+      enabled: !!fromBranchId && searchQuery.length >= 2,
+    });
+
+    useEffect(() => {
+      if (Array.isArray(searchResults)) {
+        setAvailableItems(searchResults.map((item) => ({
+          id: item.id,
+          imei: item.imei,
+          brand: item.brand?.name ?? '',
+          model: item.model?.name ?? '',
+          sellingPrice: Number(item.sellingPrice ?? 0),
+        }));
+      }
+    }, [searchResults]);
+
+    const toggleItem = (id: string) => {
+      setSelectedItemIds((prev) =>
+        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      );
+    };
+
     return (
       <Form
         onSubmit={(e) => {
@@ -246,10 +279,14 @@ export default function TransfersPage() {
             toast.error('Source and destination branches must be different');
             return;
           }
+          if (selectedItemIds.length === 0) {
+            toast.error('Select at least one item to transfer');
+            return;
+          }
           createMutation.mutate({
             fromBranchId,
             toBranchId,
-            itemIds: itemIds.split(',').map(s => s.trim()).filter(Boolean),
+            itemIds: selectedItemIds,
             notes: notes || undefined,
           });
         }}
@@ -259,7 +296,12 @@ export default function TransfersPage() {
             <FormField label="From Branch" required>
               <select
                 value={fromBranchId}
-                onChange={(e) => setFromBranchId(e.target.value)}
+                onChange={(e) => {
+                  setFromBranchId(e.target.value);
+                  setSelectedItemIds([]);
+                  setAvailableItems([]);
+                  setSearchQuery('');
+                }}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
@@ -283,16 +325,99 @@ export default function TransfersPage() {
               </select>
             </FormField>
           </div>
-          <FormField label="Item IDs (comma-separated)" required>
-            <input
-              type="text"
-              value={itemIds}
-              onChange={(e) => setItemIds(e.target.value)}
-              placeholder="uuid1, uuid2, ..."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </FormField>
+
+          {/* Structured item selection */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">
+              Items to Transfer ({selectedItemIds.length} selected)
+            </label>
+
+            {/* Search input */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by IMEI, brand, or model…"
+                className="w-full border border-gray-200 rounded-lg px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {selectedItemIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedItemIds([])}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-400 hover:text-red-500"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Selected items summary */}
+            {selectedItemIds.length > 0 && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs font-medium text-blue-700 mb-1">Selected Items:</p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {selectedItemIds.map((id) => {
+                    const item = availableItems.find((i) => i.id === id);
+                    return (
+                      <div key={id} className="flex items-center justify-between text-xs">
+                        <span className="font-mono text-surface-600">{item?.imei}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleItem(id)}
+                          className="text-surface-400 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Search results */}
+            {availableItems.length > 0 && (
+              <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                {availableItems.map((item) => (
+                  <label
+                    key={item.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 hover:bg-surface-50 cursor-pointer border-b border-surface-100 last:border-0 transition-colors ${
+                      selectedItemIds.includes(item.id) ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedItemIds.includes(item.id)}
+                      onChange={() => toggleItem(item.id)}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-700 truncate">
+                        {item.brand} {item.model}
+                      </p>
+                      <p className="text-xs text-surface-400 font-mono">{item.imei}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-surface-700">
+                        ₹{item.sellingPrice.toLocaleString()}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {searchQuery.length >= 2 && availableItems.length === 0 && (
+              <p className="text-sm text-surface-400 py-2">No available items found in source branch.</p>
+            )}
+
+            {searchQuery.length < 2 && selectedItemIds.length === 0 && (
+              <p className="text-sm text-surface-400 py-2">Search for items to add them to the transfer.</p>
+            )}
+          </div>
+
           <FormField label="Notes">
             <textarea
               value={notes}

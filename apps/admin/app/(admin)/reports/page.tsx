@@ -5,6 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { TrendingUp, Package, ShoppingCart, Users, Download, FileText } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { Button } from '@dream-gadgets/ui';
 
 const REPORT_TYPES = [
@@ -85,7 +86,7 @@ export default function ReportsPage() {
   const kpis = dashboard?.data;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PermissionGate permission="reports.view"><div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="heading-sm text-surface-900">Reports & Analytics</h1>
         <p className="text-sm text-surface-500 mt-0.5">
@@ -219,6 +220,6 @@ export default function ReportsPage() {
           ))}
         </div>
       </div>
-    </div>
+    </div></PermissionGate>
   );
 }

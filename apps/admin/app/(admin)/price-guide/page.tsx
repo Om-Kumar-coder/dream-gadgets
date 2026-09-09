@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Loader2, Save, Trash2, History, Tag, TrendingUp } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { toast } from 'react-hot-toast';
 
 const CONDITIONS = [
@@ -149,7 +150,7 @@ export default function PriceGuidePage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PermissionGate permission="inventory.view"><div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="heading-sm text-surface-900">Buyback Price Guide</h1>
         <p className="text-sm text-surface-500 mt-1">
@@ -327,6 +328,7 @@ export default function PriceGuidePage() {
           </div>
         )}
       </div>
-    </div>
+    </div></PermissionGate>
+
   );
 }

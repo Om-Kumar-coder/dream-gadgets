@@ -4,6 +4,25 @@ import { randomInt, timingSafeEqual } from 'crypto';
 import { RedisService } from '../../../common/redis/redis.service';
 import { normalizePhone, formatPhoneWithoutPlus } from '../../../common/utils/phone';
 
+interface NormalizedPhone {
+  digits: string;
+  countryCode: string;
+}
+
+function normalizeAndValidatePhone(phone: string): NormalizedPhone {
+  const cleaned = phone.trim().replace(/[^+\d]/g, '');
+  if (!cleaned) throw new Error('Phone number is empty');
+  // Require a country code prefix (e.g. +91 for India).
+  if (!cleaned.startsWith('+')) {
+    throw new Error('Phone number must include country code (e.g. +91)');
+  }
+  const digits = cleaned.slice(1);
+  if (digits.length < 10) throw new Error('Phone number too short');
+  if (!/^\d+$/.test(digits)) throw new Error('Phone number contains invalid characters');
+  const countryCode = '+' + digits.slice(0, 2);
+  return { digits, countryCode };
+}
+
 export interface Msg91OtpResult {
   success: boolean;
   status: string;
@@ -33,24 +52,31 @@ export class Msg91OtpService {
    * Falls back to a dev log when MSG91 is not configured.
    */
   async sendOtp(phone: string): Promise<Msg91OtpResult> {
+    // Validate early so we return an actionable error instead of a generic
+    // "Failed to send OTP" when the number is malformed or missing a country code.
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizeAndValidatePhone(phone).digits;
+    } catch (err: any) {
+      this.logger.warn(`[MSG91] Rejected OTP request for invalid phone "${phone}": ${err?.message}`);
+      return {
+        success: false,
+        status: 'failed',
+        error: err?.message ?? 'Invalid phone number',
+      };
+    }
+
     const authKey = this.configService.get<string>('MSG91_AUTH_KEY');
     const templateId = this.configService.get<string>('MSG91_TEMPLATE_ID');
 
-    // Generate & store the OTP first so verification works even if SMS fails
-    const otp = this.generateOtp();
-    const ttl = this.getOtpTtlSeconds();
-    const keyPhone = normalizePhone(phone);
-    await this.redisService.setOtp(keyPhone, otp, ttl);
-    // A fresh OTP resets the brute-force counter (resend shouldn't inherit old failures)
-    await this.redisService.clearOtpAttempts(keyPhone);
-
+    // Do not generate/spend an OTP until we know the provider is configured.
+    // Generating first leaves a valid OTP in Redis that the user never receives.
     if (!authKey || !templateId) {
       // Never silently fall back to dev-mode in production — fail loudly so a
       // misconfigured deployment is obvious instead of leaving users stuck with
       // an OTP that is stored but never delivered.
       if (process.env.NODE_ENV === 'production') {
-        this.logger.error(`[MSG91] MSG91 not configured in production — cannot send OTP to ${phone}`);
-        await this.redisService.delOtp(keyPhone);
+        this.logger.error(`[MSG91] MSG91 not configured in production — cannot send OTP to ${normalizedPhone}`);
         return {
           success: false,
           status: 'failed',
@@ -58,9 +84,10 @@ export class Msg91OtpService {
         };
       }
 
-      this.logger.log(`[DEV] Would send OTP to ${phone}: ${otp}`);
-      // Expose the OTP in non-production environments so local/CI testing can
-      // complete the flow without real SMS.
+      // Expose the OTP only in non-production environments so local/CI testing
+      // can complete the flow without real SMS.
+      const otp = this.generateOtp();
+      this.logger.log(`[DEV] Would send OTP to ${normalizedPhone}: ${otp}`);
       return {
         success: true,
         status: 'dev-mode',
@@ -68,8 +95,34 @@ export class Msg91OtpService {
       };
     }
 
+    // Prevent rapid repeated requests from hammering the provider and confusing
+    // the user with rate-limit failures after each typed character.
+    const keyPhone = normalizedPhone;
+    const resendCooldownSeconds = parseInt(this.configService.get<string>('OTP_RESEND_COOLDOWN_SECONDS') ?? '', 10) || 10;
     try {
-      const mobile = formatPhoneWithoutPlus(phone);
+      const existingAttempts = await this.redisService.get(`otp:resend:${keyPhone}`);
+      if (existingAttempts) {
+        return {
+          success: false,
+          status: 'failed',
+          error: `Please wait ${resendCooldownSeconds}s before requesting another OTP`,
+        };
+      }
+      await this.redisService.set(`otp:resend:${keyPhone}`, '1', { EX: resendCooldownSeconds });
+    } catch {
+      // Redis unavailable during cooldown check is not a hard block — log and continue.
+      this.logger.warn(`[MSG91] Could not check resend cooldown for ${normalizedPhone}`);
+    }
+
+    // Generate & store the OTP only when we are about to send.
+    const otp = this.generateOtp();
+    const ttl = this.getOtpTtlSeconds();
+    await this.redisService.setOtp(keyPhone, otp, ttl);
+    // A fresh OTP resets the brute-force counter (resend shouldn't inherit old failures)
+    await this.redisService.clearOtpAttempts(keyPhone);
+
+    try {
+      const mobile = formatPhoneWithoutPlus(normalizedPhone);
       // MSG91 caps otp_expiry at 15 minutes; clamp to keep Redis TTL and
       // MSG91 expiry in sync even if MSG91_OTP_TTL is misconfigured.
       const expiryMinutes = Math.min(15, Math.max(1, Math.ceil(ttl / 60)));
@@ -98,12 +151,14 @@ export class Msg91OtpService {
         // Distinguish transport/auth failures (HTTP error + non-JSON body)
         // from MSG91-level template errors.
         const raw = await response.text().catch(() => '');
-        this.logger.error(`[MSG91] HTTP ${response.status} sending OTP to ${mobile}: ${raw.slice(0, 300)}`);
+        this.logger.error(
+          `[MSG91] HTTP ${response.status} sending OTP to ${mobile}: ${raw.slice(0, 300)}`,
+        );
         await this.redisService.delOtp(keyPhone);
         return {
           success: false,
           status: 'failed',
-          error: `MSG91 HTTP ${response.status}`,
+          error: `SMS provider returned HTTP ${response.status}`,
         };
       }
 
@@ -127,15 +182,15 @@ export class Msg91OtpService {
       return {
         success: false,
         status: 'failed',
-        error: data.message ?? 'MSG91 send failed',
+        error: data.message ?? 'SMS provider failed to send OTP',
       };
     } catch (err: any) {
-      this.logger.error(`[MSG91] Failed to send OTP to ${phone}: ${err?.message}`);
+      this.logger.error(`[MSG91] Failed to send OTP to ${normalizedPhone}: ${err?.message}`);
       await this.redisService.delOtp(keyPhone);
       return {
         success: false,
         status: 'failed',
-        error: err?.message ?? 'Unknown MSG91 error',
+        error: err?.message ?? 'SMS provider request failed',
       };
     }
   }

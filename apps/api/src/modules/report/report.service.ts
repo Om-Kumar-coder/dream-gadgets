@@ -132,7 +132,7 @@ export class ReportService {
       `, [today, tomorrow]).catch(() => [{ count: 0 }]);
 
       const todaySalesValue = parseFloat(salesResult?.value ?? '0');
-      const todayPurchasesValue = 0;
+      const todayPurchasesValue = 0; // TODO: purchase valuation not tracked yet
       const netIncome = todaySalesValue - todayPurchasesValue;
 
       return {
@@ -358,11 +358,12 @@ export class ReportService {
       SELECT
         s.invoice_number, s.sale_date, s.total_amount,
         s.tax_amount,
-        s.tax_amount / 2 AS cgst_amount,
-        s.tax_amount / 2 AS sgst_amount,
-        0 AS igst_amount,
+        CASE WHEN s.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS cgst_amount,
+        CASE WHEN s.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS sgst_amount,
+        CASE WHEN s.is_inter_state THEN s.tax_amount ELSE 0 END AS igst_amount,
         b.gstin AS branch_gstin,
-        b.state AS place_of_supply
+        b.state AS place_of_supply,
+        CASE WHEN s.is_inter_state THEN 'IGST' ELSE 'CGST+SGST' END AS tax_type
       FROM sales s
       LEFT JOIN branches b ON b.id = s.branch_id
       WHERE s.sale_date BETWEEN $1 AND $2

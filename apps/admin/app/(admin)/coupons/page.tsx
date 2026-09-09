@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { Plus, ToggleLeft, ToggleRight, Trash2, Calendar, Tag } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
@@ -165,7 +166,7 @@ export default function CouponsPage() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PermissionGate permission="coupons.view"><div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-sm text-surface-900">Coupons</h1>
@@ -188,6 +189,7 @@ export default function CouponsPage() {
         enablePagination={true}
         pageSize={20}
       />
-    </div>
+    </div></PermissionGate>
+
   );
 }
