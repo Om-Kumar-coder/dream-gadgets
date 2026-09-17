@@ -5,6 +5,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ClientService } from './client.service';
 import { Client } from './entities/client.entity';
+import { NotificationService } from '../notification/notification.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -66,16 +67,22 @@ describe('ClientService', () => {
   let service: ClientService;
   let clientRepo: any;
   let dataSource: any;
+  let notificationService: any;
 
   beforeEach(async () => {
     clientRepo = makeClientRepo();
     dataSource = makeDataSource();
+    notificationService = {
+      sendEmail: (jest.fn() as any).mockResolvedValue(undefined),
+      sendWhatsApp: (jest.fn() as any).mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClientService,
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: DataSource, useValue: dataSource },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 

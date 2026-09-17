@@ -298,14 +298,18 @@ export class InventoryService {
 
     // Enforce: an item cannot be published online without a selling price.
     // This prevents incomplete catalogue records from reaching the storefront.
-    if (item.isOnline && !item.sellingPrice) {
+    // Validate the POST-toggle state: checking the pre-toggle state would block
+    // taking an item offline (it is online at that point) while still allowing
+    // a priceless record to be published.
+    const nextOnline = !item.isOnline;
+    if (nextOnline && !item.sellingPrice) {
       throw new BadRequestException({
         code: 'NO_SELLING_PRICE',
         message: `Cannot list item ${item.imei} online — selling price is not set. Set a selling price before publishing.`,
       });
     }
 
-    item.isOnline = !item.isOnline;
+    item.isOnline = nextOnline;
     const saved = await this.itemRepo.save(item);
 
     // Enqueue search index sync

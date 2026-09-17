@@ -476,7 +476,7 @@ describe('InventoryService', () => {
 
   describe('toggleOnline()', () => {
     it('should toggle isOnline from false to true', async () => {
-      const item = makeItem({ isOnline: false });
+      const item = makeItem({ isOnline: false, sellingPrice: 15000 });
       (itemRepo.findOne as any).mockResolvedValue(item);
       (itemRepo.save as any).mockResolvedValue({ ...item, isOnline: true });
 
@@ -485,7 +485,26 @@ describe('InventoryService', () => {
     });
 
     it('should toggle isOnline from true to false', async () => {
-      const item = makeItem({ isOnline: true });
+      const item = makeItem({ isOnline: true, sellingPrice: 15000 });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+      (itemRepo.save as any).mockResolvedValue({ ...item, isOnline: false });
+
+      const result = await service.toggleOnline(item.id, 'user-1');
+      expect(result.isOnline).toBe(false);
+    });
+
+    it('should reject publishing an item without a selling price', async () => {
+      const item = makeItem({ isOnline: false, sellingPrice: undefined });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+
+      await expect(service.toggleOnline(item.id, 'user-1')).rejects.toMatchObject({
+        response: { code: 'NO_SELLING_PRICE' },
+      });
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should allow taking an item offline even without a selling price', async () => {
+      const item = makeItem({ isOnline: true, sellingPrice: undefined });
       (itemRepo.findOne as any).mockResolvedValue(item);
       (itemRepo.save as any).mockResolvedValue({ ...item, isOnline: false });
 

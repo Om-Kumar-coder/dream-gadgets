@@ -2,26 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt, timingSafeEqual } from 'crypto';
 import { RedisService } from '../../../common/redis/redis.service';
-import { normalizePhone, formatPhoneWithoutPlus } from '../../../common/utils/phone';
-
-interface NormalizedPhone {
-  digits: string;
-  countryCode: string;
-}
-
-function normalizeAndValidatePhone(phone: string): NormalizedPhone {
-  const cleaned = phone.trim().replace(/[^+\d]/g, '');
-  if (!cleaned) throw new Error('Phone number is empty');
-  // Require a country code prefix (e.g. +91 for India).
-  if (!cleaned.startsWith('+')) {
-    throw new Error('Phone number must include country code (e.g. +91)');
-  }
-  const digits = cleaned.slice(1);
-  if (digits.length < 10) throw new Error('Phone number too short');
-  if (!/^\d+$/.test(digits)) throw new Error('Phone number contains invalid characters');
-  const countryCode = '+' + digits.slice(0, 2);
-  return { digits, countryCode };
-}
+import {
+  normalizePhone,
+  normalizeAndValidatePhone,
+  formatPhoneWithoutPlus,
+} from '../../../common/utils/phone';
 
 export interface Msg91OtpResult {
   success: boolean;
@@ -54,6 +39,7 @@ export class Msg91OtpService {
   async sendOtp(phone: string): Promise<Msg91OtpResult> {
     // Validate early so we return an actionable error instead of a generic
     // "Failed to send OTP" when the number is malformed or missing a country code.
+    // Uses the shared util: bare 10-digit numbers are treated as Indian (+91).
     let normalizedPhone: string;
     try {
       normalizedPhone = normalizeAndValidatePhone(phone).digits;
@@ -87,6 +73,9 @@ export class Msg91OtpService {
       // Expose the OTP only in non-production environments so local/CI testing
       // can complete the flow without real SMS.
       const otp = this.generateOtp();
+      const ttl = this.getOtpTtlSeconds();
+      await this.redisService.setOtp(normalizedPhone, otp, ttl);
+      await this.redisService.clearOtpAttempts(normalizedPhone);
       this.logger.log(`[DEV] Would send OTP to ${normalizedPhone}: ${otp}`);
       return {
         success: true,

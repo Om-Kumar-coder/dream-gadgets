@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ReturnService } from './return.service';
 import { EventService } from '../../common/events/event.service';
+import { RedisService } from '../../common/redis/redis.service';
 import { Return } from './entities/return.entity';
 import { Sale } from '../sales/entities/sale.entity';
 import { SaleItem } from '../sales/entities/sale-item.entity';
@@ -153,6 +154,13 @@ describe('ReturnService', () => {
           provide: EventService,
           useValue: {
             emitReturnCreated: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: (jest.fn() as any).mockResolvedValue(null),
+            set: (jest.fn() as any).mockResolvedValue(undefined),
           },
         },
       ],

@@ -8,6 +8,27 @@ import { PaymentService } from './payment.service';
 import { Payment } from '../sales/entities/payment.entity';
 import { OnlineOrder } from '../sales/entities/online-order.entity';
 import { NotificationService } from '../notification/notification.service';
+import { RedisService } from '../../common/redis/redis.service';
+import { EventService } from '../../common/events/event.service';
+
+// The Razorpay SDK is installed in the test env, so mock it to avoid real API calls.
+jest.mock('razorpay', () => {
+  const ordersCreate = jest.fn();
+  const paymentsRefund = jest.fn();
+  const Razorpay: any = jest.fn().mockImplementation(() => ({
+    orders: { create: ordersCreate },
+    payments: { refund: paymentsRefund },
+  }));
+  // Expose shared mocks so tests can program responses / assert calls
+  (Razorpay as any).ordersCreate = ordersCreate;
+  (Razorpay as any).paymentsRefund = paymentsRefund;
+  return Razorpay;
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const RazorpayMock: any = jest.requireMock('razorpay');
+const mockOrdersCreate = RazorpayMock.ordersCreate;
+const mockPaymentsRefund = RazorpayMock.paymentsRefund;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -52,10 +73,14 @@ describe('PaymentService', () => {
   let orderRepo: any;
   let configService: any;
   let notificationService: any;
+  let redisService: any;
+  let eventService: any;
 
   const WEBHOOK_SECRET = 'test_webhook_secret';
 
   beforeEach(async () => {
+    mockOrdersCreate.mockReset();
+    mockPaymentsRefund.mockReset();
     paymentRepo = makePaymentRepo();
     orderRepo = {
       findOne: jest.fn() as any,
@@ -78,6 +103,13 @@ describe('PaymentService', () => {
       sendEmail: (jest.fn() as any).mockResolvedValue(undefined),
       sendSms: (jest.fn() as any).mockResolvedValue(undefined),
     };
+    redisService = {
+      isWebhookProcessed: (jest.fn() as any).mockResolvedValue(false),
+      setWebhookIdempotency: (jest.fn() as any).mockResolvedValue(undefined),
+    };
+    eventService = {
+      emitPaymentConfirmed: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -86,6 +118,8 @@ describe('PaymentService', () => {
         { provide: getRepositoryToken(OnlineOrder), useValue: orderRepo },
         { provide: ConfigService, useValue: configService },
         { provide: NotificationService, useValue: notificationService },
+        { provide: RedisService, useValue: redisService },
+        { provide: EventService, useValue: eventService },
       ],
     }).compile();
 
@@ -111,23 +145,31 @@ describe('PaymentService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should return a mock order when Razorpay is unavailable', async () => {
-      // Razorpay package may not be installed in test env — service handles gracefully
+    it('should create an order via the Razorpay SDK', async () => {
+      mockOrdersCreate.mockResolvedValue({ id: 'order_new_1', amount: 50000, currency: 'INR' });
+
       const result = await service.createRazorpayOrder({ amount: 50000, currency: 'INR' });
 
       expect(result).toBeDefined();
-      expect(result.orderId).toBeDefined();
+      expect(result.orderId).toBe('order_new_1');
       expect(result.amount).toBe(50000);
       expect(result.currency).toBe('INR');
+      expect(mockOrdersCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 50000, currency: 'INR' }),
+      );
     });
 
     it('should include receipt when provided', async () => {
+      mockOrdersCreate.mockResolvedValue({ id: 'order_new_2', amount: 10000, currency: 'INR', receipt: 'receipt_001' });
+
       const result = await service.createRazorpayOrder({
         amount: 10000,
-        receipt: 'receipt_001',
-      });
+        receipt: 'receipt_001',      });
 
       expect(result.receipt).toBe('receipt_001');
+      expect(mockOrdersCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ receipt: 'receipt_001' }),
+      );
     });
   });
 
@@ -208,12 +250,6 @@ describe('PaymentService', () => {
 
       (paymentRepo.update as any).mockResolvedValue({ affected: 1 });
 
-      // Mock Redis to avoid connection
-      (service as any).redisClient = {
-        get: (jest.fn() as any).mockResolvedValue(null),
-        set: (jest.fn() as any).mockResolvedValue('OK'),
-      };
-
       const result = await service.handleWebhook(rawBody, signature, event);
 
       expect(result.processed).toBe(true);
@@ -226,11 +262,6 @@ describe('PaymentService', () => {
       const signature = buildSignature(rawBody, WEBHOOK_SECRET);
 
       (paymentRepo.update as any).mockResolvedValue({ affected: 1 });
-
-      (service as any).redisClient = {
-        get: (jest.fn() as any).mockResolvedValue(null),
-        set: (jest.fn() as any).mockResolvedValue('OK'),
-      };
 
       await service.handleWebhook(rawBody, signature, event);
 
@@ -247,11 +278,6 @@ describe('PaymentService', () => {
 
       (paymentRepo.update as any).mockResolvedValue({ affected: 1 });
 
-      (service as any).redisClient = {
-        get: (jest.fn() as any).mockResolvedValue(null),
-        set: (jest.fn() as any).mockResolvedValue('OK'),
-      };
-
       await service.handleWebhook(rawBody, signature, event);
 
       expect(paymentRepo.update).toHaveBeenCalledWith(
@@ -267,11 +293,8 @@ describe('PaymentService', () => {
       const rawBody = JSON.stringify(event);
       const signature = buildSignature(rawBody, WEBHOOK_SECRET);
 
-      // Redis returns a value — already processed
-      (service as any).redisClient = {
-        get: (jest.fn() as any).mockResolvedValue('1'),
-        set: (jest.fn() as any).mockResolvedValue('OK'),
-      };
+      // Redis reports the webhook as already processed
+      (redisService.isWebhookProcessed as any).mockResolvedValue(true);
 
       const result = await service.handleWebhook(rawBody, signature, event);
 
@@ -288,18 +311,11 @@ describe('PaymentService', () => {
 
       (paymentRepo.update as any).mockResolvedValue({ affected: 1 });
 
-      const mockRedis = {
-        get: (jest.fn() as any).mockResolvedValue(null),
-        set: (jest.fn() as any).mockResolvedValue('OK'),
-      };
-      (service as any).redisClient = mockRedis;
-
       await service.handleWebhook(rawBody, signature, event);
 
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        expect.stringContaining('webhook:processed:pay_new'),
-        '1',
-        expect.objectContaining({ EX: expect.any(Number) }),
+      expect(redisService.setWebhookIdempotency).toHaveBeenCalledWith(
+        'pay_new',
+        expect.any(Number),
       );
     });
   });
@@ -317,15 +333,20 @@ describe('PaymentService', () => {
       ).rejects.toMatchObject({ response: { code: 'MISSING_PAYMENT_ID' } });
     });
 
-    it('should return a mock refund when Razorpay is unavailable', async () => {
+    it('should create a refund via the Razorpay SDK', async () => {
+      mockPaymentsRefund.mockResolvedValue({ id: 'rfnd_test_1', amount: 5000, status: 'processed' });
+
       const result = await service.createRefund({ paymentId: 'pay_test_123', amount: 5000 });
 
       expect(result).toBeDefined();
-      expect(result.refundId).toBeDefined();
-      expect(result.status).toBeDefined();
+      expect(result.refundId).toBe('rfnd_test_1');
+      expect(result.status).toBe('processed');
+      expect(mockPaymentsRefund).toHaveBeenCalledWith('pay_test_123', expect.objectContaining({ amount: 5000 }));
     });
 
     it('should include amount in refund when provided', async () => {
+      mockPaymentsRefund.mockResolvedValue({ id: 'rfnd_test_2', amount: 5000, status: 'processed' });
+
       const result = await service.createRefund({ paymentId: 'pay_test_123', amount: 5000 });
 
       expect(result.amount).toBe(5000);

@@ -5,6 +5,7 @@ import request from 'supertest';
 import { AuthGuard } from '@nestjs/passport';
 import { GstController } from './gst.controller';
 import { GstService, GstSummary } from './gst.service';
+import { PermissionGuard } from '../../common/guards/permission.guard';
 
 // ─── Mock GstService ──────────────────────────────────────────────────────────
 
@@ -100,6 +101,8 @@ describe('GstController (integration)', () => {
       ],
     })
       .overrideGuard(AuthGuard('jwt'))
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
