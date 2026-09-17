@@ -1,24 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-
-// Indian state codes for GST
-const STATE_CODES: Record<string, string> = {
-  'Jammu and Kashmir': '01', 'Himachal Pradesh': '02', 'Punjab': '03', 'Chandigarh': '04',
-  'Uttarakhand': '05', 'Haryana': '06', 'Delhi': '07', 'Rajasthan': '08',
-  'Uttar Pradesh': '09', 'Bihar': '10', 'Sikkim': '11', 'Arunachal Pradesh': '12',
-  'Nagaland': '13', 'Manipur': '14', 'Mizoram': '15', 'Tripura': '16',
-  'Meghalaya': '17', 'Assam': '18', 'West Bengal': '19', 'Jharkhand': '20',
-  'Odisha': '21', 'Chhattisgarh': '22', 'Madhya Pradesh': '23', 'Gujarat': '24',
-  'Daman and Diu': '25', 'Dadra and Nagar Haveli': '26', 'Maharashtra': '27',
-  'Andhra Pradesh': '28', 'Karnataka': '29', 'Goa': '30', 'Lakshadweep': '31',
-  'Kerala': '32', 'Tamil Nadu': '33', 'Puducherry': '34', 'Andaman and Nicobar': '35',
-  'Telangana': '36', 'Andhra Pradesh (New)': '37', 'Ladakh': '38',
-  // Short forms
-  'WB': '19', 'MH': '27', 'KA': '29', 'TN': '33', 'UP': '09',
-  'BR': '10', 'RJ': '08', 'MP': '23', 'GJ': '24', 'AP': '28',
-  'TS': '36', 'KL': '32', 'HR': '06', 'PB': '03', 'CT': '22',
-};
+import { getStateCode } from '../../common/utils/state-codes';
 
 const B2CL_THRESHOLD = 250000; // ₹2.5 lakh
 
@@ -498,8 +481,7 @@ export class GstService {
   }
 
   private getStateCode(state: string): string {
-    if (!state) return '99'; // Other territory
-    return STATE_CODES[state.trim()] ?? STATE_CODES[state.trim().toUpperCase()] ?? '99';
+    return getStateCode(state); // shared util — same behavior
   }
 
   private computeTaxBreakup(
