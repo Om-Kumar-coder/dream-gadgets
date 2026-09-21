@@ -156,7 +156,14 @@ export default function ExchangePage() {
     queryKey: ['branches-list'],
     queryFn: async () => {
       const { data } = await apiClient.get('/public/branches');
-      return data?.data ?? data ?? [];
+      // API shape: { status, data: { data: [...] } } — unwrap both levels;
+      // the previous `data?.data ?? data` returned the inner wrapper object,
+      // which failed the Array.isArray check below and left the branch
+      // dropdowns permanently empty.
+      const raw = data?.data ?? data ?? [];
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray((raw as any)?.data)) return (raw as any).data;
+      return [];
     },
   });
   const branches: Array<{ id: string; name: string }> = Array.isArray(branchesData) ? branchesData : [];
