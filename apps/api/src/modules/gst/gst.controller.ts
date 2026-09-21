@@ -53,7 +53,10 @@ export class GstController {
   ) {
     const report = await this.gstService.generateItcReport(from, to, branchId);
 
-    return { status: 'success', ...report };
+    // Standard envelope shape — the global TransformInterceptor passes objects
+    // with a `status` key through untouched, so the report must live under
+    // `data` (spreading it flat gets double-wrapped by the interceptor).
+    return { status: 'success', data: report };
   }
 
   @Get('gstr1/export')

@@ -217,7 +217,7 @@ describe('GstController (integration)', () => {
         .query({ from: '2025-01-01', to: '2025-01-31' })
         .expect(200);
 
-      const summary = response.body.summary;
+      const summary = response.body.summary; // GSTR-1 envelope: { status, data, summary } — summary at top level
       expect(summary).toMatchObject({
         totalB2bInvoices: expect.any(Number),
         totalB2bValue: expect.any(Number),
@@ -314,10 +314,10 @@ describe('GstController (integration)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('status', 'success');
-      expect(Array.isArray(response.body.summary)).toBe(true);
-      expect(Array.isArray(response.body.invoices)).toBe(true);
-      expect(response.body.dataQuality).toHaveProperty('needsReview');
-      expect(response.body.dataQuality).toHaveProperty('count', 1);
+      expect(Array.isArray(response.body.data.summary)).toBe(true);
+      expect(Array.isArray(response.body.data.invoices)).toBe(true);
+      expect(response.body.data.dataQuality).toHaveProperty('needsReview');
+      expect(response.body.data.dataQuality).toHaveProperty('count', 1);
     });
 
     it('should return summary buckets with correct structure', async () => {
@@ -326,7 +326,7 @@ describe('GstController (integration)', () => {
         .query({ from: '2025-01-01', to: '2025-01-31' })
         .expect(200);
 
-      const period = response.body.summary[0];
+      const period = response.body.data.summary[0];
       expect(period).toMatchObject({
         period: expect.any(String),
         itcCgst: expect.any(Number),
@@ -342,7 +342,7 @@ describe('GstController (integration)', () => {
         .query({ from: '2025-01-01', to: '2025-01-31' })
         .expect(200);
 
-      const invoice = response.body.invoices[0];
+      const invoice = response.body.data.invoices[0];
       expect(invoice).toMatchObject({
         invoiceNumber: expect.any(String),
         vendorGstin: expect.any(String),

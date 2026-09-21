@@ -303,12 +303,11 @@ function ItcTabContent({
     queryKey: ['gst-itc', fromDate, toDate, branchId],
     queryFn: () =>
       apiClient
-        .get('/gst/itc', {
-          params: { from: fromDate, to: toDate, ...(branchId && { branchId }) },
+        .get('/gst/itc', {          params: { from: fromDate, to: toDate, ...(branchId && { branchId }) },
           timeout: 30000,
         })
-        .then((r) => r.data),
-  });
+        .then((r) => r.data?.data ?? r.data), // ITC envelope: { status, data: { summary, invoices, dataQuality } }
+    });
 
   const summary = data?.summary ?? [];
   const invoices = data?.invoices ?? [];
