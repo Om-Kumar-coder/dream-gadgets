@@ -1,7 +1,10 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddFollowUpToClients1700000000000 implements MigrationInterface {
-  name = '042-add-follow-up-to-clients';
+export class AddFollowUpToClients1757894400000 implements MigrationInterface {
+  // Name must carry the trailing timestamp TypeORM requires AND match the name
+  // already recorded in existing environments' migrations table (applied by an
+  // earlier server-side hotfix), so this migration is not re-executed there.
+  name = 'AddFollowUpToClients1757894400000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
