@@ -4,6 +4,9 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import {
+  requireValidGstinForRegisteredBranch,
+} from './branch-gstin.validation';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, Role, Branch } from '../auth/entities/user.entity';
@@ -60,6 +63,7 @@ export interface CreateBranchDto {
   mapUrl?: string;
   sortOrder?: number;
   gstin?: string;
+  isGstRegistered?: boolean;
   isActive?: boolean;
 }
 
@@ -77,6 +81,7 @@ export interface UpdateBranchDto {
   mapUrl?: string;
   sortOrder?: number;
   gstin?: string;
+  isGstRegistered?: boolean;
   isActive?: boolean;
 }
 
@@ -645,7 +650,7 @@ export class AdminService {
         b.phone, b.whatsapp, b.email, b.instagram,
         b.working_hours AS "workingHours", b.map_url AS "mapUrl",
         b.sort_order AS "sortOrder", b.is_active AS "isActive",
-        b.gstin, b.created_at AS "createdAt",
+        b.is_gst_registered AS "isGstRegistered", b.gstin, b.created_at AS "createdAt",
         (SELECT COUNT(*)::int FROM inventory_items ii WHERE ii.branch_id = b.id) AS "productCount"
       FROM branches b
       ORDER BY b.name ASC
@@ -659,18 +664,34 @@ export class AdminService {
       throw new ConflictException({ code: 'BRANCH_CODE_DUPLICATE', message: 'Branch code already exists' });
     }
 
+    // If the branch is being created as GST-registered, it must have a valid GSTIN.
+    requireValidGstinForRegisteredBranch({
+      isGstRegistered: dto.isGstRegistered ?? false,
+      gstin: dto.gstin ?? null,
+    });
+
     const branch = this.branchRepo.create({
       name: dto.name,
       code: dto.code,
       isActive: dto.isActive ?? true,
     });
 
+    Object.assign(branch, dto);
     return this.branchRepo.save(branch);
   }
 
   async updateBranch(id: string, dto: UpdateBranchDto): Promise<Branch> {
     const branch = await this.branchRepo.findOne({ where: { id } });
     if (!branch) throw new NotFoundException(`Branch ${id} not found`);
+
+    const nextRegistered = dto.isGstRegistered ?? branch.isGstRegistered;
+    const nextGstin = dto.gstin !== undefined && dto.gstin !== null ? dto.gstin : branch.gstin;
+
+    // If the branch is being marked GST-registered (or stays registered), it must have a valid GSTIN.
+    requireValidGstinForRegisteredBranch({
+      isGstRegistered: nextRegistered,
+      gstin: nextGstin ?? null,
+    });
 
     Object.assign(branch, dto);
     return this.branchRepo.save(branch);

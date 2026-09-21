@@ -73,6 +73,9 @@ export class Branch {
   @Column({ nullable: true, type: 'varchar' })
   gstin: string | null;
 
+  @Column({ name: 'is_gst_registered', default: false })
+  isGstRegistered: boolean;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

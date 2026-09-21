@@ -17,6 +17,7 @@ type Branch = {
   code: string;
   city: string | null;
   gstin: string | null;
+  isGstRegistered: boolean | null;
   isActive: boolean;
 };
 
@@ -90,20 +91,43 @@ export function SettingsPageContent() {
     {
       accessorKey: 'gstin',
       header: 'GSTIN',
-      cell: ({ row }) => <span className="text-sm">{row.original.gstin ?? '—'}</span>,
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {row.original.gstin ?? (
+            row.original.isGstRegistered ? (
+              <span className="text-red-600 font-medium">Missing</span>
+            ) : (
+              '—'
+            )
+          )}
+        </span>
+      ),
     },
     {
       accessorKey: 'isActive',
       header: 'Status',
       cell: ({ row }) => {
-        const status = row.original.isActive ? 'active' : 'inactive';
+        const gstStatus = row.original.isGstRegistered === true && !row.original.gstin
+          ? 'GST-registered but missing GSTIN'
+          : row.original.isGstRegistered === true
+            ? 'GST-registered'
+            : 'Not GST-registered';
+
         return (
-          <span className={`badge ${
-              status === 'active' ? 'badge-success' : 'badge-danger'
-            }`}
-          >
-            {status}
-          </span>
+          <div className="flex gap-2">
+            <span className={`badge ${
+              row.original.isActive ? 'badge-success' : 'badge-danger'
+            }`}>
+              {row.original.isActive ? 'Active' : 'Inactive'}
+            </span>
+            <span className={`text-xs ${
+              row.original.isGstRegistered && !row.original.gstin
+                ? 'text-red-600'
+                : 'text-surface-500'
+            }`}>
+              {gstStatus}
+            </span>
+          </div>
         );
       },
     },
