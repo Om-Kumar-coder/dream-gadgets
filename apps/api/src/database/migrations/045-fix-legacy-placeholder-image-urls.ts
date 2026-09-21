@@ -42,7 +42,7 @@ export class FixLegacyPlaceholderImageUrls1758000000045 implements MigrationInte
           jsonb_agg(
             CASE
               WHEN elem #>> '{}' LIKE 'https://via.placeholder.com%'
-                THEN to_jsonb('/images/placeholders/no-image.svg')
+                THEN to_jsonb('/images/placeholders/no-image.svg'::text)
               ELSE elem
             END
           ),
