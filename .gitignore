@@ -43,3 +43,6 @@ check-channels-vps.*
 deploy-ssh.js
 deploy-to-vps.js
 deploy-emi*.js
+
+# Local assistant/tooling workspace (contains credentials — never commit)
+.freetbuff/
