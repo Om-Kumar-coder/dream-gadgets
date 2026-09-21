@@ -12,7 +12,7 @@ export function Footer() {
           {/* Column 1: Brand */}
           <div className="lg:col-span-1">
             <img src="/logo-dark-bg.png" alt="Dream Gadgets" className="h-14 md:h-16 w-auto mb-5" />
-            <p className="text-sm text-white/60 leading-relaxed mb-6">
+            <p className="text-sm text-white/75 leading-relaxed mb-6">
               Dream Gadgets is the largest mobile store in West Bengal, offering a wide range of certified pre-owned smartphones at competitive prices with warranty and quality assurance.
             </p>
             <div className="flex items-center gap-4">
@@ -53,7 +53,7 @@ export function Footer() {
                 { label: 'FAQ', href: '/faq' },
               ].map(link => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-white/50 hover:text-white transition-colors">
+                  <Link href={link.href} className="text-sm text-white/75 hover:text-white underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-sm transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -74,7 +74,7 @@ export function Footer() {
                 { label: 'Cancellation & Refunds', href: '/cancellation' },
               ].map(link => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-white/50 hover:text-white transition-colors">
+                  <Link href={link.href} className="text-sm text-white/75 hover:text-white underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-sm transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -91,13 +91,13 @@ export function Footer() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <p className="text-sm text-white/60">Kolkata, West Bengal, India</p>
+                <p className="text-sm text-white/75">Kolkata, West Bengal, India</p>
               </div>
               <div className="flex items-start gap-3">
                 <svg className="w-4 h-4 text-primary mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <a href="mailto:dreamgadgetskolkata@gmail.com" className="text-sm text-white/60 hover:text-white transition-colors">dreamgadgetskolkata@gmail.com</a>
+                <a href="mailto:dreamgadgetskolkata@gmail.com" className="text-sm text-white/75 hover:text-white underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-sm transition-colors">dreamgadgetskolkata@gmail.com</a>
               </div>
             </div>
 
@@ -113,7 +113,7 @@ export function Footer() {
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-primary/20 flex items-center justify-center text-white/60 hover:text-primary transition-all"
+                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-primary/20 flex items-center justify-center text-white/75 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition-all"
                   aria-label={s.label}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -129,14 +129,14 @@ export function Footer() {
       {/* ── Bottom Bar ── */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-white/60">
             © {new Date().getFullYear()} <span className="text-primary font-semibold">Dream Gadgets</span>. All rights reserved.
           </p>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-white/30 font-medium">We Accept</span>
+            <span className="text-xs text-white/60 font-medium">We Accept</span>
             <div className="flex gap-1.5">
               {['Visa', 'MC', 'UPI', 'NetBanking', 'EMI'].map(m => (
-                <span key={m} className="text-[10px] font-medium bg-white/10 text-white/50 px-2.5 py-1 rounded-md">{m}</span>
+                <span key={m} className="text-[10px] font-medium bg-white/10 text-white/75 px-2.5 py-1 rounded-md">{m}</span>
               ))}
             </div>
           </div>

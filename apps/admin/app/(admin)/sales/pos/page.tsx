@@ -635,7 +635,7 @@ export default function POSPage() {
             ) : balance > 0 ? (
               `Collect ₹${balance.toFixed(2)} more`
             ) : balance < 0 ? (
-              `Refund ₹{Math.abs(balance).toFixed(2)} change`
+              `Refund ₹${Math.abs(balance).toFixed(2)} change`
             ) : (
               `Complete Sale — ₹${total.toFixed(2)}`
             )}

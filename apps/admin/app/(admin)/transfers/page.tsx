@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, FileText, CheckCircle, XCircle, Eye, Search, Package, X } from 'lucide-react';
@@ -261,7 +261,7 @@ export default function TransfersPage() {
           brand: item.brand?.name ?? '',
           model: item.model?.name ?? '',
           sellingPrice: Number(item.sellingPrice ?? 0),
-        }));
+        })));
       }
     }, [searchResults]);
 

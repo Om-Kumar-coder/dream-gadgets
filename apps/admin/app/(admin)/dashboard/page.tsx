@@ -6,6 +6,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
 } from 'recharts';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useSocket } from '@/lib/useSocket';
 import { useAdminAuthStore } from '@/store/auth.store';
@@ -45,10 +46,10 @@ export default function DashboardPage() {
   const isManager = isOwner || isMultiStore || role === 'store_manager';
   const [liveKpi, setLiveKpi] = useState<KPI | null>(null);
 
-  const { data: kpiData, isLoading: kpiLoading } = useQuery({
+  const { data: kpiData, isLoading: kpiLoading, isError: kpiIsError, refetch: refetchKpi } = useQuery({
     queryKey: ['dashboard-kpi'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/reports/dashboard');
+    queryFn: async ({ signal }) => {
+      const { data } = await apiClient.get('/reports/dashboard', { signal });
       // Backend may return either todayPurchases or todayPurchasesCount depending on version.
       const raw = (data?.data ?? {}) as Record<string, unknown>;
 
@@ -120,6 +121,11 @@ export default function DashboardPage() {
   const salesChartData = weeklySalesData ?? [];
   const stockChartData = stockByConditionData ?? [];
 
+  // Low-data state: 1–3 chart points is too sparse for a meaningful trend line.
+  // Show the values but label it clearly so users don't misread sparse charts.
+  const salesIsSparse = salesChartData.length > 0 && salesChartData.length < 3;
+  const stockIsSparse = stockChartData.length > 0 && stockChartData.length < 3;
+
   // WebSocket live updates
   const qc = useQueryClient();
   const socket = useSocket();
@@ -164,6 +170,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* KPI fetch error — show actionable retry instead of silent zeros */}
+      {kpiIsError && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Could not load dashboard KPIs. Figures below may be stale or zero.</span>
+          <button
+            onClick={() => refetchKpi()}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 underline underline-offset-4"
+          >
+            <RefreshCw className="w-3 h-3" /> Retry
+          </button>
+        </div>
+      )}
+
       {/* Role-specific KPI section */}
       <RoleDashboard />
 
@@ -175,8 +195,17 @@ export default function DashboardPage() {
               <h2 className="text-sm font-semibold text-surface-700">Weekly Sales (₹)</h2>
             </div>
             {salesChartData.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-sm text-surface-400">No sales data yet</div>
+              <div className="h-[220px] flex flex-col items-center justify-center gap-1 text-sm text-surface-400">
+                <span>No sales recorded yet</span>
+                <span className="text-xs text-surface-300">Chart appears once the first sale is made</span>
+              </div>
             ) : (
+              <>
+                {salesIsSparse && (
+                  <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mb-2">
+                    Only {salesChartData.length} day{salesChartData.length !== 1 ? 's' : ''} of data — trend line is not yet meaningful.
+                  </p>
+                )}
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={salesChartData}>
                   <defs>
@@ -195,6 +224,7 @@ export default function DashboardPage() {
                   <Area type="monotone" dataKey="sales" stroke="hsl(357, 92.4%, 46.7%)" fill="url(#salesGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
+              </>
             )}
           </div>
           <div className="card p-5">
@@ -202,8 +232,17 @@ export default function DashboardPage() {
               <h2 className="text-sm font-semibold text-surface-700">Stock by Condition</h2>
             </div>
             {stockChartData.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-sm text-surface-400">No stock data yet</div>
+              <div className="h-[220px] flex flex-col items-center justify-center gap-1 text-sm text-surface-400">
+                <span>No stock data yet</span>
+                <span className="text-xs text-surface-300">Chart appears once inventory is added</span>
+              </div>
             ) : (
+              <>
+                {stockIsSparse && (
+                  <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mb-2">
+                    Few condition categories have stock — counts shown per category.
+                  </p>
+                )}
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={stockChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(0, 0%, 93%)" />
@@ -213,6 +252,7 @@ export default function DashboardPage() {
                   <Bar dataKey="count" fill="hsl(357, 92.4%, 46.7%)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              </>
             )}
           </div>
         </div>
