@@ -4,7 +4,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AuthGuard } from '@nestjs/passport';
 import { GstController } from './gst.controller';
-import { GstService, GstSummary } from './gst.service';
+import { GstService, GstSummary, ItcReport } from './gst.service';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 
 // ─── Mock GstService ──────────────────────────────────────────────────────────
@@ -82,6 +82,44 @@ function makeMockService(): Record<string, jest.Mock | any> {
     }),
     generateSummary: jest.fn<any>().mockResolvedValue(mockSummary),
     generateExcel: jest.fn<any>().mockResolvedValue(Buffer.from(JSON.stringify({ message: 'mock_excel' }))),
+    generateItcReport: jest.fn<any>().mockResolvedValue({
+      summary: [
+        { period: '2025-01-01', itcCgst: 1140, itcSgst: 1140, itcIgst: 1800, ineligibleTax: 0 },
+      ],
+      invoices: [
+        {
+          id: 'purchase-uuid-1',
+          invoiceNumber: 'PUR-BRAN-2025-000001',
+          purchaseDate: '2025-01-15',
+          vendorName: 'Test Vendor',
+          vendorGstin: '27ABCDE1234F1Z5',
+          vendorStateCode: '27',
+          placeOfSupply: '27',
+          supplyType: 'intra',
+          supplyTypeSource: 'derived',
+          isReverseCharge: false,
+          isItcEligible: true,
+          taxableTotal: 10000,
+          taxAmount: 2280,
+          cgstAmount: 1140,
+          sgstAmount: 1140,
+          igstAmount: 0,
+        },
+      ],
+      dataQuality: {
+        needsReview: [
+          {
+            id: 'purchase-uuid-2',
+            invoiceNumber: 'PUR-BRAN-2025-000002',
+            purchaseDate: '2025-01-20',
+            vendorName: 'Unknown State Vendor',
+            taxAmount: 900,
+            supplyType: 'intra',
+          },
+        ],
+        count: 1,
+      },
+    } as ItcReport),
   };
 }
 
@@ -266,7 +304,75 @@ describe('GstController (integration)', () => {
     });
   });
 
-  // ─── 3. Auth guard ─────────────────────────────────────────────────────────
+  // ─── 3. GET /gst/itc — Input Tax Credit report ──────────────────────────────
+
+  describe('GET /api/v1/gst/itc', () => {
+    it('should return ITC report with summary, invoices and dataQuality', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/gst/itc')
+        .query({ from: '2025-01-01', to: '2025-01-31' })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('status', 'success');
+      expect(Array.isArray(response.body.summary)).toBe(true);
+      expect(Array.isArray(response.body.invoices)).toBe(true);
+      expect(response.body.dataQuality).toHaveProperty('needsReview');
+      expect(response.body.dataQuality).toHaveProperty('count', 1);
+    });
+
+    it('should return summary buckets with correct structure', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/gst/itc')
+        .query({ from: '2025-01-01', to: '2025-01-31' })
+        .expect(200);
+
+      const period = response.body.summary[0];
+      expect(period).toMatchObject({
+        period: expect.any(String),
+        itcCgst: expect.any(Number),
+        itcSgst: expect.any(Number),
+        itcIgst: expect.any(Number),
+        ineligibleTax: expect.any(Number),
+      });
+    });
+
+    it('should include per-invoice rows with supply type and GSTIN snapshot', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/gst/itc')
+        .query({ from: '2025-01-01', to: '2025-01-31' })
+        .expect(200);
+
+      const invoice = response.body.invoices[0];
+      expect(invoice).toMatchObject({
+        invoiceNumber: expect.any(String),
+        vendorGstin: expect.any(String),
+        supplyType: expect.stringMatching(/intra|inter/),
+        cgstAmount: expect.any(Number),
+        sgstAmount: expect.any(Number),
+        igstAmount: expect.any(Number),
+      });
+    });
+
+    it('should call generateItcReport with correct params', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/gst/itc')
+        .query({ from: '2025-01-01', to: '2025-01-31', branchId: 'branch-uuid-1' })
+        .expect(200);
+
+      expect(mockService.generateItcReport).toHaveBeenCalledWith('2025-01-01', '2025-01-31', 'branch-uuid-1');
+    });
+
+    it('should propagate service errors as 500', async () => {
+      mockService.generateItcReport.mockRejectedValueOnce(new Error('DB connection failed'));
+
+      await request(app.getHttpServer())
+        .get('/api/v1/gst/itc')
+        .query({ from: '2025-01-01', to: '2025-01-31' })
+        .expect(500);
+    });
+  });
+
+  // ─── 4. Auth guard ─────────────────────────────────────────────────────────
 
   describe('authentication', () => {
     it('should allow requests with valid auth (guard is overridden)', async () => {

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Scan, Upload, Lightbulb, ArrowLeft } from 'lucide-react';
+import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
 import { useAdminAuthStore } from '@/store/auth.store';
@@ -36,11 +36,21 @@ export default function NewPurchasePage() {
   const branchId = user?.branchId ?? '';
   const [priceSuggestion, setPriceSuggestion] = useState<number | null>(null);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  // Price-suggestion UI state: idle | loading | success | no-data | error
+  const [suggestionState, setSuggestionState] = useState<
+    'idle' | 'loading' | 'success' | 'no-data' | 'error'
+  >('idle');
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [suggestionMeta, setSuggestionMeta] = useState<{
+    sampleSize: number | null;
+    fetchedAt: Date;
+  } | null>(null);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PurchaseForm>({
     resolver: zodResolver(purchaseSchema),
@@ -72,18 +82,50 @@ export default function NewPurchasePage() {
     enabled: !!watchedBrandId,
   });
 
-  // Price suggestion
-  const { refetch: fetchSuggestion } = useQuery({
-    queryKey: ['price-suggestion', watchedModelId, watchedCondition],
-    queryFn: async () => {
+  // Price suggestion — explicit user-triggered fetch with full loading / success /
+  // no-data / error states, source info, and an "apply" action.
+  const fetchSuggestion = async () => {
+    if (!watchedModelId || !watchedCondition) {
+      setSuggestionState('error');
+      setSuggestionError('Select a brand, model and condition first');
+      return;
+    }
+    setSuggestionState('loading');
+    setSuggestionError(null);
+    try {
       const { data } = await apiClient.get('/inventory/price-suggestion', {
         params: { modelId: watchedModelId, condition: watchedCondition },
       });
-      setPriceSuggestion(data.data?.median ?? null);
-      return data.data;
-    },
-    enabled: false,
-  });
+      const median = data.data?.median ?? null;
+      const sampleSize = data.data?.sampleSize ?? data.data?.count ?? null;
+      if (median === null || median === undefined) {
+        setPriceSuggestion(null);
+        setSuggestionState('no-data');
+      } else {
+        setPriceSuggestion(Number(median));
+        setSuggestionState('success');
+        setSuggestionMeta({
+          sampleSize: sampleSize !== null ? Number(sampleSize) : null,
+          fetchedAt: new Date(),
+        });
+      }
+    } catch (err: any) {
+      setPriceSuggestion(null);
+      setSuggestionState('error');
+      setSuggestionError(
+        err?.response?.data?.message ??
+        err?.response?.data?.error?.message ??
+        err?.message ??
+        'Could not fetch price suggestion',
+      );
+    }
+  };
+
+  const applySuggestion = (value: number) => {
+    // Suggested selling price → set as selling reference. The purchase form's main
+    // price input is purchasePrice; apply there so the user can adjust before saving.
+    setValue('purchasePrice', value, { shouldValidate: true, shouldDirty: true });
+  };
 
   const mutation = useMutation({
     mutationFn: async (values: PurchaseForm) => {
@@ -241,14 +283,63 @@ export default function NewPurchasePage() {
                 className="input" />
             </div>
           </div>
-          <button type="button" onClick={() => fetchSuggestion()}
-            className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover">
-            <Lightbulb className="w-4 h-4" />
-            Get price suggestion for this model + condition
+          <button
+            type="button"
+            onClick={fetchSuggestion}
+            disabled={suggestionState === 'loading'}
+            className="flex items-center gap-2 text-sm text-primary hover:text-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {suggestionState === 'loading' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Lightbulb className="w-4 h-4" />
+            )}
+            {suggestionState === 'loading'
+              ? 'Fetching suggestion…'
+              : 'Get price suggestion for this model + condition'}
           </button>
-          {priceSuggestion !== null && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-700">
-              Suggested selling price: <strong>₹{priceSuggestion.toLocaleString()}</strong>
+          {suggestionState === 'success' && priceSuggestion !== null && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 text-sm text-blue-700 flex flex-wrap items-center gap-2">
+              <span>
+                Suggested price: <strong>₹{priceSuggestion.toLocaleString()}</strong>
+                {suggestionMeta?.sampleSize != null && (
+                  <span className="text-blue-500 ml-1">
+                    · from {suggestionMeta.sampleSize} similar sale{suggestionMeta.sampleSize !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {suggestionMeta && (
+                  <span className="text-blue-400 text-xs ml-1">
+                    (as of {suggestionMeta.fetchedAt.toLocaleTimeString()})
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => applySuggestion(priceSuggestion)}
+                className="ml-auto inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2.5 py-1 rounded-md transition-colors"
+              >
+                <Check className="w-3 h-3" />
+                Apply
+              </button>
+            </div>
+          )}
+          {suggestionState === 'no-data' && (
+            <div className="bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-surface-500 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-surface-400" />
+              No price history for this model + condition yet. Set the price manually.
+            </div>
+          )}
+          {suggestionState === 'error' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>{suggestionError}</span>
+              <button
+                type="button"
+                onClick={fetchSuggestion}
+                className="ml-auto text-red-700 underline text-xs"
+              >
+                Retry
+              </button>
             </div>
           )}
         </div>

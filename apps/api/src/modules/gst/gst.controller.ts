@@ -38,6 +38,24 @@ export class GstController {
     return { status: 'success', data, summary };
   }
 
+  @Get('itc')
+  @RequirePermission('gst.view')
+  @ApiOperation({
+    summary: 'Generate the Input Tax Credit report (purchases, GSTR-2B/3B style)',
+  })
+  @ApiQuery({ name: 'from', required: true, example: '2025-01-01' })
+  @ApiQuery({ name: 'to', required: true, example: '2025-01-31' })
+  @ApiQuery({ name: 'branchId', required: false })
+  async getItcReport(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    const report = await this.gstService.generateItcReport(from, to, branchId);
+
+    return { status: 'success', ...report };
+  }
+
   @Get('gstr1/export')
   @RequirePermission('gst.export')
   @ApiOperation({ summary: 'Export GSTR-1 as Excel file' })

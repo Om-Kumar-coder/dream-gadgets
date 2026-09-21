@@ -3,6 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { RedisService } from '../../common/redis/redis.service';
+import { EventService } from '../../common/events/event.service';
+import { CouponService } from '../coupon/coupon.service';
+import { NotificationService } from '../notification/notification.service';
 import { ConfigService } from '@nestjs/config';
 import * as fc from 'fast-check';
 import { SalesService } from './sales.service';
@@ -10,8 +14,9 @@ import { Sale } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Payment } from './entities/payment.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
-import { validatePaymentSplits } from '../../common/utils/business-logic';
+import { validatePaymentSplits, calculateGST } from '../../common/utils/business-logic';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -119,6 +124,15 @@ function makeBranchRepo(): any {
   };
 }
 
+function makeAccessoryRepo(): any {
+  return {
+    find: jest.fn() as any,
+    create: jest.fn() as any,
+    save: jest.fn() as any,
+    update: jest.fn() as any,
+  };
+}
+
 function makeDataSource(_overrides: any = {}): any {
   const qr: any = {
     connect: jest.fn().mockImplementation(() => Promise.resolve()),
@@ -135,12 +149,45 @@ function makeDataSource(_overrides: any = {}): any {
   };
   return {
     createQueryRunner: jest.fn().mockReturnValue(qr),
+    query: (jest.fn() as any).mockResolvedValue([]),
   };
 }
 
 function makeConfigService(): any {
   return {
     get: jest.fn().mockReturnValue('redis://localhost:6379'),
+  };
+}
+
+function makeRedisService(): any {
+  return {
+    getNextInvoiceSequence: jest.fn() as any,
+    posLockItem: jest.fn() as any,
+    posUnlockItem: jest.fn() as any,
+  };
+}
+
+function makeEventService(): any {
+  return {
+    emitSaleCreated: jest.fn() as any,
+    emitInventoryUpdated: jest.fn() as any,
+    emitInventoryLocked: jest.fn() as any,
+    emitInventoryUnlocked: jest.fn() as any,
+    emitSaleVoided: jest.fn() as any,
+  };
+}
+
+function makeCouponService(): any {
+  return {
+    validate: jest.fn() as any,
+    recordUsage: jest.fn() as any,
+  };
+}
+
+function makeNotificationService(): any {
+  return {
+    sendEmail: jest.fn() as any,
+    sendWhatsApp: jest.fn() as any,
   };
 }
 
@@ -174,7 +221,12 @@ describe('SalesService', () => {
   let paymentRepo: any;
   let itemRepo: any;
   let branchRepo: any;
+  let accessoryRepo: any;
   let dataSource: any;
+  let redisService: any;
+  let eventService: any;
+  let couponService: any;
+  let notificationService: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -184,7 +236,35 @@ describe('SalesService', () => {
     paymentRepo = makePaymentRepo();
     itemRepo = makeItemRepo();
     branchRepo = makeBranchRepo();
+    accessoryRepo = makeAccessoryRepo();
     dataSource = makeDataSource();
+
+    // Set up Redis service mock. The service calls redisService.posLockItem(itemId, ttl)
+    // which internally constructs the key "pos:lock:{itemId}" and calls set(key, '1', {EX: ttl}).
+    // We mirror that here so mockRedis.assertions still work.
+    redisService = {
+      getNextInvoiceSequence: ((branchId: string, year: number) => {
+        // Delegate to the raw incr mock so tests can assert on mockRedis.incr calls.
+        // Also mimic the real RedisService behaviour: set expiry on the first sequence.
+        // mockRedis.incr returns a Promise<number> — await it.
+        return mockRedis.incr(`invoice:seq:${branchId}:${year}`).then((seq: number) => {
+          if (seq === 1) {
+            mockRedis.expire(`invoice:seq:${branchId}:${year}`, 400 * 24 * 60 * 60);
+          }
+          return seq;
+        });
+      }) as any,
+      posLockItem: ((itemId: string, ttl: number) => {
+        mockRedis.set(`pos:lock:${itemId}`, '1', { EX: ttl });
+      }) as any,
+      posUnlockItem: ((itemId: string) => {
+        mockRedis.del(`pos:lock:${itemId}`);
+      }) as any,
+    };
+
+    eventService = makeEventService();
+    couponService = makeCouponService();
+    notificationService = makeNotificationService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -194,7 +274,12 @@ describe('SalesService', () => {
         { provide: getRepositoryToken(Payment), useValue: paymentRepo },
         { provide: getRepositoryToken(InventoryItem), useValue: itemRepo },
         { provide: getRepositoryToken(Branch), useValue: branchRepo },
+        { provide: getRepositoryToken(Accessory), useValue: accessoryRepo },
         { provide: DataSource, useValue: dataSource },
+        { provide: RedisService, useValue: redisService },
+        { provide: EventService, useValue: eventService },
+        { provide: CouponService, useValue: couponService },
+        { provide: NotificationService, useValue: notificationService },
         { provide: ConfigService, useValue: makeConfigService() },
       ],
     }).compile();
@@ -547,6 +632,167 @@ describe('SalesService', () => {
       itemRepo.findOne.mockResolvedValue(null);
 
       await expect(service.unlockItem('non-existent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── 7.4b: POS total contract ───────────────────────────────────────────────────
+  // Contract between POS frontend preview math and backend canonical total.
+  // The POS UI may display a total, but backend only accepts a sale when the
+  // submitted payload matches the canonical backend calculation.
+
+  describe('POS total contract', () => {
+    function canonicalTotal(items: Array<{ unitPrice: number; discount?: number; taxRate?: number }>, discountAmount = 0, isInterState = false): number {
+      let subtotal = 0;
+      let totalTax = 0;
+
+      for (const item of items) {
+        const priceAfterDiscount = item.unitPrice - (item.discount ?? 0);
+        const gst = calculateGST(priceAfterDiscount, item.taxRate ?? 0, isInterState);
+        subtotal += item.unitPrice - (item.discount ?? 0);
+        totalTax += gst.total;
+      }
+
+      return subtotal + totalTax - discountAmount;
+    }
+
+    function paymentSum(payments: Array<{ method: string; amount: number }>): number {
+      return payments.reduce((acc, p) => acc + Number(p.amount), 0);
+    }
+
+    async function createValidSale(dto: any, userRole = 'shop_owner'): Promise<any> {
+      itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
+      const savedSale = makeSale({
+        id: 'sale-1',
+        totalAmount: dto.frontendTotal,
+        subtotal: dto.frontendTotal,
+        taxAmount: 0,
+      });
+      dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
+      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [], payments: [] });
+
+      return service.create(dto, 'user-1', userRole);
+    }
+
+    it('should accept an exact single cash payment', async () => {
+      const items = [{ unitPrice: 10000, taxRate: 18 }];
+      const expectedTotal = canonicalTotal(items, 0, false);
+
+      const dto = {
+        branchId: 'branch-1',
+        items: items.map((i) => ({ itemId: 'item-uuid-1', unitPrice: i.unitPrice, taxRate: i.taxRate })),
+        payments: [{ method: 'cash', amount: expectedTotal }],
+        frontendTotal: expectedTotal,
+        discountAmount: 0,
+        isInterState: false,
+      };
+
+      const created = await createValidSale(dto);
+      expect(created.totalAmount).toEqual(expectedTotal);
+    });
+
+    it('should accept a card + UPI + exchange split that exactly matches backend total', async () => {
+      const items = [{ unitPrice: 30000, taxRate: 18 }];
+      const expectedTotal = canonicalTotal(items, 0, false);
+      const card = 30000;
+      const upi = 2000;
+      const exchange = expectedTotal - card - upi;
+
+      itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
+
+      const dto = {
+        branchId: 'branch-1',
+        items: items.map((i) => ({ itemId: 'item-uuid-1', unitPrice: i.unitPrice, taxRate: i.taxRate })),
+        payments: [
+          { method: 'card', amount: card },
+          { method: 'online', amount: upi },
+          { method: 'exchange', amount: exchange },
+        ],
+        frontendTotal: expectedTotal,
+        discountAmount: 0,
+        isInterState: false,
+      };
+
+      const savedSale = makeSale({
+        id: 'sale-1',
+        totalAmount: expectedTotal,
+        subtotal: 30000,
+        taxAmount: expectedTotal - 30000,
+      }) as any;
+      savedSale.payments = dto.payments;
+      dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
+      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [] });
+
+      const created = await service.create(dto, 'user-1', 'shop_owner');
+      expect(created.totalAmount).toEqual(expectedTotal);
+      expect(paymentSum(created.payments)).toEqual(expectedTotal);
+    });
+
+    it('should reject when frontendTotal differs from canonical backend total', async () => {
+      const items = [{ unitPrice: 30000, taxRate: 18 }];
+      const expectedTotal = canonicalTotal(items, 0, false);
+      const wrongFrontendTotal = expectedTotal + 44;
+
+      itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
+
+      const dto = {
+        branchId: 'branch-1',
+        items: items.map((i) => ({ itemId: 'item-uuid-1', unitPrice: i.unitPrice, taxRate: i.taxRate })),
+        payments: [{ method: 'card', amount: expectedTotal }],
+        frontendTotal: wrongFrontendTotal,
+        discountAmount: 0,
+        isInterState: false,
+      };
+
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toMatchObject({
+        response: { code: 'PAYMENT_TOTAL_MISMATCH' },
+      });
+    });
+
+    it('should reject overpayment even when UI believes the bill is complete', async () => {
+      const items = [{ unitPrice: 35400, taxRate: 18 }];
+      const expectedTotal = canonicalTotal(items, 0, false);
+      const overpaidAmount = expectedTotal + 44;
+
+      itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
+
+      // frontendTotal matches the true backend total so we pass the frontend-check,
+      // but the payment amount exceeds it — this triggers the overpayment check.
+      const dto = {
+        branchId: 'branch-1',
+        items: items.map((i) => ({ itemId: 'item-uuid-1', unitPrice: i.unitPrice, taxRate: i.taxRate })),
+        payments: [{ method: 'card', amount: overpaidAmount }],
+        frontendTotal: expectedTotal,
+        discountAmount: 0,
+        isInterState: false,
+      };
+
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toMatchObject({
+        response: { code: 'PAYMENT_SPLIT_OVERPAYMENT' },
+      });
+    });
+
+    it('should reject underpayment with the remaining amount in the message', async () => {
+      const items = [{ unitPrice: 10000, taxRate: 0 }];
+      const expectedTotal = canonicalTotal(items, 0, false);
+      const paidAmount = expectedTotal - 500;
+
+      itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
+
+      const dto = {
+        branchId: 'branch-1',
+        items: items.map((i) => ({ itemId: 'item-uuid-1', unitPrice: i.unitPrice, taxRate: i.taxRate })),
+        payments: [{ method: 'cash', amount: paidAmount }],
+        frontendTotal: expectedTotal,
+        discountAmount: 0,
+        isInterState: false,
+      };
+
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 'user-1', 'shop_owner')).rejects.toMatchObject({
+        response: { code: 'PAYMENT_SPLIT_MISMATCH' },
+      });
     });
   });
 

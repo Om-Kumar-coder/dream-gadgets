@@ -5,6 +5,59 @@ import { getStateCode } from '../../common/utils/state-codes';
 
 const B2CL_THRESHOLD = 250000; // ₹2.5 lakh
 
+// ─── ITC report types (GSTR-2B/3B style, purchases side) ─────────────────────
+
+export interface ItcPeriodSummary {
+  /** First day of the month, ISO date. */
+  period: string;
+  /** Eligible ITC — CGST bucket (intra-state). */
+  itcCgst: number;
+  /** Eligible ITC — SGST/UTGST bucket (intra-state). */
+  itcSgst: number;
+  /** Eligible ITC — IGST bucket (inter-state). */
+  itcIgst: number;
+  /** Tax on RCM or ineligible-ITC purchases — recorded, not regular ITC. */
+  ineligibleTax: number;
+}
+
+export interface ItcInvoiceRow {
+  id: string;
+  invoiceNumber: string;
+  purchaseDate: string;
+  vendorName: string;
+  vendorGstin: string | null;
+  vendorStateCode: string | null;
+  placeOfSupply: string | null;
+  supplyType: 'intra' | 'inter';
+  supplyTypeSource: 'derived' | 'manual';
+  isReverseCharge: boolean;
+  isItcEligible: boolean;
+  taxableTotal: number;
+  taxAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+}
+
+export interface ItcDataQualityRow {
+  id: string;
+  invoiceNumber: string;
+  purchaseDate: string;
+  vendorName: string;
+  taxAmount: number;
+  supplyType: 'intra' | 'inter';
+}
+
+export interface ItcReport {
+  summary: ItcPeriodSummary[];
+  invoices: ItcInvoiceRow[];
+  dataQuality: {
+    /** Purchases with non-zero tax but unknown vendor state — review before filing. */
+    needsReview: ItcDataQualityRow[];
+    count: number;
+  };
+}
+
 export interface Gstr1Section {
   /** B2B invoices — customer has GSTIN */
   b2b: B2bEntry[];
@@ -493,6 +546,136 @@ export class GstService {
       return { cgst: 0, sgst: 0, igst: taxAmount };
     }
     return { cgst: taxAmount / 2, sgst: taxAmount / 2, igst: 0 };
+  }
+
+  // ─── Input Tax Credit report (purchases side, GSTR-2B/3B style) ─────────────
+
+  /**
+   * Generate the ITC report for a filing period.
+   *
+   * - `summary`: monthly eligible-ITC buckets (CGST/SGST/IGST). UTGST is stored
+   *   in sgst_amount (see docs/PURCHASE_GST_SPLIT_SCHEMA.md §12-Q3), so UT
+   *   supplies contribute to itc_sgst.
+   * - `invoices`: per-purchase rows for the CA-facing worksheet.
+   * - `dataQuality`: purchases with non-zero tax but no vendor state (backfilled
+   *   or legacy-degraded rows) — these may have ITC in the wrong bucket and must
+   *   be corrected before filing (see §12-Q1).
+   */
+  async generateItcReport(
+    fromDate: string,
+    toDate: string,
+    branchId?: string,
+  ): Promise<ItcReport> {
+    const branchFilter = branchId ? `AND p.branch_id = $3` : '';
+    const params = [fromDate, toDate, ...(branchId ? [branchId] : [])];
+
+    // Monthly eligible-ITC buckets. Reverse-charge and ineligible-ITC rows are
+    // excluded from regular ITC but reported separately for transparency.
+    const summaryRows: any[] = await this.dataSource.query(
+      `SELECT
+        date_trunc('month', p.purchase_date)::date AS period,
+        SUM(p.cgst_amount) FILTER (WHERE p.is_itc_eligible AND NOT p.is_reverse_charge) AS itc_cgst,
+        SUM(p.sgst_amount) FILTER (WHERE p.is_itc_eligible AND NOT p.is_reverse_charge) AS itc_sgst,
+        SUM(p.igst_amount) FILTER (WHERE p.is_itc_eligible AND NOT p.is_reverse_charge) AS itc_igst,
+        SUM(p.tax_amount) FILTER (WHERE NOT p.is_itc_eligible OR p.is_reverse_charge) AS ineligible_tax
+      FROM purchases p
+      WHERE p.status = 'completed'
+        AND p.purchase_date >= $1
+        AND p.purchase_date <= $2
+        ${branchFilter}
+      GROUP BY 1
+      ORDER BY 1 ASC`,
+      params,
+    );
+
+    // CA-facing worksheet: one row per purchase invoice.
+    const invoiceRows: any[] = await this.dataSource.query(
+      `SELECT
+        p.id,
+        p.invoice_number,
+        p.purchase_date,
+        p.vendor_name,
+        p.vendor_gstin,
+        p.vendor_state_code,
+        p.place_of_supply,
+        p.supply_type,
+        p.supply_type_source,
+        p.is_reverse_charge,
+        p.is_itc_eligible,
+        (p.total_amount - p.tax_amount) AS taxable_total, -- totals are tax-inclusive
+        p.tax_amount,
+        p.cgst_amount,
+        p.sgst_amount,
+        p.igst_amount
+      FROM purchases p
+      WHERE p.status = 'completed'
+        AND p.purchase_date >= $1
+        AND p.purchase_date <= $2
+        ${branchFilter}
+      ORDER BY p.purchase_date ASC`,
+      params,
+    );
+
+    // Data-quality list: unknown vendor state + non-zero tax. The intra/inter
+    // determination for these rows is an assumption (backfill or legacy
+    // degradation), so the ITC bucket may be wrong — flag before filing.
+    const qualityRows: any[] = await this.dataSource.query(
+      `SELECT
+        p.id,
+        p.invoice_number,
+        p.purchase_date,
+        p.vendor_name,
+        p.tax_amount,
+        p.supply_type
+      FROM purchases p
+      WHERE p.status = 'completed'
+        AND p.purchase_date >= $1
+        AND p.purchase_date <= $2
+        ${branchFilter}
+        AND p.vendor_state_code IS NULL
+        AND p.vendor_gstin IS NULL
+        AND p.tax_amount > 0
+      ORDER BY p.purchase_date ASC`,
+      params,
+    );
+
+    const summary: ItcPeriodSummary[] = summaryRows.map((r) => ({
+      period: new Date(r.period).toISOString().split('T')[0],
+      itcCgst: Number(r.itc_cgst ?? 0),
+      itcSgst: Number(r.itc_sgst ?? 0),
+      itcIgst: Number(r.itc_igst ?? 0),
+      ineligibleTax: Number(r.ineligible_tax ?? 0),
+    }));
+
+    const invoices: ItcInvoiceRow[] = invoiceRows.map((r) => ({
+      id: r.id,
+      invoiceNumber: r.invoice_number,
+      purchaseDate: new Date(r.purchase_date).toISOString().split('T')[0],
+      vendorName: r.vendor_name,
+      vendorGstin: r.vendor_gstin ?? null,
+      vendorStateCode: r.vendor_state_code ?? null,
+      placeOfSupply: r.place_of_supply ?? null,
+      supplyType: r.supply_type,
+      supplyTypeSource: r.supply_type_source,
+      isReverseCharge: !!r.is_reverse_charge,
+      isItcEligible: !!r.is_itc_eligible,
+      taxableTotal: Number(r.taxable_total ?? 0),
+      taxAmount: Number(r.tax_amount ?? 0),
+      cgstAmount: Number(r.cgst_amount ?? 0),
+      sgstAmount: Number(r.sgst_amount ?? 0),
+      igstAmount: Number(r.igst_amount ?? 0),
+    }));
+
+    const needsReview: ItcDataQualityRow[] = qualityRows.map((r) => ({
+      id: r.id,
+      invoiceNumber: r.invoice_number,
+      purchaseDate: new Date(r.purchase_date).toISOString().split('T')[0],
+      vendorName: r.vendor_name,
+      taxAmount: Number(r.tax_amount ?? 0),
+      supplyType: r.supply_type,
+    }));
+
+    return { summary, invoices, dataQuality: { needsReview, count: needsReview.length } };
   }
 
   // ─── Excel Export ────────────────────────────────────────────────────────────
