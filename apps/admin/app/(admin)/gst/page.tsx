@@ -14,6 +14,8 @@ import {
   Users,
   Receipt,
   RotateCcw,
+  Calculator,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -98,6 +100,51 @@ interface Gstr1Response {
     cdnr: CdnrEntry[];
   };
   summary: GstSummary;
+}
+
+interface ItcPeriodSummary {
+  period: string;
+  itcCgst: number;
+  itcSgst: number;
+  itcIgst: number;
+  ineligibleTax: number;
+}
+
+interface ItcInvoiceRow {
+  id: string;
+  invoiceNumber: string;
+  purchaseDate: string;
+  vendorName: string;
+  vendorGstin: string | null;
+  vendorStateCode: string | null;
+  placeOfSupply: string | null;
+  supplyType: 'intra' | 'inter';
+  supplyTypeSource: 'derived' | 'manual';
+  isReverseCharge: boolean;
+  isItcEligible: boolean;
+  taxableTotal: number;
+  taxAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+}
+
+/** /gst/itc spreads the report at the top level: { status, summary, invoices, dataQuality } */
+interface ItcResponse {
+  status: string;
+  summary: ItcPeriodSummary[];
+  invoices: ItcInvoiceRow[];
+  dataQuality: {
+    needsReview: Array<{
+      id: string;
+      invoiceNumber: string;
+      purchaseDate: string;
+      vendorName: string;
+      taxAmount: number;
+      supplyType: 'intra' | 'inter';
+    }>;
+    count: number;
+  };
 }
 
 interface Branch {
@@ -235,9 +282,175 @@ function DataTable({
   );
 }
 
+// ─── ITC Tab ────────────────────────────────────────────────────────────────
+
+function ItcTabContent({
+  fromDate,
+  toDate,
+  branchId,
+}: {
+  fromDate: string;
+  toDate: string;
+  branchId: string;
+}) {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<ItcResponse>({
+    queryKey: ['gst-itc', fromDate, toDate, branchId],
+    queryFn: () =>
+      apiClient
+        .get('/gst/itc', {
+          params: { from: fromDate, to: toDate, ...(branchId && { branchId }) },
+          timeout: 30000,
+        })
+        .then((r) => r.data),
+  });
+
+  const summary = data?.summary ?? [];
+  const invoices = data?.invoices ?? [];
+  const needsReview = data?.dataQuality?.needsReview ?? [];
+
+  const totals = summary.reduce(
+    (acc, s) => ({
+      cgst: acc.cgst + (Number(s.itcCgst) || 0),
+      sgst: acc.sgst + (Number(s.itcSgst) || 0),
+      igst: acc.igst + (Number(s.itcIgst) || 0),
+      ineligible: acc.ineligible + (Number(s.ineligibleTax) || 0),
+    }),
+    { cgst: 0, sgst: 0, igst: 0, ineligible: 0 },
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Generating ITC data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-6 text-center">
+        <p className="font-semibold mb-1">Failed to load ITC data</p>
+        <p className="text-sm text-red-500 mb-4">{(error as any)?.message || 'Please check your date range and try again.'}</p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Data-quality warning: purchases with tax but unknown vendor state */}
+      {needsReview.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm">
+          <p className="font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {needsReview.length} purchase{needsReview.length !== 1 ? 's' : ''} with tax but unknown vendor state — review before filing
+          </p>
+          <p className="text-amber-700 text-xs mt-1">
+            {needsReview.slice(0, 5).map((r) => r.invoiceNumber).join(', ')}
+            {needsReview.length > 5 ? ` +${needsReview.length - 5} more` : ''}
+          </p>
+        </div>
+      )}
+
+      {/* Eligible-ITC KPI cards */}
+      {summary.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Eligible ITC — CGST" count={`${summary.length} month${summary.length !== 1 ? 's' : ''}`} value={formatINR(totals.cgst)} icon={Calculator} color="bg-blue-500" />
+          <KpiCard title="Eligible ITC — SGST" count={`${summary.length} month${summary.length !== 1 ? 's' : ''}`} value={formatINR(totals.sgst)} icon={Calculator} color="bg-emerald-500" />
+          <KpiCard title="Eligible ITC — IGST" count={`${summary.length} month${summary.length !== 1 ? 's' : ''}`} value={formatINR(totals.igst)} icon={Calculator} color="bg-violet-500" />
+          <KpiCard title="Ineligible / RCM Tax" count="Recorded only" value={formatINR(totals.ineligible)} icon={AlertTriangle} color="bg-amber-500" />
+        </div>
+      )}
+
+      {/* Monthly summary (GSTR-3B style buckets) */}
+      {summary.length > 0 && (
+        <CollapsibleSection title="Monthly ITC Summary" count={summary.length} icon={Calculator} defaultOpen>
+          <DataTable
+            headers={['Period', 'ITC CGST', 'ITC SGST', 'ITC IGST', 'Ineligible Tax']}
+            rows={summary}
+            renderRow={(row: ItcPeriodSummary) => (
+              <>
+                <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{row.period}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-blue-600 whitespace-nowrap">{formatINR(row.itcCgst)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-emerald-600 whitespace-nowrap">{formatINR(row.itcSgst)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-violet-600 whitespace-nowrap">{formatINR(row.itcIgst)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-amber-600 whitespace-nowrap">{formatINR(row.ineligibleTax)}</td>
+              </>
+            )}
+          />
+        </CollapsibleSection>
+      )}
+
+      {/* CA-facing per-invoice worksheet */}
+      {invoices.length > 0 && (
+        <CollapsibleSection title="Purchase Invoice Worksheet" count={invoices.length} icon={Receipt}>
+          <DataTable
+            headers={['Invoice No', 'Date', 'Vendor', 'Vendor GSTIN', 'Supply', 'ITC', 'Taxable', 'CGST', 'SGST', 'IGST', 'Total Tax']}
+            rows={invoices}
+            renderRow={(row: ItcInvoiceRow) => (
+              <>
+                <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{row.invoiceNumber}</td>
+                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{row.purchaseDate}</td>
+                <td className="px-4 py-3 text-gray-700 max-w-[160px] truncate">{row.vendorName || '—'}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">{row.vendorGstin || '—'}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={cn(
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    row.supplyType === 'inter' ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-blue-600',
+                  )}>
+                    {row.supplyType === 'inter' ? 'Inter' : 'Intra'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {row.isItcEligible && !row.isReverseCharge ? (
+                    <span className="text-xs font-medium text-emerald-600">Yes</span>
+                  ) : (
+                    <span className="text-xs font-medium text-amber-600">{row.isReverseCharge ? 'RCM' : 'No'}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">{formatINR(row.taxableTotal)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-blue-600 whitespace-nowrap">{formatINR(row.cgstAmount)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-emerald-600 whitespace-nowrap">{formatINR(row.sgstAmount)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-violet-600 whitespace-nowrap">{formatINR(row.igstAmount)}</td>
+                <td className="px-4 py-3 text-right font-bold tabular-nums whitespace-nowrap">{formatINR(row.taxAmount)}</td>
+              </>
+            )}
+          />
+        </CollapsibleSection>
+      )}
+
+      {/* Empty state */}
+      {summary.length === 0 && invoices.length === 0 && (
+        <div className="card p-12 text-center">
+          <FileText className="w-12 h-12 text-surface-300 mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-surface-900 mb-1">No ITC Data</h3>
+          <p className="text-sm text-surface-500 max-w-sm mx-auto">
+            No completed purchases with tax found in the selected period{branchId ? ' for this branch' : ''}. Try a different date range.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 function GstReportPage() {
+  const [tab, setTab] = useState<'GSTR-1' | 'ITC'>('GSTR-1');
   const [fromDate, setFromDate] = useState(thirtyDaysAgoISO);
   const [toDate, setToDate] = useState(todayISO);
   const [branchId, setBranchId] = useState('');
@@ -306,11 +519,27 @@ function GstReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
       <div>
-        <h1 className="heading-sm text-surface-900">GSTR-1 Report</h1>
+        <h1 className="heading-sm text-surface-900">GST Reports</h1>
         <p className="text-sm text-surface-500 mt-0.5">
-            Monthly GST return — B2B, B2CL, B2CS &amp; CDNR classification
+            Outward supplies (GSTR-1) &amp; input tax credit (purchases)
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-surface-100 rounded-lg p-1">
+            {(['GSTR-1', 'ITC'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  'px-4 py-1.5 text-sm font-medium rounded-md transition-colors',
+                  tab === t ? 'bg-white text-surface-900 shadow-sm' : 'text-surface-500 hover:text-surface-700',
+                )}
+              >
+                {t === 'GSTR-1' ? 'GSTR-1 (Sales)' : 'ITC (Purchases)'}
+              </button>
+            ))}
+          </div>
+        {tab === 'GSTR-1' && (
         <button
           onClick={handleExport}
           disabled={exporting || isLoading || !data}
@@ -330,6 +559,8 @@ function GstReportPage() {
             </>
           )}
         </button>
+        )}
+        </div>
       </div>
 
       {exportError && (
@@ -368,7 +599,7 @@ function GstReportPage() {
       </div>
 
       {/* Loading State */}
-      {isLoading && (
+      {tab === 'GSTR-1' && isLoading && (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -378,7 +609,7 @@ function GstReportPage() {
       )}
 
       {/* Error State */}
-      {isError && !isLoading && (
+      {tab === 'GSTR-1' && isError && !isLoading && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-6 text-center">
           <p className="font-semibold mb-1">Failed to load GSTR-1 data</p>
           <p className="text-sm text-red-500 mb-4">{(error as any)?.message || 'Please check your date range and try again.'}</p>
@@ -392,7 +623,7 @@ function GstReportPage() {
       )}
 
       {/* Summary KPI Cards */}
-      {summary && !isLoading && (
+      {tab === 'GSTR-1' && summary && !isLoading && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             title="B2B"
@@ -426,7 +657,7 @@ function GstReportPage() {
       )}
 
       {/* Tax Totals Row */}
-      {summary && !isLoading && (
+      {tab === 'GSTR-1' && summary && !isLoading && (
         <div className="card p-5">
           <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">Tax Summary</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -451,7 +682,7 @@ function GstReportPage() {
       )}
 
       {/* Section Tables */}
-      {data && !isLoading && (
+      {tab === 'GSTR-1' && data && !isLoading && (
         <div className="space-y-4">
           {/* ── B2B ── */}
           <CollapsibleSection title="B2B — Business to Business (Registered)" count={data.b2b.length} icon={Building2} defaultOpen>
@@ -553,8 +784,13 @@ function GstReportPage() {
         </div>
       )}
 
+      {/* ITC tab content */}
+      {tab === 'ITC' && (
+        <ItcTabContent fromDate={fromDate} toDate={toDate} branchId={branchId} />
+      )}
+
       {/* Empty state when loaded but no data */}
-      {!isLoading && !isError && data && (
+      {tab === 'GSTR-1' && !isLoading && !isError && data && (
         data.b2b.length === 0 && data.b2cl.length === 0 && data.b2cs.length === 0 && data.cdnr.length === 0 && (
           <div className="card p-12 text-center">
             <FileText className="w-12 h-12 text-surface-300 mx-auto mb-4" />
