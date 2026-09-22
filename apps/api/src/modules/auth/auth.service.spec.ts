@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
 import { RedisService } from '../../common/redis/redis.service';
 import { Msg91OtpService } from './services/msg91-otp.service';
+import { Msg91WidgetService } from './services/msg91-widget.service';
 import { NotificationService } from '../notification/notification.service';
 
 // ─── Redis mock (in-memory store) ────────────────────────────────────────────
@@ -186,6 +187,17 @@ describe('AuthService', () => {
               // Accept '123456' as valid, reject everything else
               if (code === '123456') return { success: true, status: 'approved' };
               return { success: false, status: 'pending', error: 'Invalid code' };
+            }),
+          },
+        },
+        {
+          provide: Msg91WidgetService,
+          useValue: {
+            verifyAccessToken: jest.fn(async (token: string) => {
+              if (token === 'valid-widget-token') {
+                return { success: true, phone: '919876543210' };
+              }
+              return { success: false, error: 'Invalid widget token' };
             }),
           },
         },

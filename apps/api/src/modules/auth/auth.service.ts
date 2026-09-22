@@ -20,7 +20,12 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { RedisService } from '../../common/redis/redis.service';
+import { normalizePhone } from '../../common/utils/phone';
 import { Msg91OtpService } from './services/msg91-otp.service';
+import {
+  Msg91WidgetService,
+  Msg91WidgetVerifyResult,
+} from './services/msg91-widget.service';
 import { NotificationService } from '../notification/notification.service';
 
 const LOCKOUT_THRESHOLD = 5;
@@ -42,6 +47,7 @@ export class AuthService {
     private dataSource: DataSource,
     private redisService: RedisService,
     private msg91OtpService: Msg91OtpService,
+    private msg91WidgetService: Msg91WidgetService,
     private notificationService: NotificationService,
   ) {}
 
@@ -273,17 +279,33 @@ export class AuthService {
   // ─── 3.5 Register (customer) ────────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-    // Check duplicate phone BEFORE verifying the OTP so a doomed registration
-    // doesn't consume the user's single-use code.
-    const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
-    if (existing) {
-      throw new BadRequestException('Phone number already registered');
-    }
+    let verifiedPhone: string | null;
 
-    // Verify OTP (generated in our backend, stored in Redis, sent via MSG91)
-    const verifyResult = await this.msg91OtpService.verifyOtp(dto.phone, dto.otp);
-    if (!verifyResult.success) {
-      throw new BadRequestException('Invalid or expired OTP');
+    if (dto.widgetToken) {
+      // Widget flow: the phone is only known after MSG91 verifies the token,
+      // so the duplicate check runs against the verified number.
+      verifiedPhone = await this.resolveVerifiedPhone(undefined, undefined, dto.widgetToken);
+      if (!verifiedPhone) {
+        throw new BadRequestException('Invalid or expired OTP');
+      }
+      const existingByWidget = await this.userRepository.findOne({ where: { phone: verifiedPhone } });
+      if (existingByWidget) {
+        throw new BadRequestException('Phone number already registered');
+      }
+    } else {
+      if (!dto.phone) {
+        throw new BadRequestException('Phone number is required');
+      }
+      // Manual flow: check duplicate phone BEFORE verifying the OTP so a doomed
+      // registration doesn't consume the user's single-use code.
+      const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
+      if (existing) {
+        throw new BadRequestException('Phone number already registered');
+      }
+      verifiedPhone = await this.resolveVerifiedPhone(dto.phone, dto.otp, undefined);
+      if (!verifiedPhone) {
+        throw new BadRequestException('Invalid or expired OTP');
+      }
     }
 
     // Get customer role
@@ -293,7 +315,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = this.userRepository.create({
-      phone: dto.phone,
+      phone: verifiedPhone,
       email: dto.email,
       firstName: dto.firstName,
       lastName: dto.lastName,
@@ -347,6 +369,75 @@ export class AuthService {
     }
 
     // Update last login
+    await this.userRepository.update(user.id, { lastLoginAt: new Date() });
+
+    const { accessToken, refreshToken } = await this.buildTokens(user);
+    const { passwordHash, ...userProfile } = user;
+    return { accessToken, refreshToken, user: userProfile };
+  }
+
+  /**
+   * Resolve the verified phone for registration.
+   * - widgetToken: exchange the widget JWT with MSG91; trust the phone/email
+   *   MSG91 reports as verified (the client-entered phone is ignored).
+   * - otp: fall back to our Redis-backed code verification.
+   * Returns the verified phone (E.164 digits) or null.
+   */
+  private async resolveVerifiedPhone(
+    phone: string | undefined,
+    otp: string | undefined,
+    widgetToken: string | undefined,
+  ): Promise<string | null> {
+    if (widgetToken) {
+      const result: Msg91WidgetVerifyResult =
+        await this.msg91WidgetService.verifyAccessToken(widgetToken);
+      if (!result.success) {
+        this.logger.warn(`[Register] Widget token verification failed: ${result.error}`);
+        return null;
+      }
+      // The widget may verify either a mobile or an email. Registration needs a
+      // phone, so an email-only verification can't complete a phone registration.
+      if (!result.phone) {
+        this.logger.warn('[Register] Widget verified an identifier without a mobile number');
+        return null;
+      }
+      return result.phone;
+    }
+
+    if (phone && otp) {
+      const verifyResult = await this.msg91OtpService.verifyOtp(phone, otp);
+      return verifyResult.success ? normalizePhone(phone) : null;
+    }
+
+    return null;
+  }
+
+  // ─── 3.5c-b Login with OTP via MSG91 Widget (passwordless, popup widget) ────
+
+  /**
+   * Login using a JWT access token produced by the MSG91 OTP Widget.
+   * The widget verifies the OTP itself; we exchange its token server-side and
+   * log the user into the account matching the verified mobile number.
+   */
+  async loginWithWidget(
+    widgetToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    const result = await this.msg91WidgetService.verifyAccessToken(widgetToken);
+    if (!result.success) {
+      throw new BadRequestException(result.error ?? 'OTP verification failed');
+    }
+    if (!result.phone) {
+      throw new BadRequestException('Widget did not verify a mobile number');
+    }
+
+    const user = await this.userRepository.findOne({ where: { phone: result.phone }, relations: ['role'] });
+    if (!user) {
+      throw new BadRequestException('No account found with this phone number — please register');
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
     await this.userRepository.update(user.id, { lastLoginAt: new Date() });
 
     const { accessToken, refreshToken } = await this.buildTokens(user);

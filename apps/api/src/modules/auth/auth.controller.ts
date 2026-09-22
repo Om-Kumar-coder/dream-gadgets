@@ -94,6 +94,20 @@ export class AuthController {
     return this.authService.loginWithOtp(body.phone, body.otp);
   }
 
+  // 3.5d Login with OTP via MSG91 Widget (popup widget verifies the OTP itself)
+  @Post('widget-verify')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Exchange a MSG91 OTP Widget access token for a session (passwordless login)',
+  })
+  async widgetVerify(@Body() body: { widgetToken: string }) {
+    if (!body?.widgetToken?.trim()) {
+      return { error: 'widgetToken is required' };
+    }
+    return this.authService.loginWithWidget(body.widgetToken);
+  }
+
   // 3.6 Forgot password
   @Post('forgot-password')
   @Throttle({ default: { ttl: 60000, limit: 3 } })

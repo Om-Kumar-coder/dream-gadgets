@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from './entities/user.entity';
 import { Msg91OtpService } from './services/msg91-otp.service';
+import { Msg91WidgetService } from './services/msg91-widget.service';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
@@ -26,7 +27,7 @@ import { NotificationModule } from '../notification/notification.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, Msg91OtpService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, Msg91OtpService, Msg91WidgetService],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
+import { loadOtpWidgetSdk } from '../../lib/otp-widget';
 import { useWebAuthStore } from '../../store/auth.store';
 import ForgotPasswordForm from '../../components/auth/ForgotPasswordForm';
 
@@ -13,9 +14,7 @@ export default function LoginPage() {
   const { setTokens } = useWebAuthStore();
   const [mode, setMode] = useState<LoginMode>('password');
   const [form, setForm] = useState({ identifier: '', password: '' });
-  const [otpForm, setOtpForm] = useState({ phone: '', otp: '' });
-  const [otpSent, setOtpSent] = useState(false);
-  const [devOtp, setDevOtp] = useState('');
+  const [otpForm, setOtpForm] = useState({ phone: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -74,38 +73,52 @@ export default function LoginPage() {
     );
   }
 
+  // Open the MSG91 OTP Widget popup; on success, exchange the widget's JWT
+  // for a session via /auth/widget-verify.
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await apiClient.post('/auth/login-otp', { phone: otpForm.phone });
-      if (data?.devOtp) setDevOtp(data.devOtp);
-      setOtpSent(true);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Could not send the code. Please try again.'));
-    } finally {
-      setLoading(false);
+    if (!otpForm.phone.trim() || otpForm.phone.replace(/\D/g, '').length < 10) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
     }
-  }
-
-  async function handleOtpVerify(e: React.FormEvent) {
-    e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const { data } = await apiClient.post('/auth/login-otp/verify', {
-        phone: otpForm.phone,
-        otp: otpForm.otp,
+      await loadOtpWidgetSdk();
+      if (!process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || !process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH) {
+        setError('OTP widget is not configured. Please contact support.');
+        return;
+      }
+      window.initSendOTP!({
+        widgetId: process.env.NEXT_PUBLIC_MSG91_WIDGET_ID,
+        tokenAuth: process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH,
+        identifier: otpForm.phone.trim(),
+        success: async (data: any) => {
+          // MSG91 returns the JWT in `message` (some SDK versions use `token`)
+          const widgetToken =
+            typeof data?.message === 'string' ? data.message : typeof data?.token === 'string' ? data.token : '';
+          if (!widgetToken) {
+            setError('OTP verification failed — no token returned');
+            return;
+          }
+          try {
+            const { data: res } = await apiClient.post('/auth/widget-verify', { widgetToken });
+            const { accessToken, refreshToken } = res.data;
+            const payload = JSON.parse(atob(accessToken.split('.')[1]));
+            setTokens(accessToken, refreshToken, payload);
+            router.push('/account');
+          } catch (err: any) {
+            const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
+            setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'No account found with this phone number — please register'));
+          }
+        },
+        failure: (err: any) => {
+          const msg = typeof err === 'string' ? err : err?.message ?? 'OTP verification failed';
+          setError(msg);
+        },
       });
-      const { accessToken, refreshToken } = data.data;
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      setTokens(accessToken, refreshToken, payload);
-      router.push('/account');
     } catch (err: any) {
-      const msg = err?.response?.data?.error?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Invalid or expired code. Please try again.'));
+      setError(err?.message ?? 'Could not open the verification widget. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -137,7 +150,7 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setMode('otp'); setError(''); setOtpSent(false); setDevOtp(''); }}
+            onClick={() => { setMode('otp'); setError(''); setOtpForm({ phone: '' }); }}
             className={`py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'otp' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'}`}
           >
             OTP
@@ -216,7 +229,7 @@ export default function LoginPage() {
           )}
 
           {mode === 'otp' && (
-            <form onSubmit={otpSent ? handleOtpVerify : handleSendOtp} className="space-y-4">
+            <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label htmlFor="otp-phone" className="block text-sm font-medium text-surface-700 mb-1.5">
                   Phone Number
@@ -225,47 +238,13 @@ export default function LoginPage() {
                   id="otp-phone"
                   type="tel"
                   value={otpForm.phone}
-                  onChange={e => setOtpForm(p => ({ ...p, phone: e.target.value }))}
+                  onChange={e => { setOtpForm(p => ({ ...p, phone: e.target.value })); if (error) setError(''); }}
                   className="input"
                   placeholder="Enter your registered phone number"
                   required
-                  disabled={otpSent}
                 />
+                <p className="text-xs text-surface-400 mt-1">We&apos;ll verify your number with a one-time code</p>
               </div>
-
-              {otpSent && (
-                <div>
-                  <label htmlFor="otp-code" className="block text-sm font-medium text-surface-700 mb-1.5">
-                    One-Time Password
-                  </label>
-                  <input
-                    id="otp-code"
-                    type="text"
-                    inputMode="numeric"
-                    value={otpForm.otp}
-                    onChange={e => setOtpForm(p => ({ ...p, otp: e.target.value }))}
-                    className="input tracking-[0.3em] text-center text-lg font-semibold"
-                    placeholder="••••••"
-                    required
-                  />
-                  <div className="flex justify-end mt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setOtpSent(false); setDevOtp(''); setError(''); }}
-                      className="text-xs text-primary hover:text-primary-hover hover:underline transition-colors"
-                    >
-                      Change number / resend
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {devOtp && (
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl px-4 py-3">
-                  <span>🧪</span>
-                  <span>Dev mode code: <strong>{devOtp}</strong></span>
-                </div>
-              )}
 
               {error && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
@@ -285,11 +264,12 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    {otpSent ? 'Signing in...' : 'Send Code'}
+                    Verifying...
                   </span>
                 ) : (
-                  otpSent ? 'Verify & Sign In' : 'Send Code'
-                )}
+                  'Send Code'
+                )
+                }
               </button>
             </form>
           )}

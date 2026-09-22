@@ -328,6 +328,11 @@ cmd_install() {
   read -p "Razorpay Key ID (blank to skip): " RAZORPAY_KEY_ID
   read -sp "Razorpay Key Secret (blank to skip): " RAZORPAY_KEY_SECRET; echo
   read -sp "Razorpay Webhook Secret (blank to skip): " RAZORPAY_WEBHOOK_SECRET; echo
+  read -p "MSG91 authkey (blank to skip SMS OTP): " MSG91_AUTH_KEY
+  read -p "MSG91 template ID (blank to skip SMS OTP): " MSG91_TEMPLATE_ID
+  read -p "MSG91 widget authkey (blank to skip OTP widget): " MSG91_WIDGET_AUTH_KEY
+  read -p "MSG91 widget ID — NEXT_PUBLIC_ (blank to skip OTP widget): " MSG91_WIDGET_ID
+  read -p "MSG91 widget tokenAuth — NEXT_PUBLIC_ (blank to skip OTP widget): " MSG91_TOKEN_AUTH
   read -p "SendGrid API Key (blank to skip email): " SENDGRID_KEY
   read -p "AWS Access Key ID (blank to skip S3): " AWS_KEY_ID
   read -sp "AWS Secret Access Key (blank to skip S3): " AWS_SECRET; echo
@@ -442,14 +447,17 @@ MSG91_AUTH_KEY=$MSG91_AUTH_KEY
 MSG91_SENDER_ID=DRMGDG
 MSG91_TEMPLATE_ID=$MSG91_TEMPLATE_ID
 MSG91_OTP_TTL=600
-EOF
 
-  # Write web .env
-  cat > "$APP_DIR/apps/web/.env.local" <<EOF
+# MSG91 OTP Widget (server-side token verification)
+MSG91_WIDGET_AUTH_KEY=$MSG91_WIDGET_AUTH_KEY
+EOF# Write web .env
+cat > "$APP_DIR/apps/web/.env.local" <<EOF
 NEXT_PUBLIC_API_URL=https://$DOMAIN/api/v1
 NEXT_PUBLIC_WS_URL=https://$DOMAIN
 NEXT_PUBLIC_APP_URL=https://$DOMAIN
 NEXT_PUBLIC_RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
+NEXT_PUBLIC_MSG91_WIDGET_ID=$MSG91_WIDGET_ID
+NEXT_PUBLIC_MSG91_TOKEN_AUTH=$MSG91_TOKEN_AUTH
 NEXT_PUBLIC_SENTRY_DSN=$SENTRY_DSN
 SENTRY_DSN=$SENTRY_DSN
 SENTRY_ORG=$SENTRY_ORG

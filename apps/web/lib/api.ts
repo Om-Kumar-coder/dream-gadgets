@@ -55,6 +55,7 @@ const AUTH_ENDPOINTS = [
   '/auth/register',
   '/auth/login-otp',
   '/auth/login-otp/verify',
+  '/auth/widget-verify',
   '/auth/refresh',
   '/auth/send-otp',
   '/auth/forgot-password',

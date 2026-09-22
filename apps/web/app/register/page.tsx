@@ -1,39 +1,23 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
+import { loadOtpWidgetSdk } from '../../lib/otp-widget';
 import { useWebAuthStore } from '../../store/auth.store';
-
-const RESEND_COOLDOWN_SECONDS = 30;
-const OTP_EXPIRY_MINUTES = 10;
 
 export default function RegisterPage() {
   const router = useRouter();
   const { setTokens } = useWebAuthStore();
   const [step, setStep] = useState<'otp' | 'register'>('otp');
-  const [form, setForm] = useState({ phone: '', otp: '', firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm] = useState({ phone: '', firstName: '', lastName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // dev-mode OTP returned by the API (only when MSG91 is unconfigured)
-  const [devOtp, setDevOtp] = useState('');
-  // resend cooldown (seconds remaining)
-  const [cooldown, setCooldown] = useState(0);
+  // JWT access token produced by the MSG91 widget after successful verification
+  const [widgetToken, setWidgetToken] = useState('');
 
-  // Countdown for the resend button (single interval while cooldown is active)
-  const isCooldownActive = cooldown > 0;
-  useEffect(() => {
-    if (!isCooldownActive) return;
-    const id = setInterval(() => {
-      setCooldown((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isCooldownActive]);
-
-  function startCooldown() {
-    setCooldown(RESEND_COOLDOWN_SECONDS);
-  }
-
+  // Open the MSG91 OTP Widget popup. MSG91 sends and verifies the OTP itself,
+  // then hands back a JWT that the backend exchanges for a verified phone.
   async function sendOtp() {
     if (!form.phone.trim() || form.phone.replace(/\D/g, '').length < 10) {
       setError('Please enter a valid 10-digit phone number');
@@ -42,13 +26,34 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await apiClient.post('/auth/send-otp', { phone: form.phone });
-      // In dev-mode the API returns { devOtp } so local testing works without SMS
-      setDevOtp(data?.data?.devOtp ?? '');
-      setStep('register');
-      startCooldown();
+      await loadOtpWidgetSdk();
+      if (!process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || !process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH) {
+        setError('OTP widget is not configured. Please contact support.');
+        return;
+      }
+      window.initSendOTP!({
+        widgetId: process.env.NEXT_PUBLIC_MSG91_WIDGET_ID,
+        tokenAuth: process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH,
+        // Pre-fills / hints the number entered on the page
+        identifier: form.phone.trim(),
+        success: (data: any) => {
+          // MSG91 returns the JWT in `message` (some SDK versions use `token`)
+          const token = typeof data?.message === 'string' ? data.message : data?.token;
+          if (typeof token !== 'string' || !token) {
+            setError('OTP verification failed — no token was returned. Please try again.');
+            return;
+          }
+          setWidgetToken(token);
+          setStep('register');
+          setError('');
+        },
+        failure: (err: any) => {
+          const msg = typeof err === 'string' ? err : err?.message ?? 'OTP verification failed';
+          setError(msg);
+        },
+      });
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Failed to send OTP — check the number and try again');
+      setError(err?.message ?? 'Could not open the verification widget. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,8 +65,9 @@ export default function RegisterPage() {
     setError('');
     try {
       const payload = {
-        phone: form.phone,
-        otp: form.otp,
+        // The widget's JWT proves the phone was verified; the backend derives
+        // the number from MSG91's response, so we don't send it here.
+        widgetToken: widgetToken,
         firstName: form.firstName,
         lastName: form.lastName || undefined,
         // Avoid sending '' — the API's @IsEmail() rejects empty strings
@@ -83,16 +89,8 @@ export default function RegisterPage() {
   function changePhone() {
     setStep('otp');
     setError('');
-    setDevOtp('');
-    setCooldown(0);
+    setWidgetToken('');
   }
-
-  const formatCooldown = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${s.toString().padStart(2, '0')}s`;
-  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-surface-50/50">
@@ -176,49 +174,21 @@ export default function RegisterPage() {
             </div>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <label htmlFor="register-otp" className="block text-sm font-medium text-surface-700 mb-1.5">
-                  OTP <span className="text-surface-400 font-normal">(sent to {form.phone})</span>
-                </label>
-                <input
-                  id="register-otp"
-                  name="otp"
-                  type="text"
-                  value={form.otp}
-                  onChange={e => setForm(p => ({ ...p, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                  className="input"
-                  placeholder="Enter 6-digit OTP"
-                  maxLength={6}
-                  required
-                />
-                <p className="text-xs text-surface-400 mt-1">Valid for {OTP_EXPIRY_MINUTES} minutes</p>
-              </div>
-
-              {/* Dev-mode OTP hint — only shown when the API returns one */}
-              {devOtp && (
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
-                  <span>🧪</span>
+              {/* Phone was verified inside the MSG91 widget popup */}
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3">
+                <span className="flex items-center gap-2">
+                  <span>✅</span>
                   <span>
-                    Dev mode — your OTP is <strong className="font-mono tracking-widest">{devOtp}</strong>
+                    {form.phone} verified
                   </span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => { setForm(p => ({ ...p, otp: '' })); }}
-                  className="text-xs text-surface-400 hover:text-surface-600 transition-colors"
-                >
-                  Clear OTP
-                </button>
+                </span>
                 <button
                   type="button"
                   onClick={sendOtp}
-                  disabled={loading || cooldown > 0}
-                  className="text-xs font-medium text-primary hover:text-primary-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={loading}
+                  className="text-xs font-semibold text-green-700 hover:text-green-800 underline transition-colors disabled:opacity-40"
                 >
-                  {cooldown > 0 ? `Resend in ${formatCooldown(cooldown)}` : 'Resend OTP'}
+                  Re-verify
                 </button>
               </div>
 
