@@ -30,7 +30,14 @@ async function bootstrap() {
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(compression());
   app.enableCors({
-    origin: [process.env.WEB_URL || 'http://localhost:3001', process.env.ADMIN_URL || 'http://localhost:3002'],
+    // Include the www variant of WEB_URL — users land on www.dreamgadgets.in
+    // just as often, and a missing origin here silently breaks every API call
+    // (including OTP registration) with CORS errors.
+    origin: [
+      process.env.WEB_URL || 'http://localhost:3001',
+      process.env.WEB_URL ? process.env.WEB_URL.replace('://', '://www.') : 'http://localhost:3001',
+      process.env.ADMIN_URL || 'http://localhost:3002',
+    ],
     credentials: true,
   });
 

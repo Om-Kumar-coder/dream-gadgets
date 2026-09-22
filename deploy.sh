@@ -58,10 +58,20 @@ write_nginx_config() {
     cat > /etc/nginx/sites-available/dream-gadgets <<EOF
 # Dream Gadgets – Nginx config for $DOMAIN
 
+# Canonical host: redirect www -> bare domain so clients always match the
+# API's CORS allowlist and the OTP widget's registered host.
+server {
+  listen 443 ssl http2;
+  server_name www.$DOMAIN;
+  ssl_certificate $SSL_CERT;
+  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+  return 301 https://$DOMAIN\$request_uri;
+}
+
 # HTTPS server (main)
 server {
   listen 443 ssl http2;
-  server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+  server_name $DOMAIN $SERVER_IP;
 
   ssl_certificate $SSL_CERT;
   ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
@@ -170,9 +180,16 @@ EOF
     cat > /etc/nginx/sites-available/dream-gadgets <<EOF
 # Dream Gadgets – Nginx config for $DOMAIN (HTTP, pre-Certbot)
 
+# Canonical host (HTTP fallback): redirect www -> bare domain
 server {
   listen 80;
-  server_name $DOMAIN www.$DOMAIN $SERVER_IP;
+  server_name www.$DOMAIN;
+  return 301 http://$DOMAIN\$request_uri;
+}
+
+server {
+  listen 80;
+  server_name $DOMAIN $SERVER_IP;
 
   # Socket.io WebSocket — proxy to API server (must be before /admin and /)
   location /socket.io/ {
