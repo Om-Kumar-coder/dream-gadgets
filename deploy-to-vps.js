@@ -17,16 +17,21 @@ const deployCommands = [
   `cd ${PROJECT_DIR} && git log --oneline -1`,
   `echo "=== Installing dependencies ==="`,
   `cd ${PROJECT_DIR} && set -o pipefail && npm install 2>&1 | tail -10 || { echo "NPM_INSTALL_FAILED"; exit 1; }`,
-  `echo "=== Running migrations ==="`,
-  // migrate.js exits 1 on known pre-existing table errors (e.g. emi_providers
-  // created manually earlier). Treat as non-fatal: log clearly, keep going.
-  `cd ${PROJECT_DIR}/apps/api && node migrate.js 2>&1 || echo "MIGRATE_WARN: migration step reported errors (may be pre-existing tables); continuing"`,
   `echo "=== Clearing turbo cache + API dist (forces real rebuild) ==="`,
   `cd ${PROJECT_DIR} && rm -rf .turbo node_modules/.cache apps/api/dist && echo "caches cleared"`,
   `echo "=== Building all apps (forced, from ${PROJECT_DIR}) ==="`,
   `cd ${PROJECT_DIR} && set -o pipefail && npm run build -- --force 2>&1 | tail -30 && echo "BUILD_DONE" || { echo "BUILD_FAILED"; exit 1; }`,
   `echo "=== Verify API dist exists ==="`,
   `ls ${PROJECT_DIR}/apps/api/dist/main.js 2>&1 && echo "API dist OK" || { echo "API DIST MISSING"; exit 1; }`,
+  `echo "=== Running migrations (AFTER build, so dist has all migrations) ==="`,
+  // migrate.js exits 1 on known pre-existing table errors (e.g. emi_providers
+  // created manually earlier). Treat as non-fatal: log clearly, keep going.
+  // NOTE: must run AFTER the build — migrate.js loads compiled migrations from
+  // apps/api/dist/database/migrations/, so running it before the build only
+  // sees stale migrations and silently skips new ones.
+  `cd ${PROJECT_DIR}/apps/api && node migrate.js 2>&1 | tail -8 || echo "MIGRATE_WARN: migration step reported errors (may be pre-existing tables); continuing"`,
+  `echo "=== Verify latest migration applied ==="`,
+  `cd ${PROJECT_DIR}/apps/api && node -e "require('dotenv').config({path:'.env.local'});require('dotenv').config({path:'.env'});const {Client}=require('pg');const c=new Client({connectionString:process.env.DATABASE_URL});c.connect().then(async()=>{const m=await c.query('SELECT name FROM migrations ORDER BY id DESC LIMIT 1');console.log('Latest migration in DB:',m.rows[0]&&m.rows[0].name);await c.end();}).catch(e=>{console.error(e.message);process.exit(1);})" || true`,
   `echo "=== PM2 reload ==="`,
   `cd ${PROJECT_DIR} && pm2 reload all 2>&1`,
   `echo "=== Waiting 15s for services ==="`,
