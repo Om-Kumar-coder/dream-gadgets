@@ -154,14 +154,31 @@ export class GstService {
   ) {}
 
   /**
+   * Normalize a date-only end bound (e.g. '2026-09-23') to exclusive
+   * next-day-midnight so timestamp columns like sale_date (= '2026-09-23
+   * 10:47:00') are included when users pick that day as the end date.
+   * A full timestamp string is passed through unchanged, and an inclusive
+   * end-of-day timestamp keeps working ('<= to' with 'T23:59:59' would become
+   * '< next day' — same instant, off by one microsecond at most).
+   */
+  private normalizeToDate(toDate: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate ?? '')) return toDate;
+    const d = new Date(`${toDate}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) return toDate;
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().replace('.000Z', '');
+  }
+
+  /**
    * Generate full GSTR-1 data for a date range and optional branch.
    */
   async generateGstr1(fromDate: string, toDate: string, branchId?: string): Promise<Gstr1Section> {
+    const to = this.normalizeToDate(toDate);
     const [b2b, b2cl, b2cs, cdnr] = await Promise.all([
-      this.getB2b(fromDate, toDate, branchId),
-      this.getB2cl(fromDate, toDate, branchId),
-      this.getB2cs(fromDate, toDate, branchId),
-      this.getCdnr(fromDate, toDate, branchId),
+      this.getB2b(fromDate, to, branchId),
+      this.getB2cl(fromDate, to, branchId),
+      this.getB2cs(fromDate, to, branchId),
+      this.getCdnr(fromDate, to, branchId),
     ]);
 
     return { b2b, b2cl, b2cs, cdnr };
@@ -567,7 +584,9 @@ export class GstService {
     branchId?: string,
   ): Promise<ItcReport> {
     const branchFilter = branchId ? `AND p.branch_id = $3` : '';
-    const params = [fromDate, toDate, ...(branchId ? [branchId] : [])];
+    // Same end-date normalization as GSTR-1: date-only 'to' must include the
+    // whole day, otherwise same-day purchases never reach the ITC report.
+    const params = [fromDate, this.normalizeToDate(toDate), ...(branchId ? [branchId] : [])];
 
     // Monthly eligible-ITC buckets. Reverse-charge and ineligible-ITC rows are
     // excluded from regular ITC but reported separately for transparency.
