@@ -66,6 +66,10 @@ export class SalesService {
 
   // ─── 7.2 Invoice number generation ──────────────────────────────────────────
   // Format: DG-{BRANCH_CODE}-{YEAR}-{padded_seq}
+  // The sequence lives in Redis for speed, but Redis can lose increments
+  // (restart without persistence, failover). If the counter falls behind the
+  // DB, every sale 500s on the unique invoice_number constraint. So we heal:
+  // on duplicate-key we re-sync the Redis counter to the DB max and retry.
 
   async generateInvoiceNumber(branchId: string): Promise<string> {
     const branch = await this.branchRepo.findOne({ where: { id: branchId } });
@@ -76,6 +80,20 @@ export class SalesService {
 
     const paddedSeq = String(seq).padStart(5, '0');
     return `DG-${branchCode}-${year}-${paddedSeq}`;
+  }
+
+  /** Sync the Redis invoice counter to the DB max sequence for branch+year. */
+  private async resyncInvoiceSequence(branchId: string, branchCode: string, year: number): Promise<void> {
+    const prefix = `DG-${branchCode}-${year}-`;
+    const result = await this.saleRepo
+      .createQueryBuilder('sale')
+      .select("COALESCE(MAX(CAST(RIGHT(sale.invoiceNumber, 5) AS INTEGER)), 0)", "maxSeq")
+      .where('sale.invoiceNumber LIKE :prefix', { prefix: `${prefix}%` })
+      .getRawOne();
+    const maxSeq = parseInt(result?.maxSeq ?? '0', 10) || 0;
+    // Use a Lua-free approach: SET with GET semantics is not in ioredis API used
+    // here, so set only if lower via a small retry window.
+    await this.redisService.setInvoiceSequenceIfLower(branchId, year, maxSeq);
   }
 
   // ─── 7.3 Create sale ─────────────────────────────────────────────────────────
@@ -284,8 +302,20 @@ export class SalesService {
       }
     }
 
-    // 7. Generate invoice number
-    const invoiceNumber = await this.generateInvoiceNumber(dto.branchId);
+    // 7. Generate invoice number — self-healing against Redis counter drift.
+    // If the generated number already exists (Redis counter fell behind the DB),
+    // re-sync the counter from the DB and regenerate, up to 5 tries.
+    let invoiceNumber = await this.generateInvoiceNumber(dto.branchId);
+    let tries = 0;
+    while (tries < 5) {
+      const clash = await this.saleRepo.findOne({ where: { invoiceNumber }, select: ['id'] });
+      if (!clash) break;
+      tries++;
+      this.logger.warn(`Invoice number ${invoiceNumber} already exists — resyncing Redis counter (attempt ${tries})`);
+      const branch = await this.branchRepo.findOne({ where: { id: dto.branchId } });
+      await this.resyncInvoiceSequence(dto.branchId, branch?.code ?? dto.branchId.slice(0, 4).toUpperCase(), new Date().getFullYear());
+      invoiceNumber = await this.generateInvoiceNumber(dto.branchId);
+    }
 
     // 8. Persist everything in a transaction
     const queryRunner = this.dataSource.createQueryRunner();

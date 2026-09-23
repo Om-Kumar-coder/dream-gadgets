@@ -224,6 +224,21 @@ export class RedisService implements OnModuleDestroy {
     return seq;
   }
 
+  /**
+   * Raise the Redis invoice counter to `seq` only if it is currently lower.
+   * Used for self-healing when Redis loses increments (restart without
+   * persistence) — never lowers a healthy counter.
+   */
+  async setInvoiceSequenceIfLower(branchId: string, year: number, seq: number): Promise<void> {
+    const client = await this.getClient();
+    const key = `invoice:seq:${branchId}:${year}`;
+    const current = parseInt((await client.get(key)) ?? '0', 10) || 0;
+    if (seq > current) {
+      await client.set(key, String(seq));
+      await client.expire(key, 400 * 24 * 60 * 60);
+    }
+  }
+
   // POS locks
   async posLockItem(itemId: string, ttlSeconds: number): Promise<void> {
     await this.set(`pos:lock:${itemId}`, '1', { EX: ttlSeconds });

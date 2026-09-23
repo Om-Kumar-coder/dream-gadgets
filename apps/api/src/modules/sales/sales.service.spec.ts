@@ -430,7 +430,8 @@ describe('SalesService', () => {
       itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
       const savedSale = makeSale({ id: 'sale-1', totalAmount: 9700 });
       dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
-      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [], payments: [] });
+      // First findOne call = invoice clash check (no clash), later calls = findById
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [], payments: [] });
 
       // Should not throw
       await expect(service.create(dto, 'user-1', 'shop_sales')).resolves.toBeDefined();
@@ -453,7 +454,8 @@ describe('SalesService', () => {
       itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
       const savedSale = makeSale({ id: 'sale-1', totalAmount: 9000 });
       dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
-      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [], payments: [] });
+      // First findOne call = invoice clash check (no clash), later calls = findById
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [], payments: [] });
 
       await expect(service.create(dto, 'user-1', 'store_manager')).resolves.toBeDefined();
     });
@@ -472,7 +474,8 @@ describe('SalesService', () => {
       itemRepo.find.mockResolvedValue([makeInventoryItem({ status: 'available' })]);
       const savedSale = makeSale({ id: 'sale-1', totalAmount: 8000 });
       dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
-      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [], payments: [] });
+      // First findOne call = invoice clash check (no clash), later calls = findById
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [], payments: [] });
 
       await expect(service.create(dto, 'user-1', 'shop_owner')).resolves.toBeDefined();
     });
@@ -668,7 +671,8 @@ describe('SalesService', () => {
         taxAmount: 0,
       });
       dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
-      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [], payments: [] });
+      // First findOne call = invoice clash check (no clash), later calls = findById
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [], payments: [] });
 
       return service.create(dto, 'user-1', userRole);
     }
@@ -720,7 +724,7 @@ describe('SalesService', () => {
       }) as any;
       savedSale.payments = dto.payments;
       dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
-      saleRepo.findOne.mockResolvedValue({ ...savedSale, items: [] });
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [] });
 
       const created = await service.create(dto, 'user-1', 'shop_owner');
       expect(created.totalAmount).toEqual(expectedTotal);
