@@ -10,6 +10,7 @@ set -e
 #   sudo ./deploy.sh update      – Pull latest code & rebuild
 #   sudo ./deploy.sh restart     – Rebuild & restart API only
 #   sudo ./deploy.sh seed        – Seed database with test data
+#   sudo ./deploy.sh clean-data  – Remove dummy/test data from live DB (products, sales, orders, clients)
 #   sudo ./deploy.sh nginx       – Fix/reload Nginx config
 #   sudo ./deploy.sh check       – Health check all services
 #   sudo ./deploy.sh clear-cache - Clear server caches and restart apps
@@ -738,6 +739,41 @@ cmd_check() {
 }
 
 # --------------------------------------------------------------------------
+# SUBCOMMAND: clean-data
+# --------------------------------------------------------------------------
+cmd_clean_data() {
+  require_root
+  require_app_dir
+
+  info "This will delete ALL dummy products, test sales, online orders,"
+  info "returns, purchases, test clients and related records from the LIVE DB."
+  info "Users, banners and settings are NOT touched. Single transaction —"
+  info "any failure rolls back everything."
+  echo ""
+  read -p "Type CLEAN to confirm: " CONFIRM
+  [ "$CONFIRM" != "CLEAN" ] && { warn "Aborted."; exit 1; }
+
+  # Safety backup first
+  BACKUP="/root/dreamgadgets-backup-before-clean-$(date +%Y%m%d-%H%M%S).sql"
+  info "Taking database backup → $BACKUP ..."
+  sudo -u postgres pg_dump dreamgadgets > "$BACKUP" || { error "Backup failed — aborting."; exit 1; }
+  info "Backup OK ($(du -h "$BACKUP" | cut -f1))"
+
+  info "Running cleanup script..."
+  cd "$APP_DIR/apps/api"
+  npm run db:remove-test-data
+
+  info "Restarting apps to clear caches..."
+  pm2 restart dream-gadgets-web dream-gadgets-admin
+  run_health_checks
+
+  info "------------------------------------------------"
+  info "✅ Dummy/test data removed from live database."
+  info "   Backup saved at: $BACKUP"
+  info "------------------------------------------------"
+}
+
+# --------------------------------------------------------------------------
 # ENTRYPOINT
 # --------------------------------------------------------------------------
 cmd_clear_cache() {
@@ -759,6 +795,7 @@ case "${1:-}" in
   update)   cmd_update   ;;
   restart)  cmd_restart  ;;
   seed)     cmd_seed     ;;
+  clean-data) cmd_clean_data ;;
   nginx)    cmd_nginx    ;;
   check)    cmd_check    ;;
   clear-cache) cmd_clear_cache ;;
@@ -770,6 +807,7 @@ case "${1:-}" in
     echo "  update    Pull latest code, rebuild, reload PM2"
     echo "  restart   Rebuild & restart API only"
     echo "  seed      Seed database with test data"
+    echo "  clean-data Remove dummy products & test sales/orders/clients from live DB"
     echo "  nginx     Fix/reload Nginx config"
     echo "  check     Health check all services"
     echo "  clear-cache Clear server caches and restart apps"
