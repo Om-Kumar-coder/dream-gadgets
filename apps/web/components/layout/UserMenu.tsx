@@ -293,26 +293,13 @@ function DropdownItem({
   label,
   onClick,
   badge,
-  disabled,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
   badge?: string;
-  disabled?: boolean;
 }) {
-  if (disabled) {
-    return (
-      <div className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 cursor-not-allowed select-none">
-        <span className="shrink-0 text-gray-200">{icon}</span>
-        <span>{label}</span>
-        <span className="ml-auto text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">
-          Coming soon
-        </span>
-      </div>
-    );
-  }
   return (
     <Link
       href={href}

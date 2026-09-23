@@ -114,7 +114,9 @@ describe('Msg91OtpService', () => {
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('dev-mode');
-      const stored = await redisMock.getOtp('9876543210');
+      // OTP is stored under the normalized E.164 digits ('919876543210') —
+      // bare 10-digit input is treated as Indian +91.
+      const stored = await redisMock.getOtp('919876543210');
       expect(stored).toMatch(/^\d{6}$/);
       // Dev-mode surfaces the OTP so the frontend can display it for local testing
       expect(result.otp).toBe(stored);
@@ -213,13 +215,13 @@ describe('Msg91OtpService', () => {
     });
 
     it('should reject a wrong code and keep the stored OTP', async () => {
-      await redisMock.setOtp('9876543210', '123456', 600);
+      await redisMock.setOtp('919876543210', '123456', 600);
 
       const result = await service.verifyOtp('9876543210', '000000');
 
       expect(result.success).toBe(false);
       expect(result.status).toBe('pending');
-      expect(await redisMock.getOtp('9876543210')).toBe('123456');
+      expect(await redisMock.getOtp('919876543210')).toBe('123456');
     });
 
     it('should reject when no OTP was requested or it expired', async () => {
@@ -230,7 +232,7 @@ describe('Msg91OtpService', () => {
     });
 
     it('should lock the OTP after too many failed attempts', async () => {
-      await redisMock.setOtp('9876543210', '123456', 600);
+      await redisMock.setOtp('919876543210', '123456', 600);
       // Exhaust the 5 allowed attempts
       for (let i = 0; i < 5; i++) {
         await service.verifyOtp('9876543210', '000000');
@@ -240,7 +242,7 @@ describe('Msg91OtpService', () => {
 
       expect(result.success).toBe(false);
       expect(result.status).toBe('locked');
-      expect(await redisMock.getOtp('9876543210')).toBeNull();
+      expect(await redisMock.getOtp('919876543210')).toBeNull();
     });
   });
 
@@ -248,10 +250,13 @@ describe('Msg91OtpService', () => {
 
   describe('generateOtp()', () => {
     it('should always produce a 6-digit code', async () => {
+      // MSG91 is configured in this suite's default mock, so sendOtp takes the
+      // provider path (dev-mode requires unconfigured env). Keys stay the
+      // normalized E.164 digits ('9198765432 10' → '9198765432{i}').
       for (let i = 0; i < 5; i++) {
-        const phone = `987654321${i}`; // 10-digit so normalization keeps it intact
+        const phone = `987654321${i}`; // bare 10-digit → Indian +91 → '91987654321' + i
         await service.sendOtp(phone);
-        const stored = await redisMock.getOtp(phone);
+        const stored = await redisMock.getOtp(`91987654321${i}`);
         expect(stored).toMatch(/^\d{6}$/);
       }
     });

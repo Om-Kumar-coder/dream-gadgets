@@ -12,6 +12,7 @@
     "migration:run": "cd .. && npx ts-node -P apps/api/tsconfig.ts-node.json -r tsconfig-paths/register node_modules/.bin/typeorm migration:run -- -d apps/api/src/database/data-source.ts",
     "migration:revert": "typeorm migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -P tsconfig.ts-node.json -r tsconfig-paths/register src/database/seeds/run-seeds.ts",
+    "db:remove-dummy-products": "ts-node -P tsconfig.ts-node.json -r tsconfig-paths/register src/database/scripts/remove-dummy-products.ts",
     "db:setup": "npm run migration:run && npm run seed"
   },
   "dependencies": {

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useCartStore } from '../../store/cart.store';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { CouponInput } from '../../components/coupon/CouponInput';
 
 function DeliveryEstimate(): string {
   const now = new Date();
@@ -32,7 +33,7 @@ function CartSavingsBanner({ savings }: { savings: number }) {
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total, itemCount, clearCart } = useCartStore();
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState(0);
   const cartTotal = total();
   const count = itemCount();
   const savings = items.reduce((sum, item) => {
@@ -213,37 +214,28 @@ export default function CartPage() {
 
                 <div className="divider mt-4 pt-4 flex justify-between items-baseline">
                   <span className="text-base font-bold text-surface-900">Total</span>
-                  <span className="text-xl font-extrabold text-surface-900">₹{cartTotal.toLocaleString('en-IN')}</span>
+                  <span className="text-xl font-extrabold text-surface-900">₹{Math.max(0, cartTotal - promoDiscount).toLocaleString('en-IN')}</span>
                 </div>
 
-                {/* Promo code */}
+                {/* Promo code — validated server-side; the discount is applied
+                    on the checkout review step, never faked here. */}
                 <div className="mt-4">
-                  <div className="flex gap-2">
-                    <input
-                      id="cart-promo"
-                      name="promoCode"
-                      type="text"
-                      value={promoCode}
-                      onChange={e => setPromoCode(e.target.value)}
-                      placeholder="Enter promo code"
-                      className="input flex-1"
-                      disabled={promoApplied}
-                    />
-                    <button
-                      onClick={() => { if (promoCode.trim()) setPromoApplied(true); }}
-                      disabled={promoApplied || !promoCode.trim()}
-                      className="px-4 py-2 text-sm font-semibold text-primary border-2 border-primary rounded-xl hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      {promoApplied ? 'Applied' : 'Apply'}
-                    </button>
-                  </div>
-                  {promoApplied && (
-                    <p className="text-xs text-emerald-600 mt-1.5 flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Promo code applied!
-                    </p>
+                  <CouponInput
+                    subtotal={cartTotal}
+                    onCouponApplied={(code, discount) => {
+                      setPromoCode(code);
+                      setPromoDiscount(discount);
+                    }}
+                    onCouponRemoved={() => {
+                      setPromoCode('');
+                      setPromoDiscount(0);
+                    }}
+                  />
+                  {promoDiscount > 0 && (
+                    <div className="mt-3 pt-3 border-t border-surface-100 flex justify-between text-sm text-emerald-600">
+                      <span>Coupon: {promoCode}</span>
+                      <span className="font-semibold">-₹{promoDiscount.toLocaleString('en-IN')}</span>
+                    </div>
                   )}
                 </div>
 

@@ -3,71 +3,79 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
-import { loadOtpWidgetSdk } from '../../lib/otp-widget';
 import { useWebAuthStore } from '../../store/auth.store';
+import {
+  IndianPhoneInput,
+  isValidIndianMobile,
+} from '../../components/auth/IndianPhoneInput';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { setTokens } = useWebAuthStore();
   const [step, setStep] = useState<'otp' | 'register'>('otp');
-  const [form, setForm] = useState({ phone: '', firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm] = useState({ phone: '', otp: '', firstName: '', lastName: '', email: '', password: '' });
+  const [otpSent, setOtpSent] = useState(false);
+  const [devOtp, setDevOtp] = useState('');
+  const [resendIn, setResendIn] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // JWT access token produced by the MSG91 widget after successful verification
-  const [widgetToken, setWidgetToken] = useState('');
 
-  // Open the MSG91 OTP Widget popup. MSG91 sends and verifies the OTP itself,
-  // then hands back a JWT that the backend exchanges for a verified phone.
-  async function sendOtp() {
-    if (!form.phone.trim() || form.phone.replace(/\D/g, '').length < 10) {
-      setError('Please enter a valid 10-digit phone number');
+  // Step 1: send an OTP to the user's Indian number via the MSG91 server API.
+  // The number is used exactly as entered — no country detection anywhere.
+  async function sendOtp(e?: React.MouseEvent | React.FormEvent) {
+    e?.preventDefault();
+    setError('');
+    if (!form.phone.trim()) {
+      setError('Please enter your mobile number');
+      return;
+    }
+    if (!isValidIndianMobile(form.phone)) {
+      setError('Enter a valid 10-digit Indian mobile number');
       return;
     }
     setLoading(true);
-    setError('');
     try {
-      await loadOtpWidgetSdk();
-      if (!process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || !process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH) {
-        setError('OTP widget is not configured. Please contact support.');
-        return;
-      }
-      window.initSendOTP!({
-        widgetId: process.env.NEXT_PUBLIC_MSG91_WIDGET_ID,
-        tokenAuth: process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH,
-        // Pre-fills / hints the number entered on the page
-        identifier: form.phone.trim(),
-        success: (data: any) => {
-          // MSG91 returns the JWT in `message` (some SDK versions use `token`)
-          const token = typeof data?.message === 'string' ? data.message : data?.token;
-          if (typeof token !== 'string' || !token) {
-            setError('OTP verification failed — no token was returned. Please try again.');
-            return;
-          }
-          setWidgetToken(token);
-          setStep('register');
-          setError('');
-        },
-        failure: (err: any) => {
-          const msg = typeof err === 'string' ? err : err?.message ?? 'OTP verification failed';
-          setError(msg);
-        },
-      });
+      const { data } = await apiClient.post('/auth/send-otp', { phone: form.phone });
+      setDevOtp(data?.data?.devOtp ?? '');
+      setOtpSent(true);
+      setResendIn(30);
+      const timer = setInterval(() => {
+        setResendIn(s => {
+          if (s <= 1) { clearInterval(timer); return 0; }
+          return s - 1;
+        });
+      }, 1000);
     } catch (err: any) {
-      setError(err?.message ?? 'Could not open the verification widget. Please try again.');
+      const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Could not send the OTP. Please try again.'));
     } finally {
       setLoading(false);
     }
   }
 
+  // Step 1b: sanity-check the code, then continue to the details step.
+  // The register endpoint re-verifies the OTP (it is single-use) and creates
+  // the account in one atomic call.
+  function verifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!/^\d{6}$/.test(form.otp)) {
+      setError('Enter the 6-digit code we sent you');
+      return;
+    }
+    setStep('register');
+  }
+
+  // Step 2: create the account (server verifies the OTP again — it is single-use).
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
       const payload = {
-        // The widget's JWT proves the phone was verified; the backend derives
-        // the number from MSG91's response, so we don't send it here.
-        widgetToken: widgetToken,
+        // The phone exactly as entered; the backend normalizes and verifies it.
+        phone: form.phone,
+        otp: form.otp,
         firstName: form.firstName,
         lastName: form.lastName || undefined,
         // Avoid sending '' — the API's @IsEmail() rejects empty strings
@@ -80,7 +88,13 @@ export default function RegisterPage() {
       setTokens(accessToken, refreshToken, jwtPayload);
       router.push('/account');
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? err?.response?.data?.message ?? 'Registration failed. Please try again.');
+      const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Registration failed. Please try again.'));
+      // An invalid/expired OTP means the user must re-verify.
+      if (/otp/i.test(String(msg))) {
+        setStep('otp');
+        setForm(p => ({ ...p, otp: '' }));
+      }
     } finally {
       setLoading(false);
     }
@@ -89,7 +103,9 @@ export default function RegisterPage() {
   function changePhone() {
     setStep('otp');
     setError('');
-    setWidgetToken('');
+    setDevOtp('');
+    setOtpSent(false);
+    setForm(p => ({ ...p, otp: '' }));
   }
 
   return (
@@ -126,37 +142,66 @@ export default function RegisterPage() {
           </div>
 
           {step === 'otp' ? (
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="register-phone" className="block text-sm font-medium text-surface-700 mb-1.5">
-                  Phone Number
-                </label>
-                <input
-                  id="register-phone"
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
-                  onChange={e => {
-                    setForm(p => ({ ...p, phone: e.target.value }));
-                    if (error) setError('');
-                  }}
-                  className="input"
-                  placeholder="+91XXXXXXXXXX"
-                  required
-                />
-                <p className="text-xs text-surface-400 mt-1">We'll send a one-time OTP to verify your number</p>
-              </div>
+            <form onSubmit={otpSent ? verifyOtp : sendOtp} className="space-y-4">
+              <IndianPhoneInput
+                id="register-phone"
+                name="phone"
+                value={form.phone}
+                onChange={v => {
+                  setForm(p => ({ ...p, phone: v }));
+                  if (error) setError('');
+                }}
+                error={error || undefined}
+                required
+              />
 
-              {error && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
-                <span>⚠️</span>
-                <span>{error}</span>
-              </div>
+              {otpSent && (
+                <>
+                  <div className="flex items-center justify-between bg-surface-50 border border-surface-100 rounded-xl px-4 py-3">
+                    <span className="text-sm text-surface-600">
+                      Code sent to <strong className="text-surface-900">+91 {form.phone.replace(/\D/g, '')}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={changePhone}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+
+                  <div>
+                    <label htmlFor="register-otp" className="block text-sm font-medium text-surface-700 mb-1.5">
+                      6-Digit Code
+                    </label>
+                    <input
+                      id="register-otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={form.otp}
+                      onChange={e => {
+                        setForm(p => ({ ...p, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }));
+                        if (error) setError('');
+                      }}
+                      className="input text-center text-lg tracking-[0.4em] font-mono"
+                      placeholder="••••••"
+                      required
+                    />
+                  </div>
+
+                  {devOtp && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+                      Dev mode OTP: <strong className="font-mono">{devOtp}</strong>
+                    </div>
+                  )}
+                </>
               )}
 
               <button
-                onClick={sendOtp}
-                disabled={loading || !form.phone}
+                type="submit"
+                disabled={loading || (!otpSent && !form.phone)}
                 className="w-full py-3 btn-red rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -165,31 +210,53 @@ export default function RegisterPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Sending OTP...
+                    {otpSent ? 'Verifying...' : 'Sending OTP...'}
                   </span>
                 ) : (
-                  'Send OTP'
+                  otpSent ? 'Verify & Continue' : 'Send OTP'
                 )}
               </button>
-            </div>
+
+              {otpSent && resendIn > 0 && (
+                <p className="text-center text-xs text-surface-400">Resend available in {resendIn}s</p>
+              )}
+            </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Phone was verified inside the MSG91 widget popup */}
+              {/* Phone was verified by the OTP the user typed in */}
               <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3">
                 <span className="flex items-center gap-2">
                   <span>✅</span>
                   <span>
-                    {form.phone} verified
+                    +91 {form.phone.replace(/\D/g, '')} verified
                   </span>
                 </span>
                 <button
                   type="button"
-                  onClick={sendOtp}
-                  disabled={loading}
+                  onClick={changePhone}
                   className="text-xs font-semibold text-green-700 hover:text-green-800 underline transition-colors disabled:opacity-40"
                 >
-                  Re-verify
+                  Change
                 </button>
+              </div>
+
+              <div>
+                <label htmlFor="register-otp" className="block text-sm font-medium text-surface-700 mb-1.5">
+                  OTP Code <span className="text-red-400">*</span>
+                </label>
+                <input
+                  id="register-otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={form.otp}
+                  onChange={e => setForm(p => ({ ...p, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                  className="input text-center text-lg tracking-[0.4em] font-mono"
+                  placeholder="••••••"
+                  required
+                />
+                <p className="text-xs text-surface-400 mt-1">Enter the 6-digit code sent to your number</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

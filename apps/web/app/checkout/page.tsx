@@ -1,11 +1,18 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tag } from 'lucide-react';
 import { useCartStore } from '../../store/cart.store';
 import { apiClient } from '../../lib/api';
 import { CouponInput } from '../../components/coupon/CouponInput';
+import {
+  AddressBook,
+  useAddresses,
+  formatAddressOneLine,
+  type Address,
+} from '../../components/account/AddressBook';
+import { useWebAuthStore } from '../../store/auth.store';
 
 type Step = 'address' | 'review' | 'payment';
 
@@ -38,10 +45,14 @@ function validateAddress(a: AddressForm): FieldErrors {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, total, itemCount, clearCart } = useCartStore();
+  const { user } = useWebAuthStore();
   const [step, setStep] = useState<Step>('address');
   const [address, setAddress] = useState<AddressForm>({
     name: '', phone: '', street: '', city: '', state: '', pincode: '',
   });
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddressBook, setShowAddressBook] = useState(false);
+  const addressesQuery = useAddresses(!!user);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,6 +61,27 @@ export default function CheckoutPage() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const cartTotal = total();
   const count = itemCount();
+
+  // Signed-in customers start from their default saved address.
+  useEffect(() => {
+    const list = addressesQuery.data;
+    if (!user || !list?.length || selectedAddressId) return;
+    const def = list.find(a => a.isDefault) ?? list[0];
+    applySavedAddress(def);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, addressesQuery.data]);
+
+  function applySavedAddress(a: Address) {
+    setSelectedAddressId(a.id);
+    setAddress({
+      name: a.fullName,
+      phone: a.mobile,
+      street: [a.addressLine1, a.addressLine2, a.landmark].filter(Boolean).join(', '),
+      city: a.city,
+      state: a.state,
+      pincode: a.pincode,
+    });
+  }
 
   if (items.length === 0) {
     router.push('/cart');
@@ -173,6 +205,36 @@ export default function CheckoutPage() {
             {step === 'address' && (
               <form onSubmit={handleAddressSubmit} className="bg-white border border-surface-100 rounded-2xl p-6 sm:p-8 shadow-sm">
                 <h2 className="text-lg font-bold text-surface-900 mb-6">Shipping Address</h2>
+
+                {/* Saved addresses for signed-in customers */}
+                {user && (
+                  <div className="mb-6">
+                    {showAddressBook ? (
+                      <AddressBook
+                        selectable
+                        selectedId={selectedAddressId}
+                        onSelect={a => {
+                          applySavedAddress(a);
+                          setShowAddressBook(false);
+                          setFieldErrors({});
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddressBook(true)}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-surface-200 hover:border-primary/40 bg-surface-50/50 transition-all"
+                      >
+                        <span className="text-sm text-surface-600">
+                          {selectedAddressId
+                            ? '✓ Using a saved address — tap to change'
+                            : '📦 Use a saved address'}
+                        </span>
+                        <span className="text-xs font-semibold text-primary">Choose</span>
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { key: 'name', label: 'Full Name', type: 'text', placeholder: 'John Doe', colSpan: 'sm:col-span-2' },

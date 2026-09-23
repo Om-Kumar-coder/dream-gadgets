@@ -3,9 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '../../lib/api';
-import { loadOtpWidgetSdk } from '../../lib/otp-widget';
 import { useWebAuthStore } from '../../store/auth.store';
 import ForgotPasswordForm from '../../components/auth/ForgotPasswordForm';
+import {
+  IndianPhoneInput,
+  isValidIndianMobile,
+} from '../../components/auth/IndianPhoneInput';
 
 type LoginMode = 'password' | 'otp';
 
@@ -14,7 +17,10 @@ export default function LoginPage() {
   const { setTokens } = useWebAuthStore();
   const [mode, setMode] = useState<LoginMode>('password');
   const [form, setForm] = useState({ identifier: '', password: '' });
-  const [otpForm, setOtpForm] = useState({ phone: '' });
+  const [otpForm, setOtpForm] = useState({ phone: '', otp: '' });
+  const [otpStage, setOtpStage] = useState<'enter-phone' | 'enter-otp'>('enter-phone');
+  const [devOtp, setDevOtp] = useState('');
+  const [resendIn, setResendIn] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -73,52 +79,59 @@ export default function LoginPage() {
     );
   }
 
-  // Open the MSG91 OTP Widget popup; on success, exchange the widget's JWT
-  // for a session via /auth/widget-verify.
+  /* ── OTP login: send code to the user's Indian number ─────── */
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (!otpForm.phone.trim() || otpForm.phone.replace(/\D/g, '').length < 10) {
-      setError('Please enter a valid 10-digit phone number');
+    setError('');
+    if (!otpForm.phone.trim()) {
+      setError('Please enter your mobile number');
+      return;
+    }
+    if (!isValidIndianMobile(otpForm.phone)) {
+      setError('Enter a valid 10-digit Indian mobile number');
       return;
     }
     setLoading(true);
-    setError('');
     try {
-      await loadOtpWidgetSdk();
-      if (!process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || !process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH) {
-        setError('OTP widget is not configured. Please contact support.');
-        return;
-      }
-      window.initSendOTP!({
-        widgetId: process.env.NEXT_PUBLIC_MSG91_WIDGET_ID,
-        tokenAuth: process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH,
-        identifier: otpForm.phone.trim(),
-        success: async (data: any) => {
-          // MSG91 returns the JWT in `message` (some SDK versions use `token`)
-          const widgetToken =
-            typeof data?.message === 'string' ? data.message : typeof data?.token === 'string' ? data.token : '';
-          if (!widgetToken) {
-            setError('OTP verification failed — no token returned');
-            return;
-          }
-          try {
-            const { data: res } = await apiClient.post('/auth/widget-verify', { widgetToken });
-            const { accessToken, refreshToken } = res.data;
-            const payload = JSON.parse(atob(accessToken.split('.')[1]));
-            setTokens(accessToken, refreshToken, payload);
-            router.push('/account');
-          } catch (err: any) {
-            const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
-            setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'No account found with this phone number — please register'));
-          }
-        },
-        failure: (err: any) => {
-          const msg = typeof err === 'string' ? err : err?.message ?? 'OTP verification failed';
-          setError(msg);
-        },
-      });
+      const { data } = await apiClient.post('/auth/send-otp', { phone: otpForm.phone });
+      setDevOtp(data?.data?.devOtp ?? '');
+      setOtpStage('enter-otp');
+      setResendIn(30);
+      const timer = setInterval(() => {
+        setResendIn(s => {
+          if (s <= 1) { clearInterval(timer); return 0; }
+          return s - 1;
+        });
+      }, 1000);
     } catch (err: any) {
-      setError(err?.message ?? 'Could not open the verification widget. Please try again.');
+      const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Could not send the OTP. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── OTP login: verify code and sign in ───────────────────── */
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!/^\d{6}$/.test(otpForm.otp)) {
+      setError('Enter the 6-digit code we sent you');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/login-otp/verify', {
+        phone: otpForm.phone,
+        otp: otpForm.otp,
+      });
+      const { accessToken, refreshToken } = data.data;
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      setTokens(accessToken, refreshToken, payload);
+      router.push('/account');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message ?? err?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Invalid or expired OTP'));
     } finally {
       setLoading(false);
     }
@@ -150,7 +163,7 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setMode('otp'); setError(''); setOtpForm({ phone: '' }); }}
+            onClick={() => { setMode('otp'); setError(''); setOtpStage('enter-phone'); setOtpForm({ phone: '', otp: '' }); setDevOtp(''); }}
             className={`py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'otp' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'}`}
           >
             OTP
@@ -228,22 +241,78 @@ export default function LoginPage() {
           </form>
           )}
 
-          {mode === 'otp' && (
+          {mode === 'otp' && otpStage === 'enter-phone' && (
             <form onSubmit={handleSendOtp} className="space-y-4">
+              <IndianPhoneInput
+                id="otp-phone"
+                name="phone"
+                value={otpForm.phone}
+                onChange={v => { setOtpForm(p => ({ ...p, phone: v })); if (error) setError(''); }}
+                error={error || undefined}
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full py-3"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Sending Code...
+                  </span>
+                ) : (
+                  'Send Code'
+                )}
+              </button>
+            </form>
+          )}
+
+          {mode === 'otp' && otpStage === 'enter-otp' && (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="flex items-center justify-between bg-surface-50 border border-surface-100 rounded-xl px-4 py-3">
+                <span className="text-sm text-surface-600">
+                  Code sent to <strong className="text-surface-900">+91 {otpForm.phone.replace(/\D/g, '')}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setOtpStage('enter-phone'); setError(''); }}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Change
+                </button>
+              </div>
+
+              {devOtp && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+                  Dev mode OTP: <strong className="font-mono">{devOtp}</strong>
+                </div>
+              )}
+
               <div>
-                <label htmlFor="otp-phone" className="block text-sm font-medium text-surface-700 mb-1.5">
-                  Phone Number
+                <label htmlFor="otp-code" className="block text-sm font-medium text-surface-700 mb-1.5">
+                  6-Digit Code
                 </label>
                 <input
-                  id="otp-phone"
-                  type="tel"
-                  value={otpForm.phone}
-                  onChange={e => { setOtpForm(p => ({ ...p, phone: e.target.value })); if (error) setError(''); }}
-                  className="input"
-                  placeholder="Enter your registered phone number"
+                  id="otp-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otpForm.otp}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpForm(p => ({ ...p, otp: v }));
+                    if (error) setError('');
+                  }}
+                  className="input text-center text-lg tracking-[0.4em] font-mono"
+                  placeholder="••••••"
                   required
                 />
-                <p className="text-xs text-surface-400 mt-1">We&apos;ll verify your number with a one-time code</p>
               </div>
 
               {error && (
@@ -267,9 +336,17 @@ export default function LoginPage() {
                     Verifying...
                   </span>
                 ) : (
-                  'Send Code'
-                )
-                }
+                  'Verify & Sign In'
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={e => handleSendOtp(e as unknown as React.FormEvent)}
+                disabled={loading || resendIn > 0}
+                className="w-full text-xs text-surface-400 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
               </button>
             </form>
           )}

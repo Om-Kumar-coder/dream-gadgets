@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '../../lib/api';
 import { useWebAuthStore } from '../../store/auth.store';
 import { CancelOrderButton } from '../../components/order/CancelOrderButton';
+import { AddressBook } from '../../components/account/AddressBook';
 import {
   IconUser,
   IconPackage,
@@ -31,6 +32,83 @@ import {
 
 type OrderStatus = string;
 type StatusTab = 'all' | 'active' | 'completed' | 'cancelled';
+
+/** Notification preference toggles — persisted via PATCH /auth/me. */
+function NotificationPreferences() {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const profileQuery = useQuery({
+    queryKey: ['auth-me-prefs'],
+    queryFn: () => apiClient.get('/auth/me').then(r => r.data?.data ?? r.data),
+    enabled: open,
+    staleTime: 0,
+  });
+  const profile = profileQuery.data as
+    | { emailEnabled?: boolean; smsEnabled?: boolean; whatsappEnabled?: boolean }
+    | undefined;
+
+  async function toggle(key: 'emailEnabled' | 'smsEnabled' | 'whatsappEnabled', value: boolean) {
+    setSaving(true);
+    setError('');
+    // Optimistic update — revert on failure.
+    queryClient.setQueryData(['auth-me-prefs'], (old: any) => ({ ...old, [key]: value }));
+    try {
+      await apiClient.patch('/auth/me', { [key]: value });
+    } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ['auth-me-prefs'] });
+      const msg = err?.response?.data?.message ?? 'Could not update preferences';
+      setError(typeof msg === 'string' ? msg : 'Could not update preferences');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const rows = [
+    { key: 'emailEnabled' as const, label: 'Email', desc: 'Order updates & receipts' },
+    { key: 'smsEnabled' as const, label: 'SMS', desc: 'OTP codes & delivery alerts' },
+    { key: 'whatsappEnabled' as const, label: 'WhatsApp', desc: 'Order status updates' },
+  ];
+
+  return (
+    <div className="border border-surface-100 rounded-xl">
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors text-left">
+        <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-500 shrink-0">
+          <IconMessageCircle size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-surface-900">Notification Preferences</p>
+          <p className="text-xs text-surface-400">Manage email, SMS, and WhatsApp notifications</p>
+        </div>
+        <IconChevronRight size={16} className={`text-surface-300 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-1">
+          {(profile ? rows : []).map(r => (
+            <label key={r.key} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-50 cursor-pointer">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-surface-800">{r.label}</p>
+                <p className="text-xs text-surface-400">{r.desc}</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={profile?.[r.key] ?? true}
+                disabled={saving}
+                onChange={e => toggle(r.key, e.target.checked)}
+                className="w-4 h-4 accent-[var(--color-primary,theme(colors.primary.DEFAULT))]"
+              />
+            </label>
+          ))}
+          {error && <p className="text-xs text-red-500 px-2.5">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const ACTIVE_STATUSES = ['pending_payment', 'payment_confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery'];
 const COMPLETED_STATUSES = ['delivered', 'return_requested', 'returned'];
@@ -481,20 +559,7 @@ export default function AccountPage() {
             <IconMapPin size={20} className="text-primary" />
             Saved Addresses
           </h2>
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto bg-surface-50 rounded-full flex items-center justify-center mb-4">
-              <IconMapPin size={32} className="text-surface-300" />
-            </div>
-            <h3 className="text-base font-semibold text-surface-900 mb-1">No addresses saved</h3>
-            <p className="text-sm text-surface-400 mb-6">Add an address for faster checkout.</p>
-            <div className="inline-flex items-center gap-2 opacity-50 cursor-not-allowed select-none">
-              <button disabled className="btn-secondary btn-md pointer-events-none">
-                <IconPlus size={14} />
-                Add Address
-              </button>
-              <span className="text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">Coming soon</span>
-            </div>
-          </div>
+          <AddressBook />
         </div>
       )}
 
@@ -510,7 +575,7 @@ export default function AccountPage() {
               {[
                 { label: 'Personal Information', desc: 'Update your name, email, and phone number', href: '/account/edit', icon: <IconUser size={18} /> },
                 { label: 'Change Password', desc: 'Update your account password', href: '/account/edit', icon: <IconShieldCheck size={18} /> },
-                { label: 'Notification Preferences', desc: 'Manage email and SMS notifications', href: null, icon: <IconMessageCircle size={18} /> },
+                { label: 'Saved Addresses', desc: 'Manage delivery addresses', href: null, icon: <IconMapPin size={18} />, action: 'addresses' as const },
               ].map(item =>
                 item.href ? (
                   <Link key={item.label} href={item.href}
@@ -525,19 +590,22 @@ export default function AccountPage() {
                     <IconChevronRight size={16} className="text-surface-300 shrink-0" />
                   </Link>
                 ) : (
-                  <div key={item.label}
-                    className="flex items-center gap-3 p-3 rounded-xl text-left opacity-50 cursor-not-allowed select-none">
-                    <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-300 shrink-0">
+                  <button key={item.label} onClick={() => setActiveSection('addresses')}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 transition-colors text-left">
+                    <div className="w-9 h-9 bg-surface-50 rounded-lg flex items-center justify-center text-surface-500 shrink-0">
                       {item.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-500">{item.label}</p>
-                      <p className="text-xs text-surface-300">{item.desc}</p>
+                      <p className="text-sm font-medium text-surface-900">{item.label}</p>
+                      <p className="text-xs text-surface-400">{item.desc}</p>
                     </div>
-                    <span className="text-[10px] text-surface-300 font-medium bg-surface-50 px-1.5 py-0.5 rounded-full">Coming soon</span>
-                  </div>
+                    <IconChevronRight size={16} className="text-surface-300 shrink-0" />
+                  </button>
                 )
               )}
+
+              {/* Notification preferences — real toggles persisted via PATCH /auth/me */}
+              <NotificationPreferences />
             </div>
           </div>
 

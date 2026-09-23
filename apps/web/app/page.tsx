@@ -57,6 +57,7 @@ export default async function HomePage() {
   const dealOfDay = products.slice(6, 9);
   const hotDeals = products.slice(9, 13);
   const recommended = products.slice(13, 17);
+  const catalogEmpty = products.length === 0;
 
   return (
     <main className="overflow-hidden">
@@ -130,24 +131,36 @@ export default async function HomePage() {
       <HomeBannerMid />
 
       {/* ════════════════════════════════════════
-          TRENDING PRODUCTS
+          TRENDING PRODUCTS (with catalog empty state)
           ════════════════════════════════════════ */}
       <section className="pb-14 md:pb-20 container-page">
         <div className="commonHdn">
           <h3><span>Trending</span> Products</h3>
           <Link href="/products" className="viewBtn">View All →</Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {trending.map((p: any, i: number) => (
-            <ProductCard key={p.id || i} product={p} variant="grid" index={i} />
-          ))}
-        </div>
+        {catalogEmpty ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto bg-surface-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-10 h-10 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-surface-700">No products available yet. Check back soon.</p>
+            <p className="text-sm text-surface-400 mt-1.5">Our catalog is being updated — new devices are on the way.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {trending.map((p: any, i: number) => (
+              <ProductCard key={p.id || i} product={p} variant="grid" index={i} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ════════════════════════════════════════
-          DEAL OF THE DAY
+          DEAL OF THE DAY — hidden while the catalog is empty
           ════════════════════════════════════════ */}
-      <section className="mobi-deal-of-the-day">
+      {!catalogEmpty && <section className="mobi-deal-of-the-day">
         <div className="container-page">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-1 flex flex-col justify-center">
@@ -174,11 +187,7 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          FEATURES GRID
-          ════════════════════════════════════════ */}
+      </section>}
       <section className="py-16 md:py-20 container-page">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {[

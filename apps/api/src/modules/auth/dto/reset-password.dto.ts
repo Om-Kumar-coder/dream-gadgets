@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ForgotPasswordDto {
@@ -35,6 +35,21 @@ export class UpdateProfileDto {
   @IsString()
   @IsNotEmpty()
   email?: string;
+
+  @ApiProperty({ required: false, description: 'Email notification preference' })
+  @IsBoolean()
+  @IsOptional()
+  emailEnabled?: boolean;
+
+  @ApiProperty({ required: false, description: 'SMS notification preference' })
+  @IsBoolean()
+  @IsOptional()
+  smsEnabled?: boolean;
+
+  @ApiProperty({ required: false, description: 'WhatsApp notification preference' })
+  @IsBoolean()
+  @IsOptional()
+  whatsappEnabled?: boolean;
 }
 
 export class ChangePasswordDto {

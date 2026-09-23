@@ -327,12 +327,12 @@ export function Header() {
               </form>
             </div>
             <div className="space-y-2 px-2">
-              <p className="text-xs text-surface-400 font-semibold uppercase tracking-wider">Popular Searches</p>
-              {['iPhone 16', 'Samsung S25', 'OnePlus 13', 'Nothing Phone 2'].map(s => (
+              <p className="text-xs text-surface-400 font-semibold uppercase tracking-wider">Shop by Brand</p>
+              {['Apple', 'Samsung', 'OnePlus', 'Xiaomi'].map(b => (
                 <button
-                  key={s}
+                  key={b}
                   onClick={() => {
-                    router.push(`/products?search=${encodeURIComponent(s)}`);
+                    router.push(`/brands/${b.toLowerCase()}`);
                     setMobileSearchOpen(false);
                   }}
                   className="flex items-center gap-3 w-full text-left px-3 py-3 text-sm text-surface-600 hover:bg-surface-50 rounded-xl transition-colors"
@@ -340,7 +340,7 @@ export function Header() {
                   <svg className="w-4 h-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  {s}
+                  {b}
                 </button>
               ))}
             </div>

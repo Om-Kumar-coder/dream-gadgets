@@ -9,27 +9,9 @@ interface SearchSuggestionsProps {
   onSelect: (query: string) => void;
 }
 
-const STATIC_SUGGESTIONS = [
-  { label: 'Apple iPhone 15', category: 'Popular' },
-  { label: 'Samsung Galaxy S24', category: 'Popular' },
-  { label: 'OnePlus 12', category: 'Popular' },
-  { label: 'iPhone 13', category: 'Popular' },
-  { label: 'Samsung Galaxy S23', category: 'Popular' },
-  { label: 'Nothing Phone 2', category: 'Popular' },
-  { label: 'Vivo V30', category: 'Popular' },
-  { label: 'Realme 12 Pro', category: 'Popular' },
-];
-
-const BRAND_SUGGESTIONS = [
-  { label: 'Apple', category: 'Brands' },
-  { label: 'Samsung', category: 'Brands' },
-  { label: 'OnePlus', category: 'Brands' },
-  { label: 'Xiaomi', category: 'Brands' },
-  { label: 'Realme', category: 'Brands' },
-  { label: 'Vivo', category: 'Brands' },
-  { label: 'Oppo', category: 'Brands' },
-  { label: 'Google', category: 'Brands' },
-];
+// Suggestions come ONLY from the live catalog (API results below).
+// Hardcoded fake model suggestions were removed: they advertised products
+// that may not exist and would mislead customers searching an empty store.
 
 export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
   const [apiResults, setApiResults] = useState<Array<{ label: string; category: string }>>([]);
@@ -71,14 +53,7 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
     };
   }, [query]);
 
-  const filteredStatic = STATIC_SUGGESTIONS.filter(s =>
-    s.label.toLowerCase().includes(query.toLowerCase())
-  );
-  const filteredBrands = BRAND_SUGGESTIONS.filter(s =>
-    s.label.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const hasResults = apiResults.length > 0 || filteredStatic.length > 0 || filteredBrands.length > 0;
+  const hasResults = apiResults.length > 0;
 
   if (!hasResults && !loading) return null;
 
@@ -108,48 +83,6 @@ export function SearchSuggestions({ query, onSelect }: SearchSuggestionsProps) {
                   </svg>
                   <span className="flex-1 text-left">{r.label}</span>
                   <span className="text-[10px] text-surface-400">{r.category}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Static suggestions */}
-          {filteredStatic.length > 0 && (
-            <div>
-              {apiResults.length > 0 && <div className="border-t border-surface-100 my-1" />}
-              <p className="px-3 py-2 text-xs font-semibold text-surface-400 uppercase tracking-wider">Popular</p>
-              {filteredStatic.slice(0, 5).map((s, i) => (
-                <button
-                  key={`static-${i}`}
-                  type="button"
-                  onClick={() => onSelect(s.label)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors group"
-                >
-                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Brand suggestions */}
-          {filteredBrands.length > 0 && (
-            <div>
-              <div className="border-t border-surface-100 my-1" />
-              <p className="px-3 py-2 text-xs font-semibold text-surface-400 uppercase tracking-wider">Brands</p>
-              {filteredBrands.map((b, i) => (
-                <button
-                  key={`brand-${i}`}
-                  type="button"
-                  onClick={() => onSelect(b.label)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-colors"
-                >
-                  <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  {b.label}
                 </button>
               ))}
             </div>

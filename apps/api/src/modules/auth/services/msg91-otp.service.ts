@@ -190,7 +190,15 @@ export class Msg91OtpService {
    * Brute-force protected: max 5 attempts per OTP, then the code is invalidated.
    */
   async verifyOtp(phone: string, code: string): Promise<Msg91OtpResult> {
-    const keyPhone = normalizePhone(phone);
+    // MUST match sendOtp's keying: normalized E.164 digits ('919876543210').
+    // A bare 10-digit input ('9876543210') is Indian +91 → same Redis key.
+    let keyPhone: string;
+    try {
+      keyPhone = normalizeAndValidatePhone(phone).digits;
+    } catch (err: any) {
+      this.logger.warn(`[MSG91] Rejected OTP verification for invalid phone "${phone}": ${err?.message}`);
+      return { success: false, status: 'expired', error: err?.message ?? 'Invalid phone number' };
+    }
 
     const stored = await this.redisService.getOtp(keyPhone);
     if (!stored) {

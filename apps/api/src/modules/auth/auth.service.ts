@@ -20,7 +20,10 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/reset-password.dto';
 import { RedisService } from '../../common/redis/redis.service';
-import { normalizePhone } from '../../common/utils/phone';
+import {
+  normalizePhone,
+  normalizeAndValidatePhone,
+} from '../../common/utils/phone';
 import { Msg91OtpService } from './services/msg91-otp.service';
 import {
   Msg91WidgetService,
@@ -282,27 +285,33 @@ export class AuthService {
     let verifiedPhone: string | null;
 
     if (dto.widgetToken) {
-      // Widget flow: the phone is only known after MSG91 verifies the token,
-      // so the duplicate check runs against the verified number.
+      // Widget flow (legacy): the phone is only known after MSG91 verifies the
+      // token, so the duplicate check runs against the verified number.
       verifiedPhone = await this.resolveVerifiedPhone(undefined, undefined, dto.widgetToken);
       if (!verifiedPhone) {
         throw new BadRequestException('Invalid or expired OTP');
       }
-      const existingByWidget = await this.userRepository.findOne({ where: { phone: verifiedPhone } });
-      if (existingByWidget) {
+      if (await this.findUserByIndianPhone(verifiedPhone)) {
         throw new BadRequestException('Phone number already registered');
       }
     } else {
       if (!dto.phone) {
         throw new BadRequestException('Phone number is required');
       }
+      // Normalize to E.164 digits ('919876543210') FIRST so the duplicate
+      // check matches however the user typed it ('9876543210', '+91 98765…').
+      let phoneDigits: string;
+      try {
+        phoneDigits = normalizeAndValidatePhone(dto.phone).digits;
+      } catch (err: any) {
+        throw new BadRequestException(err?.message ?? 'Invalid phone number');
+      }
       // Manual flow: check duplicate phone BEFORE verifying the OTP so a doomed
       // registration doesn't consume the user's single-use code.
-      const existing = await this.userRepository.findOne({ where: { phone: dto.phone } });
-      if (existing) {
+      if (await this.findUserByIndianPhone(phoneDigits)) {
         throw new BadRequestException('Phone number already registered');
       }
-      verifiedPhone = await this.resolveVerifiedPhone(dto.phone, dto.otp, undefined);
+      verifiedPhone = await this.resolveVerifiedPhone(phoneDigits, dto.otp, undefined);
       if (!verifiedPhone) {
         throw new BadRequestException('Invalid or expired OTP');
       }
@@ -360,7 +369,7 @@ export class AuthService {
       throw new BadRequestException(verifyResult.error ?? 'Invalid or expired OTP');
     }
 
-    const user = await this.userRepository.findOne({ where: { phone }, relations: ['role'] });
+    const user = await this.findUserByIndianPhone(phone);
     if (!user) {
       throw new BadRequestException('No account found with this phone number — please register');
     }
@@ -374,6 +383,21 @@ export class AuthService {
     const { accessToken, refreshToken } = await this.buildTokens(user);
     const { passwordHash, ...userProfile } = user;
     return { accessToken, refreshToken, user: userProfile };
+  }
+
+  /**
+   * Look up a user by Indian phone number regardless of how it was stored
+   * ('919876543210', '+919876543210' or bare '9876543210').
+   */
+  private async findUserByIndianPhone(phone: string) {
+    const digits = normalizePhone(phone);
+    const national = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+    const candidates = Array.from(new Set([digits, `+${digits}`, national].filter(Boolean)));
+    return this.userRepository
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.role', 'role')
+      .where('u.phone IN (:...candidates)', { candidates })
+      .getOne();
   }
 
   /**
@@ -401,12 +425,28 @@ export class AuthService {
         this.logger.warn('[Register] Widget verified an identifier without a mobile number');
         return null;
       }
-      return result.phone;
+      // Store exactly one canonical form: E.164 digits ('919876543210'),
+      // never '+91 +91…' or a bare 10-digit number.
+      const digits = normalizePhone(result.phone);
+      if (digits.length === 10) return `91${digits}`;
+      if (digits.length === 12 && digits.startsWith('91')) return digits;
+      this.logger.warn(`[Register] Widget verified a non-Indian mobile: ***${digits.slice(-4)}`);
+      return null;
     }
 
     if (phone && otp) {
       const verifyResult = await this.msg91OtpService.verifyOtp(phone, otp);
-      return verifyResult.success ? normalizePhone(phone) : null;
+      if (!verifyResult.success) {
+        return null;
+      }
+      // Store exactly one canonical form (E.164 digits, '919876543210') so a
+      // user is never duplicated across storage formats ('9876543210' vs
+      // '+919876543210' vs '919876543210').
+      try {
+        return normalizeAndValidatePhone(phone).digits;
+      } catch {
+        return null;
+      }
     }
 
     return null;
@@ -430,7 +470,7 @@ export class AuthService {
       throw new BadRequestException('Widget did not verify a mobile number');
     }
 
-    const user = await this.userRepository.findOne({ where: { phone: result.phone }, relations: ['role'] });
+    const user = await this.findUserByIndianPhone(result.phone);
     if (!user) {
       throw new BadRequestException('No account found with this phone number — please register');
     }
@@ -552,6 +592,10 @@ export class AuthService {
     if (dto.lastName !== undefined) {
       updateData.lastName = dto.lastName;
     }
+    // Notification preferences — real toggles persisted on the user row.
+    if (dto.emailEnabled !== undefined) updateData.emailEnabled = dto.emailEnabled;
+    if (dto.smsEnabled !== undefined) updateData.smsEnabled = dto.smsEnabled;
+    if (dto.whatsappEnabled !== undefined) updateData.whatsappEnabled = dto.whatsappEnabled;
     if (dto.email) {
       // Check email is not taken by another user
       const existing = await this.userRepository.findOne({

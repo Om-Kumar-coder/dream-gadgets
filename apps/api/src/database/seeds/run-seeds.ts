@@ -2,7 +2,6 @@ import { AppDataSource } from '../data-source';
 import { seedRolesAndPermissions } from './001-seed-roles-permissions';
 import { seedSettingsAndBranch } from './002-seed-settings-branch';
 import { seedTestUsers } from './003-seed-test-users';
-import { seedProducts } from './004-seed-products';
 import { seedExchangePriceGuide } from './005-seed-exchange-price-guide';
 
 async function runSeeds() {
@@ -13,7 +12,6 @@ async function runSeeds() {
     await seedRolesAndPermissions(AppDataSource);
     await seedSettingsAndBranch(AppDataSource);
     await seedTestUsers(AppDataSource);
-    await seedProducts(AppDataSource);
     await seedExchangePriceGuide(AppDataSource);
 
     console.log('All seeds completed successfully');

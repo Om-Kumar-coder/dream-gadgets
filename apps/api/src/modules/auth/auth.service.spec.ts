@@ -358,7 +358,8 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should create customer and return tokens when OTP is valid', async () => {
       const phone = '+919876543210';
-      userRepo.findOne.mockResolvedValueOnce(null);
+      // The duplicate-phone check uses the createQueryBuilder lookup — no existing user.
+      userRepo.createQueryBuilder().getOne.mockResolvedValue(null);
       userRepo.create.mockReturnValue(makeUser());
       userRepo.save.mockResolvedValue(makeUser());
       userRepo.findOne.mockResolvedValueOnce(makeUser());
