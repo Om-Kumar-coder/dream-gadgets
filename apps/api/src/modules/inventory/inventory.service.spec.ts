@@ -268,6 +268,47 @@ describe('InventoryService', () => {
 
   // ─── 5.6: Status state machine ────────────────────────────────────────────
 
+  describe('update() - pricing guard for online items', () => {
+    it('should reject clearing the selling price of an online item', async () => {
+      const item = makeItem({ status: 'available', isOnline: true, sellingPrice: 15000 });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+
+      await expect(service.update(item.id, { sellingPrice: null } as any, 'user-1')).rejects.toMatchObject({
+        response: { code: 'ONLINE_ITEM_REQUIRES_PRICE' },
+      });
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject zeroing the selling price of an online item', async () => {
+      const item = makeItem({ status: 'available', isOnline: true, sellingPrice: 15000 });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+
+      await expect(service.update(item.id, { sellingPrice: 0 } as any, 'user-1')).rejects.toMatchObject({
+        response: { code: 'ONLINE_ITEM_REQUIRES_PRICE' },
+      });
+    });
+
+    it('should allow updating the price of an online item to a valid value', async () => {
+      const item = makeItem({ status: 'available', isOnline: true, sellingPrice: 15000 });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+      (itemRepo.save as any).mockResolvedValue({ ...item, sellingPrice: 16000 });
+      (dataSource.query as any).mockResolvedValue([]);
+
+      const result = await service.update(item.id, { sellingPrice: 16000 } as any, 'user-1');
+      expect(result.sellingPrice).toBe(16000);
+    });
+
+    it('should allow clearing the price of an OFFLINE item', async () => {
+      const item = makeItem({ status: 'available', isOnline: false, sellingPrice: 15000 });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+      (itemRepo.save as any).mockResolvedValue({ ...item, sellingPrice: null });
+      (dataSource.query as any).mockResolvedValue([]);
+
+      const result = await service.update(item.id, { sellingPrice: null } as any, 'user-1');
+      expect(result.sellingPrice).toBeNull();
+    });
+  });
+
   describe('update() - status transitions', () => {
     it('should allow valid transition: available → sold', async () => {
       const item = makeItem({ status: 'available' });

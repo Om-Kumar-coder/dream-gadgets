@@ -106,6 +106,20 @@ export class AccessoryService {
     }
 
     Object.assign(accessory, dto);
+
+    // Pricing rule: a published (online) accessory must always carry a price.
+    // Mirrors the inventory guard — update() cannot clear the price of a
+    // listed accessory (take it offline first).
+    if (
+      accessory.isOnline &&
+      (accessory.sellingPrice == null || Number(accessory.sellingPrice) <= 0)
+    ) {
+      throw new BadRequestException({
+        code: 'ONLINE_ITEM_REQUIRES_PRICE',
+        message: 'This accessory is listed online — set a selling price (or take it offline) before clearing the current one.',
+      });
+    }
+
     return this.accessoryRepo.save(accessory);
   }
 
@@ -129,7 +143,21 @@ export class AccessoryService {
 
   async toggleOnline(id: string): Promise<Accessory> {
     const accessory = await this.findById(id);
-    accessory.isOnline = !accessory.isOnline;
+
+    // Publishing guard (mirrors InventoryService.toggleOnline): an accessory
+    // cannot be listed online without a selling price. Taking offline is fine.
+    const willBeOnline = !accessory.isOnline;
+    if (
+      willBeOnline &&
+      (accessory.sellingPrice == null || Number(accessory.sellingPrice) <= 0)
+    ) {
+      throw new BadRequestException({
+        code: 'NO_SELLING_PRICE',
+        message: 'Set a selling price before listing this accessory online.',
+      });
+    }
+
+    accessory.isOnline = willBeOnline;
     return this.accessoryRepo.save(accessory);
   }
 

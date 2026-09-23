@@ -335,6 +335,34 @@ describe('AccessoryService', () => {
       expect(result.isOnline).toBe(true);
     });
 
+    it('should reject publishing an accessory without a selling price', async () => {
+      const acc = makeAccessory({ isOnline: false, sellingPrice: undefined as any });
+      (accessoryRepo.findOne as any).mockResolvedValue(acc);
+
+      await expect(service.toggleOnline('acc-uuid-1')).rejects.toMatchObject({
+        response: { code: 'NO_SELLING_PRICE' },
+      });
+      expect(accessoryRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject publishing an accessory with a zero price', async () => {
+      const acc = makeAccessory({ isOnline: false, sellingPrice: 0 });
+      (accessoryRepo.findOne as any).mockResolvedValue(acc);
+
+      await expect(service.toggleOnline('acc-uuid-1')).rejects.toMatchObject({
+        response: { code: 'NO_SELLING_PRICE' },
+      });
+    });
+
+    it('should allow taking an unpriced accessory offline', async () => {
+      const acc = makeAccessory({ isOnline: true, sellingPrice: undefined as any });
+      (accessoryRepo.findOne as any).mockResolvedValue(acc);
+      (accessoryRepo.save as any).mockResolvedValue({ ...acc, isOnline: false });
+
+      const result = await service.toggleOnline('acc-uuid-1');
+      expect(result.isOnline).toBe(false);
+    });
+
     it('should toggle from true to false', async () => {
       const acc = makeAccessory({ isOnline: true });
       (accessoryRepo.findOne as any).mockResolvedValue(acc);

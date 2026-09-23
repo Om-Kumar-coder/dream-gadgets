@@ -180,6 +180,18 @@ export class InventoryService {
       }
     }
 
+    // Pricing rule: a published (online) item must always carry a selling price.
+    // toggleOnline() blocks publishing without one — this closes the bypass of
+    // clearing/zeroing the price on an already-listed item via update().
+    const rawPrice = dto.sellingPrice !== undefined ? dto.sellingPrice : item.sellingPrice;
+    const nextPrice = rawPrice == null ? null : Number(rawPrice);
+    if (item.isOnline && (nextPrice == null || Number.isNaN(nextPrice) || nextPrice <= 0)) {
+      throw new BadRequestException({
+        code: 'ONLINE_ITEM_REQUIRES_PRICE',
+        message: 'This item is listed online — set a selling price (or take it offline) before clearing the current one.',
+      });
+    }
+
     // Recompute totalCost if prices changed
     const purchasePrice = dto.purchasePrice !== undefined ? Number(dto.purchasePrice) : Number(item.purchasePrice);
     const taxAmount = dto.taxAmount !== undefined ? Number(dto.taxAmount) : Number(item.taxAmount);
