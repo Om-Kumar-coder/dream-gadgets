@@ -78,7 +78,15 @@ function toForm(a: Address): FormState {
 export function useAddresses(enabled: boolean) {
   return useQuery({
     queryKey: ['addresses'],
-    queryFn: () => apiClient.get('/public/account/addresses').then(r => (r.data?.data ?? []) as Address[]),
+    queryFn: () =>
+      apiClient.get('/public/account/addresses').then(r => {
+        // Unwrap whatever envelope shape arrives — the API may return the array
+        // directly, { data: [...] }, or (on stale deploys) a double-wrapped
+        // { data: { data: [...] } }. Never let a non-array through to .map().
+        const raw = r.data as any;
+        const list = raw?.data?.data ?? raw?.data ?? raw;
+        return (Array.isArray(list) ? list : []) as Address[];
+      }),
     enabled,
     retry: 1,
     staleTime: 30_000,

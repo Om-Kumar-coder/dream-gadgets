@@ -36,39 +36,42 @@ export class AddressController {
 
   @Get()
   @ApiOperation({ summary: "List the authenticated customer's saved addresses" })
-  async list(@Request() req: any) {
-    return { data: await this.addressService.list(this.userId(req)) };
+  list(@Request() req: any) {
+    // Return the raw service result — the global TransformInterceptor adds the
+    // { status, data } envelope. (Manual { data } wrapping here would cause a
+    // double wrap and break clients that expect data to be the array itself.)
+    return this.addressService.list(this.userId(req));
   }
 
   @Get(':id')
   @ApiOperation({ summary: "Get one of the authenticated customer's addresses" })
-  async get(@Request() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    return { data: await this.addressService.get(this.userId(req), id) };
+  get(@Request() req: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.addressService.get(this.userId(req), id);
   }
 
   @Post()
   @Throttle({ default: { ttl: 60000, limit: 20 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a saved address' })
-  async create(@Request() req: any, @Body() dto: CreateAddressDto) {
-    return { data: await this.addressService.create(this.userId(req), dto) };
+  create(@Request() req: any, @Body() dto: CreateAddressDto) {
+    return this.addressService.create(this.userId(req), dto);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a saved address (fields optional)' })
-  async update(
+  update(
     @Request() req: any,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAddressDto,
   ) {
-    return { data: await this.addressService.update(this.userId(req), id, dto) };
+    return this.addressService.update(this.userId(req), id, dto);
   }
 
   @Patch(':id/default')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set an address as the default' })
-  async setDefault(@Request() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    return { data: await this.addressService.update(this.userId(req), id, { isDefault: true }) };
+  setDefault(@Request() req: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.addressService.update(this.userId(req), id, { isDefault: true });
   }
 
   @Delete(':id')
