@@ -199,6 +199,134 @@ describe('Msg91OtpService', () => {
     });
   });
 
+  // ─── sendOtp: WhatsApp-first delivery ───────────────────────────────────
+
+  describe('sendOtp() — WhatsApp-first delivery', () => {
+    const WA_URL = 'https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/';
+
+    function makeWaConfig(overrides: Record<string, string> = {}) {
+      return makeConfigService({
+        MSG91_WHATSAPP_ENABLED: 'true',
+        MSG91_WHATSAPP_INTEGRATED_NUMBER: '919999999999',
+        MSG91_WHATSAPP_TEMPLATE_NAME: 'otp_template',
+        MSG91_WHATSAPP_NAMESPACE: 'namespace-1',
+        MSG91_WHATSAPP_TEMPLATE_LANG: 'en',
+        ...overrides,
+      });
+    }
+
+    async function rebuildService() {
+      const module = await Test.createTestingModule({
+        providers: [
+          Msg91OtpService,
+          { provide: ConfigService, useValue: configMock },
+          { provide: RedisService, useValue: redisMock },
+        ],
+      }).compile();
+      service = module.get<Msg91OtpService>(Msg91OtpService);
+    }
+
+    it('should deliver via WhatsApp and skip SMS when the WhatsApp send succeeds', async () => {
+      const fetchMock = jest.fn(async (url: any, init?: any) => {
+        if (String(url).includes('whatsapp-outbound-message')) {
+          return {
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify({ type: 'success', request_id: 'wa-1' }),
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({ type: 'success' }) };
+      });
+      (global as any).fetch = fetchMock;
+      configMock = makeWaConfig();
+      await rebuildService();
+
+      const result = await service.sendOtp('9876543210');
+
+      expect(result.success).toBe(true);
+      expect(result.channel).toBe('whatsapp');
+      // Only the WhatsApp call — no SMS fallback
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, any];
+      expect(url).toBe(WA_URL);
+      expect(init.method).toBe('POST');
+      const body = JSON.parse(init.body);
+      expect(body.integrated_number).toBe('919999999999');
+      expect(body.payload.template.name).toBe('otp_template');
+      expect(body.payload.template.language).toEqual({ code: 'en', policy: 'deterministic' });
+      expect(body.payload.template.to_and_components[0].to).toEqual(['919876543210']);
+      expect(body.payload.template.to_and_components[0].components.body_1.value).toMatch(/^\d{6}$/);
+      // Same OTP value is stored for verification
+      const stored = await redisMock.getOtp('919876543210');
+      expect(body.payload.template.to_and_components[0].components.body_1.value).toBe(stored);
+    });
+
+    it('should fall back to SMS when the WhatsApp send fails', async () => {
+      const fetchMock = jest.fn(async (url: any) => {
+        if (String(url).includes('whatsapp-outbound-message')) {
+          return {
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify({ type: 'error', message: 'template not approved' }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ type: 'success', message: 'OTP sent', request_id: 'sms-1' }),
+        };
+      });
+      (global as any).fetch = fetchMock;
+      configMock = makeWaConfig();
+      await rebuildService();
+
+      const result = await service.sendOtp('9876543210');
+
+      expect(result.success).toBe(true);
+      expect(result.channel).toBe('sms');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // The stored OTP must survive the failed WhatsApp attempt
+      expect(await redisMock.getOtp('919876543210')).toMatch(/^\d{6}$/);
+    });
+
+    it('should fall back to SMS when WhatsApp config is incomplete', async () => {
+      const fetchMock = jest.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ type: 'success', request_id: 'sms-2' }),
+      }));
+      (global as any).fetch = fetchMock;
+      // Enabled flag but missing integrated number / template name
+      configMock = makeWaConfig({ MSG91_WHATSAPP_INTEGRATED_NUMBER: '', MSG91_WHATSAPP_TEMPLATE_NAME: '' });
+      await rebuildService();
+
+      const result = await service.sendOtp('9876543210');
+
+      expect(result.success).toBe(true);
+      expect(result.channel).toBe('sms');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use plain SMS when MSG91_WHATSAPP_ENABLED is not true', async () => {
+      const fetchMock = jest.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ type: 'success', request_id: 'sms-3' }),
+      }));
+      (global as any).fetch = fetchMock;
+      // Default suite config has no WhatsApp vars at all
+      await rebuildService();
+
+      const result = await service.sendOtp('9876543210');
+
+      expect(result.success).toBe(true);
+      expect(result.channel).toBe('sms');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const url: string = (fetchMock.mock.calls[0] as any[])[0];
+      expect(url).toContain('https://control.msg91.com/api/v5/otp');
+    });
+  });
+
   // ─── verifyOtp ──────────────────────────────────────────────────────────
 
   describe('verifyOtp()', () => {

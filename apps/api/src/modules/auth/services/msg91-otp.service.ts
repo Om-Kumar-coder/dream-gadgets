@@ -12,6 +12,8 @@ export interface Msg91OtpResult {
   success: boolean;
   status: string;
   error?: string;
+  /** Delivery channel actually used (when sent via the provider). */
+  channel?: 'whatsapp' | 'sms';
   /** Only populated in dev-mode so the frontend can surface it for local testing. */
   otp?: string;
 }
@@ -110,8 +112,26 @@ export class Msg91OtpService {
     // A fresh OTP resets the brute-force counter (resend shouldn't inherit old failures)
     await this.redisService.clearOtpAttempts(keyPhone);
 
+    const mobile = formatPhoneWithoutPlus(normalizedPhone);
+
+    // WhatsApp-first delivery (roughly a third of the SMS cost per MSG91),
+    // falling back to the DLT SMS template when WhatsApp is disabled,
+    // misconfigured or the send fails. Same OTP value for both channels —
+    // verification is channel-agnostic (Redis).
+    if (this.isWhatsappOtpEnabled()) {
+      const wa = await this.sendWhatsappOtp(mobile, otp);
+      if (wa.success) {
+        this.logger.log(
+          `[MSG91] OTP sent via WhatsApp to ${mobile}: request_id=${wa.requestId ?? 'n/a'}`,
+        );
+        return { success: true, status: 'sent', channel: 'whatsapp' };
+      }
+      this.logger.warn(
+        `[MSG91] WhatsApp OTP to ${mobile} failed (${wa.error ?? 'unknown'}) — falling back to SMS`,
+      );
+    }
+
     try {
-      const mobile = formatPhoneWithoutPlus(normalizedPhone);
       // MSG91 caps otp_expiry at 15 minutes; clamp to keep Redis TTL and
       // MSG91 expiry in sync even if MSG91_OTP_TTL is misconfigured.
       const expiryMinutes = Math.min(15, Math.max(1, Math.ceil(ttl / 60)));
@@ -158,8 +178,8 @@ export class Msg91OtpService {
       };
 
       if (data.type === 'success') {
-        this.logger.log(`[MSG91] OTP sent to ${mobile}: request_id=${data.request_id}`);
-        return { success: true, status: 'sent' };
+        this.logger.log(`[MSG91] OTP sent via SMS to ${mobile}: request_id=${data.request_id}`);
+        return { success: true, status: 'sent', channel: 'sms' };
       }
 
       this.logger.error(
@@ -182,6 +202,101 @@ export class Msg91OtpService {
         error: err?.message ?? 'SMS provider request failed',
       };
     }
+  }
+
+  /**
+   * Send the OTP over WhatsApp using MSG91's WhatsApp outbound API with an
+   * approved authentication template. The OTP is injected into the template's
+   * first body variable and its copy-code/URL button (the layout MSG91's OTP
+   * template builder produces). Delivery here is best-effort: the caller falls
+   * back to SMS on any failure, so failures must NOT clear the stored OTP.
+   */
+  private async sendWhatsappOtp(
+    mobile: string,
+    otp: string,
+  ): Promise<{ success: boolean; error?: string; requestId?: string }> {
+    const authKey = this.configService.get<string>('MSG91_AUTH_KEY');
+    const integratedNumber = this.configService.get<string>('MSG91_WHATSAPP_INTEGRATED_NUMBER');
+    const templateName = this.configService.get<string>('MSG91_WHATSAPP_TEMPLATE_NAME');
+    const namespace = this.configService.get<string>('MSG91_WHATSAPP_NAMESPACE');
+    const language =
+      this.configService.get<string>('MSG91_WHATSAPP_TEMPLATE_LANG') || 'en';
+
+    if (!authKey || !integratedNumber || !templateName) {
+      return { success: false, error: 'WhatsApp OTP not fully configured' };
+    }
+
+    const template: Record<string, unknown> = {
+      name: templateName,
+      language: { code: language, policy: 'deterministic' },
+      to_and_components: [
+        {
+          to: [mobile],
+          components: {
+            body_1: { type: 'text', value: otp },
+            button_1: { subtype: 'url', type: 'text', value: otp },
+          },
+        },
+      ],
+    };
+    if (namespace) template.namespace = namespace;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), MSG91_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(
+        'https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', authkey: authKey },
+          body: JSON.stringify({
+            integrated_number: integratedNumber,
+            content_type: 'template',
+            payload: {
+              messaging_product: 'whatsapp',
+              type: 'template',
+              template,
+            },
+          }),
+          signal: controller.signal,
+        },
+      );
+    } catch (err: any) {
+      clearTimeout(timeout);
+      return { success: false, error: err?.message ?? 'WhatsApp request failed' };
+    }
+    clearTimeout(timeout);
+
+    const raw = await response.text().catch(() => '');
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `WhatsApp API returned HTTP ${response.status}: ${raw.slice(0, 200)}`,
+      };
+    }
+
+    let data: any;
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = {};
+    }
+    // MSG91 v5 endpoints signal success via `type` or `status`; treat anything
+    // else as a failure so the SMS fallback always fires when unsure.
+    if (data?.type !== 'success' && data?.status !== 'success') {
+      return {
+        success: false,
+        error: data?.message ?? `Unexpected WhatsApp API response: ${raw.slice(0, 200)}`,
+      };
+    }
+    return { success: true, requestId: data?.request_id };
+  }
+
+  /** WhatsApp-first delivery is opt-in via MSG91_WHATSAPP_ENABLED=true. */
+  private isWhatsappOtpEnabled(): boolean {
+    const flag = this.configService.get<string>('MSG91_WHATSAPP_ENABLED');
+    return (flag ?? '').toLowerCase() === 'true';
   }
 
   /**
