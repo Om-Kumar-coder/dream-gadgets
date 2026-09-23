@@ -14,6 +14,7 @@ coverage
 test-results/
 playwright-report/
 temp_output.txt
+tmp-test/
 
 # Logs
 logs/
@@ -35,14 +36,48 @@ dist/
 Thumbs.db
 *.DS_Store
 NUL
-.env.local
+
+# One-off local debug/deploy/ops scripts.
+# These talk to production (many embed SSH credentials) — keep them out of the repo.
+/check-*.js
+/deploy-*.js
+/debug-*.js
+/fix-*.js
+/investigate-*.js
+/verify-fix*.js
+/flush-and-verify.js
+/force-rebuild-and-test-*.js
+/configure-and-test-*.js
+/find-logs-and-read-source.js
+/get-full-nginx-config.js
+/update-vps-*.js
+/update-nginx-*.js
+/restore-vps-api.js
+/explore-vps.js
+/add-gates.js
+/run-*-on-vps.js
+/run-emi-*.js
 vps-*.js
-run-emi-*.js
-# Local VPS helper scripts (contain production SSH credentials — never commit)
 check-channels-vps.*
 deploy-ssh.js
 deploy-to-vps.js
 deploy-emi*.js
+/full-rbac-test-suite.js
+/full-role-audit.js
+/full-ui-audit.js
+/sales-test-suite.js
+/transfer-test-suite.js
+/staff-creation-test-suite.js
+/smoke-test-emi.js
+/test-all-roles.js
+/test-owner.js
+/test-rbac.js
+/test-endpoints-with-token.js
+
+# Generated tooling output
+graphify-out/
+jq.exe
 
 # Local assistant/tooling workspace (contains credentials — never commit)
+.freebuff/
 .freetbuff/
