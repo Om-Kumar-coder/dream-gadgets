@@ -44,9 +44,13 @@ sudo -u postgres psql "$DB_NAME" <<'SQL'
 BEGIN;
 
 -- ── 1. Test clients (@test.com emails or 'Test ...' first names) ─────────────
+-- Test phones: seeded QA users use 98000000xx; QA clients registered during
+-- Playwright runs reuse the same block. Matched against clients.phone.
 CREATE TEMP TABLE _test_clients AS
   SELECT id, phone FROM clients
-  WHERE lower(email) LIKE '%@test.com' OR lower(first_name) LIKE 'test%';
+  WHERE lower(email) LIKE '%@test.com'
+     OR lower(first_name) LIKE 'test%'
+     OR phone LIKE '98000000%';
 
 CREATE TEMP TABLE _test_users AS
   SELECT id FROM users WHERE lower(email) LIKE '%@test.com';
@@ -98,8 +102,7 @@ END $$;
 DELETE FROM notifications          WHERE client_id IN (SELECT id FROM _test_clients);
 DELETE FROM whatsapp_appointments  WHERE client_id IN (SELECT id FROM _test_clients);
 DELETE FROM whatsapp_campaign_logs WHERE client_id IN (SELECT id FROM _test_clients);
-DELETE FROM whatsapp_notifications WHERE client_id IN (SELECT id FROM _test_clients)
-       AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'whatsapp_notifications');
+DELETE FROM whatsapp_notifications WHERE phone IN (SELECT phone FROM _test_clients);
 DELETE FROM whatsapp_customer_preferences WHERE client_id IN (SELECT id FROM _test_clients);
 DELETE FROM audit_logs             WHERE entity_id IN (SELECT id FROM _dead_ids);
 DELETE FROM exchange_devices       WHERE client_id IN (SELECT id FROM _test_clients)
