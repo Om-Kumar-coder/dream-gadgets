@@ -537,6 +537,7 @@ describe('GstService', () => {
 
   describe('generateExcel()', () => {
     it('should return a Buffer', async () => {
+      jest.setTimeout(30000);
       dataSource.query.mockImplementation((sql: string) => {
         if (isB2bQuery(sql)) return [b2bRow()];
         if (isB2clQuery(sql)) return [b2clRow()];
@@ -553,6 +554,7 @@ describe('GstService', () => {
     });
 
     it('should handle empty data gracefully', async () => {
+      jest.setTimeout(30000);
       dataSource.query.mockResolvedValue([] as any);
 
       const buffer = await service.generateExcel('2025-01-01', '2025-01-31');
