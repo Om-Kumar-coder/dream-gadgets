@@ -21,6 +21,7 @@ import {
 import { apiClient } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@dream-gadgets/ui';
+import { calculateBillTotals, roundPaise } from '@dream-gadgets/shared-types';
 import { toast } from 'react-hot-toast';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { PermissionGate } from '@/components/auth/PermissionGate';
@@ -57,6 +58,24 @@ const CONDITION_LABELS: Record<string, string> = {
   mint: 'Mint',
   good: 'Good',
 };
+
+// ─── Canonical bill math (Phase 11/12) ─────────────────────────────────────────
+// One calculation contract for Subtotal / Discount / GST / Total, shared byte-for-
+// byte with the API (calculateBillTotals). GST applies to the POST-DISCOUNT
+// taxable value; all money is paise-rounded. The same lines are sent to the
+// server, so the bill shown here is the bill the server persists.
+const BILL_GST_RATE = 18;
+
+const buildBill = (billItems: BillItem[], discountPercent: number) =>
+  calculateBillTotals({
+    lines: billItems.map((i) => ({
+      unitPrice: i.price,
+      quantity: 1,
+      discount: 0,
+      taxRate: BILL_GST_RATE,
+    })),
+    billDiscountAmount: roundPaise((billItems.reduce((s, i) => s + i.price, 0) * discountPercent) / 100),
+  });
 
 export default function POSPage() {
   const router = useRouter();
@@ -132,15 +151,14 @@ export default function POSPage() {
     return () => clearTimeout(timer);
   }, [searchQuery, offlinePOS.isOnline]);
 
-  const subtotal = billItems.reduce((sum, i) => sum + i.price, 0);
-  const discountAmount = (subtotal * discount) / 100;
-  // Tax rate is configurable per item but defaults to 18% for in-store sales.
-  // The backend recomputes the canonical total server-side and will reject mismatches.
-  const taxRate = 18;
-  const taxAmount = ((subtotal - discountAmount) * taxRate) / 100;
-  const total = subtotal - discountAmount + taxAmount;
+  // Canonical totals from the shared contract.
+  const bill = buildBill(billItems, discount);
+  const subtotal = bill.subtotal;
+  const discountAmount = bill.billDiscountAmount;
+  const taxAmount = bill.taxTotal;
+  const total = bill.grandTotal;
   const paidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const balance = total - paidAmount;
+  const balance = roundPaise(total - paidAmount);
 
   const addItem = useCallback(
     (item: any) => {
@@ -200,16 +218,18 @@ export default function POSPage() {
         items: phoneItems.map((i) => ({
           itemId: i.id,
           unitPrice: i.price,
+          taxRate: BILL_GST_RATE,
         })),
         accessoryItems: accItems.map((i) => ({
           accessoryId: i.id.replace('acc-', ''),
           quantity: 1,
           unitPrice: i.price,
+          taxRate: BILL_GST_RATE,
         })),          payments: payments
             .filter((p) => p.amount > 0)
             .map((p) => ({ method: p.method, amount: p.amount })),
           frontendTotal: total,
-        discountAmount: discount > 0 ? (subtotal * discount) / 100 : 0,
+        discountAmount: discount > 0 ? discountAmount : 0,
         notes,
       };
 

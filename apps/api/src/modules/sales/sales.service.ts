@@ -18,9 +18,9 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { QuerySaleDto } from './dto/query-sale.dto';
 import {
   validatePaymentSplits,
-  calculateGST,
   getRequiredDiscountRole,
 } from '../../common/utils/business-logic';
+import { calculateBillTotals } from '../../common/utils/billing';
 import { CouponService } from '../coupon/coupon.service';
 import { NotificationService } from '../notification/notification.service';
 import { RedisService } from '../../common/redis/redis.service';
@@ -122,12 +122,14 @@ export class SalesService {
       }
     }
 
-    // 2. Calculate totals
-    let subtotal = 0;
-    let totalTax = 0;
-    const saleItemsData: Array<{
-      itemId: string;
-      imei: string;
+    // 2. Process accessory items FIRST (validate stock, collect lines) so they
+    // are included in the canonical bill calculation. Previously accessories
+    // were priced AFTER the bill total and payment validation, so their amounts
+    // were displayed and paid at the POS but never included in the persisted
+    // sale totals — a silent billing mismatch.
+    const accessorySaleData: Array<{
+      accessoryId: string;
+      quantity: number;
       description: string;
       unitPrice: number;
       discount: number;
@@ -137,28 +139,41 @@ export class SalesService {
       hsnCode: string | null;
     }> = [];
 
-    for (const itemDto of items) {
-      const inv = inventoryItems.find((i) => i.id === itemDto.itemId)!;
-      const discount = itemDto.discount ?? 0;
-      const taxRate = itemDto.taxRate ?? 0;
-      const priceAfterDiscount = itemDto.unitPrice - discount;
-      const gst = calculateGST(priceAfterDiscount, taxRate, isInterState);
-      const itemTotal = priceAfterDiscount + gst.total;
-
-      subtotal += itemDto.unitPrice - discount;
-      totalTax += gst.total;
-
-      saleItemsData.push({
-        itemId: inv.id,
-        imei: inv.imei,
-        description: inv.itemName ?? `${inv.imei}`,
-        unitPrice: itemDto.unitPrice,
-        discount,
-        taxRate,
-        taxAmount: gst.total,
-        total: itemTotal,
-        hsnCode: itemDto.hsnCode ?? inv.hsnCode ?? null,
+    if (accessoryItems.length > 0) {
+      const accIds = accessoryItems.map((a) => a.accessoryId);
+      const accessories = await this.accessoryRepo.find({
+        where: accIds.map((id) => ({ id })),
       });
+
+      if (accessories.length !== accIds.length) {
+        const foundIds = accessories.map((a) => a.id);
+        const missing = accIds.filter((id) => !foundIds.includes(id));
+        throw new NotFoundException(`Accessories not found: ${missing.join(', ')}`);
+      }
+
+      for (const accDto of accessoryItems) {
+        const acc = accessories.find((a) => a.id === accDto.accessoryId)!;
+
+        // Validate stock
+        if (acc.stockQuantity < accDto.quantity) {
+          throw new BadRequestException({
+            code: 'INSUFFICIENT_ACCESSORY_STOCK',
+            message: `Insufficient stock for ${acc.name}. Available: ${acc.stockQuantity}, Requested: ${accDto.quantity}`,
+          });
+        }
+
+        accessorySaleData.push({
+          accessoryId: acc.id,
+          quantity: accDto.quantity,
+          description: acc.name,
+          unitPrice: accDto.unitPrice,
+          discount: accDto.discount ?? 0,
+          taxRate: accDto.taxRate ?? 0,
+          taxAmount: 0,
+          total: 0,
+          hsnCode: accDto.hsnCode ?? acc.hsnCode ?? null,
+        });
+      }
     }
 
     // 3. Apply coupon if provided (replaces manual discount)
@@ -166,9 +181,14 @@ export class SalesService {
     let finalDiscountAmount = discountAmount;
 
     if (couponCode) {
+      // Coupon validity is checked against the pre-discount inventory subtotal
+      const couponBaseSubtotal = items.reduce(
+        (s, i) => s + (Number(i.unitPrice) || 0) - (Number(i.discount) || 0),
+        0,
+      );
       const validation = await this.couponService.validate({
         code: couponCode,
-        subtotal,
+        subtotal: couponBaseSubtotal,
         branchId: dto.branchId,
       });
 
@@ -190,11 +210,76 @@ export class SalesService {
       }
     }
 
-    const totalAmount = subtotal + totalTax - finalDiscountAmount;
+    // 4. Calculate totals — canonical paise-exact bill math shared with the POS
+    // (apps/api/src/common/utils/billing.ts === packages/shared-types/src/billing.ts).
+    // Rules: the bill discount (manual or coupon) is distributed proportionally
+    // across lines; GST is applied to each line's POST-DISCOUNT taxable value.
+    // Accessories are part of the same bill, so their amounts are included in
+    // the total BEFORE payment validation — previously they were not.
+    const allBillLines = [
+      ...items.map((i) => ({
+        unitPrice: i.unitPrice,
+        quantity: 1,
+        discount: i.discount ?? 0,
+        taxRate: i.taxRate ?? 0,
+      })),
+      ...accessorySaleData.map((a) => ({
+        unitPrice: a.unitPrice,
+        quantity: a.quantity,
+        discount: a.discount,
+        taxRate: a.taxRate,
+      })),
+    ];
+    const bill = calculateBillTotals({
+      lines: allBillLines,
+      billDiscountAmount: finalDiscountAmount,
+      isInterState,
+    });
 
-    // 4. Validate discount authorization (7.5)
+    const subtotal = bill.subtotal;
+    const totalTax = bill.taxTotal;
+    const totalAmount = bill.grandTotal;
+
+    // Inventory-only sale lines (accessory lines are stored via accessorySaleData).
+    const saleItemsData: Array<{
+      itemId: string;
+      imei: string;
+      description: string;
+      unitPrice: number;
+      discount: number;
+      taxRate: number;
+      taxAmount: number;
+      total: number;
+      hsnCode: string | null;
+    }> = [];
+
+    for (let idx = 0; idx < items.length; idx++) {
+      const itemDto = items[idx];
+      const inv = inventoryItems.find((i) => i.id === itemDto.itemId)!;
+      const line = bill.lines[idx];
+      saleItemsData.push({
+        itemId: inv.id,
+        imei: inv.imei,
+        description: inv.itemName ?? `${inv.imei}`,
+        unitPrice: itemDto.unitPrice,
+        discount: line.itemDiscount,
+        taxRate: line.taxRate,
+        taxAmount: line.taxAmount,
+        total: line.total,
+        hsnCode: itemDto.hsnCode ?? inv.hsnCode ?? null,
+      });
+    }
+    // Attach computed accessory lines back onto accessorySaleData (same order).
+    accessorySaleData.forEach((a, i) => {
+      const line = bill.lines[items.length + i];
+      a.taxAmount = line.taxAmount;
+      a.total = line.total;
+    });
+
+    // 4.5 Validate discount authorization (7.5) — on the effective (post-coupon)
+    // discount so a coupon can never be used to bypass role thresholds.
     if (finalDiscountAmount > 0 && subtotal > 0) {
-      const discountPercent = (discountAmount / subtotal) * 100;
+      const discountPercent = (finalDiscountAmount / subtotal) * 100;
       const requiredRole = getRequiredDiscountRole(discountPercent);
       const userLevel = getUserRoleLevel(userRole);
       const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
@@ -242,67 +327,25 @@ export class SalesService {
       });
     }
 
-    // 6. Process accessory items (validate stock, decrement)
-    const accessorySaleData: Array<{
-      accessoryId: string;
-      quantity: number;
-      description: string;
-      unitPrice: number;
-      discount: number;
-      taxRate: number;
-      taxAmount: number;
-      total: number;
-      hsnCode: string | null;
-    }> = [];
+    // 6. Validate discount authorization (7.5)
+    // (The earlier check above only ran when finalDiscountAmount > 0 at step 4.
+    // After coupon substitution the effective discount may differ, so the
+    // authorization test is intentionally repeated here on the final value.)
+    if (finalDiscountAmount > 0 && subtotal > 0) {
+      const effectiveDiscountPercent = (finalDiscountAmount / subtotal) * 100;
+      const requiredRole = getRequiredDiscountRole(effectiveDiscountPercent);
+      const userLevel = getUserRoleLevel(userRole);
+      const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
 
-    if (accessoryItems.length > 0) {
-      const accIds = accessoryItems.map((a) => a.accessoryId);
-      const accessories = await this.accessoryRepo.find({
-        where: accIds.map((id) => ({ id })),
-      });
-
-      if (accessories.length !== accIds.length) {
-        const foundIds = accessories.map((a) => a.id);
-        const missing = accIds.filter((id) => !foundIds.includes(id));
-        throw new NotFoundException(`Accessories not found: ${missing.join(', ')}`);
-      }
-
-      for (const accDto of accessoryItems) {
-        const acc = accessories.find((a) => a.id === accDto.accessoryId)!;
-
-        // Validate stock
-        if (acc.stockQuantity < accDto.quantity) {
-          throw new BadRequestException({
-            code: 'INSUFFICIENT_ACCESSORY_STOCK',
-            message: `Insufficient stock for ${acc.name}. Available: ${acc.stockQuantity}, Requested: ${accDto.quantity}`,
-          });
-        }
-
-        const discount = accDto.discount ?? 0;
-        const taxRate = accDto.taxRate ?? 0;
-        const priceAfterDiscount = accDto.unitPrice - discount;
-        const gst = calculateGST(priceAfterDiscount, taxRate, isInterState);
-        const itemTotal = priceAfterDiscount + gst.total;
-        const itemSubtotal = priceAfterDiscount * accDto.quantity;
-
-        subtotal += itemSubtotal;
-        totalTax += gst.total * accDto.quantity;
-
-        accessorySaleData.push({
-          accessoryId: acc.id,
-          quantity: accDto.quantity,
-          description: acc.name,
-          unitPrice: accDto.unitPrice,
-          discount,
-          taxRate,
-          taxAmount: gst.total * accDto.quantity,
-          total: itemTotal * accDto.quantity,
-          hsnCode: accDto.hsnCode ?? acc.hsnCode ?? null,
+      if (userLevel < requiredLevel) {
+        throw new ForbiddenException({
+          code: 'DISCOUNT_NOT_AUTHORIZED',
+          message: `Discount of ${effectiveDiscountPercent.toFixed(1)}% requires ${requiredRole} authorization`,
         });
       }
     }
 
-    // 7. Generate invoice number — self-healing against Redis counter drift.
+    // 7. Generate invoice number.
     // If the generated number already exists (Redis counter fell behind the DB),
     // re-sync the counter from the DB and regenerate, up to 5 tries.
     let invoiceNumber = await this.generateInvoiceNumber(dto.branchId);

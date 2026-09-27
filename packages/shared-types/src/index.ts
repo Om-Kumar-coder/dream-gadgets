@@ -1,3 +1,7 @@
+// Billing — byte-identical mirror of apps/api/src/common/utils/billing.ts.
+// Both POS and the API must compute bill totals from this single contract.
+export * from './billing';
+
 // Enums
 export enum ItemStatus {
   AVAILABLE = 'available',
