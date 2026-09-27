@@ -29,6 +29,14 @@ export class Model {
   @Column({ nullable: true, type: 'text' })
   description: string;
 
+  /** Product-master attribute: global SKU (unique when present). */
+  @Column({ nullable: true, type: 'varchar', length: 50 })
+  sku: string | null;
+
+  /** Product-master attribute: category, e.g. smartphone / tablet / laptop. */
+  @Column({ type: 'varchar', length: 50, default: 'smartphone' })
+  category: string;
+
   @Column({ nullable: true, type: 'jsonb' })
   specs: object;
 
