@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle } from 'lucide-react';
+import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle, Building2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
 import { useAdminAuthStore } from '@/store/auth.store';
@@ -32,8 +32,14 @@ type PurchaseForm = z.infer<typeof purchaseSchema>;
 
 export default function NewPurchasePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAdminAuthStore();
-  const branchId = user?.branchId ?? '';
+  // Phase 4: arriving from Store Details locks the store — the stock cannot be
+  // accidentally assigned elsewhere. Staff are always locked to their own store.
+  const requestedBranchId = searchParams.get('branchId') ?? '';
+  const staffBranchId = user?.branchId ?? '';
+  const branchId = staffBranchId || requestedBranchId;
+  const isStoreLocked = Boolean(staffBranchId || requestedBranchId);
   const [priceSuggestion, setPriceSuggestion] = useState<number | null>(null);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   // Price-suggestion UI state: idle | loading | success | no-data | error
@@ -60,6 +66,19 @@ export default function NewPurchasePage() {
   const watchedBrandId = watch('brandId');
   const watchedModelId = watch('modelId');
   const watchedCondition = watch('condition');
+
+  // Load branches (to resolve the locked store's name for the banner)
+  const { data: branchesData } = useQuery({
+    queryKey: ['admin-branches'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/admin/branches');
+      return data?.data ?? [];
+    },
+    enabled: isStoreLocked,
+  });
+  const branches: any[] = branchesData ?? [];
+  const branchName =
+    branches.find((b: any) => b.id === branchId)?.name ?? '';
 
   // Load brands
   const { data: brandsData } = useQuery({
@@ -168,6 +187,19 @@ export default function NewPurchasePage() {
           <p className="text-sm text-surface-500">Record a new device acquisition</p>
         </div>
       </div>
+
+        {/* Locked store banner (Phase 4): shows which store receives the stock. */}
+        {isStoreLocked && branchName && (
+          <div className="card px-4 py-3 flex items-center gap-2 bg-primary/5 border border-primary/20">
+            <Building2 className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm text-surface-700">
+              Adding stock to: <strong>{branchName}</strong>
+            </span>
+            <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              Store locked
+            </span>
+          </div>
+        )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Vendor Info */}

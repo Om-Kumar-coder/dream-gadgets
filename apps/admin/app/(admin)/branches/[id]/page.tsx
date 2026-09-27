@@ -3,10 +3,11 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Clock, Building2, Loader2, Store } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Clock, Building2, Loader2, Store, Plus } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
+import { useInventoryActions } from '@/app/(admin)/inventory/inventory-actions';
 
 const CONDITION_COLORS: Record<string, string> = {
   sealed_pack: 'bg-blue-100 text-blue-700',
@@ -56,6 +57,9 @@ interface Branch {
 export default function BranchDetailPage() {
   const params = useParams<{ id: string }>();
   const branchId = params.id;
+  // Phase 4/9: same row actions as the Inventory page.
+  const { dialogs, buildActions } = useInventoryActions();
+  const rowActions = buildActions();
 
   const { data: branch, isLoading: branchLoading } = useQuery({
     queryKey: ['admin-branch', branchId],
@@ -205,6 +209,18 @@ export default function BranchDetailPage() {
         </div>
       )}
 
+      {/* Phase 4 entry point B: Add Stock with the store preselected and locked. */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-medium text-surface-800">Current Inventory</h2>
+        <Link
+          href={`/purchases/new?branchId=${branchId}`}
+          className="btn-primary btn-md"
+        >
+          <Plus className="w-4 h-4" />
+          Add Product / Add Stock
+        </Link>
+      </div>
+
       <DataTable<BranchItem, any>
         columns={columns}
         queryKey={['inventory', 'branch', branchId]}
@@ -214,7 +230,9 @@ export default function BranchDetailPage() {
         enableFilters={true}
         enablePagination={true}
         pageSize={20}
+        actions={rowActions}
       />
+      {dialogs}
     </div>
   );
 }

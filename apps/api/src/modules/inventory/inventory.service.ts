@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -22,6 +23,18 @@ import {
 } from '../../common/utils/business-logic';
 import { EventService } from '../../common/events/event.service';
 import { RedisService } from '../../common/redis/redis.service';
+
+/**
+ * Roles allowed to operate across branches even when a branchId is present on
+ * their token — mirrors CROSS_BRANCH_ROLES in branch-scope.guard.ts.
+ */
+const CROSS_BRANCH_ROLES = new Set(['shop_owner', 'multi_store_manager', 'store_manager']);
+
+/**
+ * Statuses that mean the unit participates in completed business history.
+ * Archived (soft-deleted) units are terminal and never re-enter circulation.
+ */
+const HISTORY_LOCKED_STATUSES = new Set(['sold', 'transferred']);
 
 @Injectable()
 export class InventoryService {
@@ -59,6 +72,24 @@ export class InventoryService {
       }
     } catch {
       // Non-critical — cache invalidation is best-effort
+    }
+  }
+
+  /**
+   * Server-side store isolation (Phase 3/10): the BranchScopeGuard only covers
+   * list filters and body/param branchId. Every single-resource access must be
+   * re-checked against the branch recorded on the item itself, otherwise staff
+   * could read/mutate another store's unit by guessing its UUID.
+   */
+  private assertBranchAccess(item: InventoryItem, user: any): void {
+    if (!user) return; // route-level guards already ran for anonymous-less contexts
+    const crossBranch = !user.branchId || CROSS_BRANCH_ROLES.has(user.role);
+    if (crossBranch) return;
+    if (item.branchId !== user.branchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only access inventory in your assigned branch',
+      });
     }
   }
 
@@ -147,28 +178,30 @@ export class InventoryService {
 
   // ─── 5.4 Get by ID / IMEI ───────────────────────────────────────────────────
 
-  async findById(id: string): Promise<InventoryItem> {
+  async findById(id: string, user?: any): Promise<InventoryItem> {
     const item = await this.itemRepo.findOne({
       where: { id },
       relations: ['brand', 'model', 'branch', 'photos', 'createdBy'],
     });
     if (!item) throw new NotFoundException(`Inventory item ${id} not found`);
+    if (user) this.assertBranchAccess(item, user);
     return item;
   }
 
-  async findByImei(imei: string): Promise<InventoryItem> {
+  async findByImei(imei: string, user?: any): Promise<InventoryItem> {
     const item = await this.itemRepo.findOne({
       where: { imei },
       relations: ['brand', 'model', 'branch', 'photos'],
     });
     if (!item) throw new NotFoundException(`No inventory item found with IMEI ${imei}`);
+    if (user) this.assertBranchAccess(item, user);
     return item;
   }
 
   // ─── 5.5 Update (with audit log) ────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateInventoryItemDto, userId: string): Promise<InventoryItem> {
-    const item = await this.findById(id);
+  async update(id: string, dto: UpdateInventoryItemDto, userId: string, user?: any): Promise<InventoryItem> {
+    const item = await this.findById(id, user);
 
     // If status is being changed, validate transition
     if (dto.status && dto.status !== item.status) {
@@ -237,10 +270,131 @@ export class InventoryService {
     return saved;
   }
 
+  // ─── 5.5b Change selling price (dedicated action) ────────────────────────────
+  /**
+   * Updates the selling price of the EXISTING inventory unit. Never deletes and
+   * never re-creates the record, so IMEI / inventory identity / audit lineage
+   * stay intact (Phase 6). Historical sale_lines keep their own unit_price.
+   */
+  async changeSellingPrice(id: string, sellingPrice: number, userId: string, user?: any): Promise<InventoryItem> {
+    const item = await this.findById(id, user);
+
+    const oldPrice = item.sellingPrice == null ? null : Number(item.sellingPrice);
+    const newPrice = Number(sellingPrice);
+    if (!Number.isFinite(newPrice) || newPrice < 0) {
+      throw new BadRequestException({
+        code: 'INVALID_SELLING_PRICE',
+        message: 'Selling price must be a non-negative number',
+      });
+    }
+    if (item.status === 'sold' || item.status === 'transferred') {
+      throw new ConflictException({
+        code: 'ITEM_NOT_EDITABLE',
+        message: `Cannot change the price of an item with status '${item.status}'`,
+      });
+    }
+    if (item.isOnline && newPrice <= 0) {
+      throw new BadRequestException({
+        code: 'ONLINE_ITEM_REQUIRES_PRICE',
+        message: 'This item is listed online — take it offline before clearing the price.',
+      });
+    }
+
+    // Audit trail: price movements are financially significant.
+    await this.dataSource
+      .query(
+        `INSERT INTO audit_logs (entity_type, entity_id, action, changes, performed_by_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT DO NOTHING`,
+        ['inventory_item', id, 'change_selling_price', JSON.stringify({ from: oldPrice, to: newPrice }), userId],
+      )
+      .catch(() => {
+        // audit_logs table may not exist in test env — ignore
+      });
+
+    item.sellingPrice = newPrice;
+    const saved = await this.itemRepo.save(item);
+
+    // Current price must propagate to POS/web immediately.
+    await this.invalidatePublicCache();
+
+    try {
+      this.eventService.emitInventoryUpdated(item.branchId, {
+        itemId: id,
+        imei: item.imei,
+        status: item.status,
+        branchId: item.branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Non-critical
+    }
+
+    return saved;
+  }
+
+  // ─── 5.5c Soft delete / archive ─────────────────────────────────────────────
+  /**
+   * Soft-delete (Phase 6): units referenced by business history can never be
+   * physically removed. Delete = status 'archived' + audit log; the row, its
+   * IMEI uniqueness and every FK reference remain intact.
+   */
+  async softDelete(id: string, userId: string, user?: any): Promise<{ id: string; status: string }> {
+    const item = await this.findById(id, user);
+
+    if (HISTORY_LOCKED_STATUSES.has(item.status)) {
+      throw new ConflictException({
+        code: 'ITEM_HAS_HISTORY',
+        message: `Item ${item.imei} has status '${item.status}' — it participates in sales/transfer history and cannot be deleted. Void or reject the related record first.`,
+      });
+    }
+    if (item.status === 'archived') {
+      throw new ConflictException({
+        code: 'ALREADY_ARCHIVED',
+        message: `Item ${item.imei} is already deleted`,
+      });
+    }
+    // in_cart: an active POS cart holds this unit — refuse rather than yank it.
+    if (item.status === 'in_cart') {
+      throw new ConflictException({
+        code: 'ITEM_IN_CART',
+        message: `Item ${item.imei} is locked in a POS cart. Remove it from the cart or wait for the lock to expire.`,
+      });
+    }
+
+    await this.dataSource
+      .query(
+        `INSERT INTO audit_logs (entity_type, entity_id, action, changes, performed_by_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT DO NOTHING`,
+        ['inventory_item', id, 'archive', JSON.stringify({ previousStatus: item.status }), userId],
+      )
+      .catch(() => {
+        // audit_logs table may not exist in test env — ignore
+      });
+
+    await this.itemRepo.update(id, { status: 'archived' });
+    await this.invalidatePublicCache();
+
+    try {
+      this.eventService.emitInventoryUpdated(item.branchId, {
+        itemId: id,
+        imei: item.imei,
+        status: 'archived',
+        branchId: item.branchId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Non-critical
+    }
+
+    return { id, status: 'archived' };
+  }
+
   // ─── 5.6 Status transition (standalone) ─────────────────────────────────────
 
-  async transitionStatus(id: string, newStatus: string, userId: string): Promise<InventoryItem> {
-    return this.update(id, { status: newStatus } as UpdateInventoryItemDto, userId);
+  async transitionStatus(id: string, newStatus: string, userId: string, user?: any): Promise<InventoryItem> {
+    return this.update(id, { status: newStatus } as UpdateInventoryItemDto, userId, user);
   }
 
   // ─── 5.7 Photo upload ───────────────────────────────────────────────────────

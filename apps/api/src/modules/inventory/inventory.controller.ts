@@ -82,8 +82,8 @@ export class InventoryController {
   @Get('imei/:imei')
   @RequirePermission('inventory.view')
   @ApiOperation({ summary: 'Find inventory item by IMEI' })
-  async findByImei(@Param('imei') imei: string) {
-    return this.inventoryService.findByImei(imei);
+  async findByImei(@Param('imei') imei: string, @CurrentUser() user: any) {
+    return this.inventoryService.findByImei(imei, user);
   }
 
   // ─── CRUD ───────────────────────────────────────────────────────────────────
@@ -118,8 +118,8 @@ export class InventoryController {
   @Get(':id')
   @RequirePermission('inventory.view')
   @ApiOperation({ summary: 'Get inventory item by ID' })
-  async findById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.inventoryService.findById(id);
+  async findById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.inventoryService.findById(id, user);
   }
 
   @Patch(':id')
@@ -130,7 +130,26 @@ export class InventoryController {
     @Body() dto: UpdateInventoryItemDto,
     @CurrentUser() user: any,
   ) {
-    return this.inventoryService.update(id, dto, user.sub);
+    return this.inventoryService.update(id, dto, user.sub, user);
+  }
+
+  @Patch(':id/selling-price')
+  @RequirePermission('inventory.edit')
+  @ApiOperation({ summary: 'Change selling price in place (no delete/recreate)' })
+  async changeSellingPrice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { sellingPrice: number },
+    @CurrentUser() user: any,
+  ) {
+    return this.inventoryService.changeSellingPrice(id, body?.sellingPrice, user.sub, user);
+  }
+
+  @Delete(':id')
+  @RequirePermission('inventory.edit')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soft-delete (archive) an inventory unit' })
+  async softDelete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.inventoryService.softDelete(id, user.sub, user);
   }
 
   // ─── Photos ─────────────────────────────────────────────────────────────────

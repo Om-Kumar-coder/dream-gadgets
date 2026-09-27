@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, Globe, EyeOff } from 'lucide-react';
@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { useRealtimeUpdates } from '@/lib/useRealtimeUpdates';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { useAdminAuthStore } from '@/store/auth.store';
+import { useInventoryActions } from './inventory-actions';
 
 const CONDITIONS = ['sealed_pack', 'open_box', 'super_mint', 'mint', 'good'];
 const STATUSES = ['available', 'sold', 'transferred', 'returned', 'booked', 'in_cart', 'scrapped'];
@@ -57,6 +58,22 @@ type InventoryItem = {
 
 export default function InventoryPage() {
   const qc = useQueryClient();
+  const { user } = useAdminAuthStore();
+  // Staff (branch-bound users) are locked to their store server-side; only
+  // cross-branch roles get the filter. Owner with no branch sees every store.
+  const crossBranch = !user?.branchId;
+  const [storeFilter, setStoreFilter] = useState<string>('');
+
+  // Store filter (Phase 18): owner/admin can scope the list to one store.
+  const { data: branchesData } = useQuery({
+    queryKey: ['admin-branches'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/admin/branches');
+      return data?.data ?? [];
+    },
+    enabled: crossBranch,
+  });
+  const branches: Array<{ id: string; name: string }> = branchesData ?? [];
 
   // Auto-refresh on inventory events
   useRealtimeUpdates({
@@ -142,6 +159,9 @@ export default function InventoryPage() {
     },
   ];
 
+  const { dialogs, buildActions } = useInventoryActions();
+  const rowActions = buildActions();
+
   const toggleOnline = useMutation({
     mutationFn: async (id: string) => {
       const { data } = await apiClient.patch(`/inventory/${id}/toggle-online`);
@@ -190,23 +210,51 @@ export default function InventoryPage() {
           <p className="text-sm text-surface-500">All inventory items</p>
         </div>
         <Link
-          href="/purchases/new"
+          href={
+            storeFilter
+              ? `/purchases/new?branchId=${storeFilter}`
+              : '/purchases/new'
+          }
           className="btn-primary btn-md"
         >
           <Plus className="w-4 h-4" />
-          Add Item
+          Add Stock
         </Link>
       </div>
 
+      {/* Store filter (owner/admin only — staff are server-side scoped) */}
+      {crossBranch && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-surface-500 uppercase tracking-wider">
+            Store
+          </label>
+          <select
+            value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            className="select max-w-xs"
+          >
+            <option value="">All Stores</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <DataTable<InventoryItem, any>
         columns={columns}
-        queryKey={['inventory']}
+        queryKey={['inventory', storeFilter]}
         apiEndpoint="/inventory"
+        queryParams={storeFilter ? { branchId: storeFilter } : undefined}
         enableSorting={true}
         enableFilters={true}
         enablePagination={true}
         pageSize={20}
+        actions={rowActions}
       />
+      {dialogs}
     </div></PermissionGate>
   );
 }
