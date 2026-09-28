@@ -145,7 +145,7 @@ export class InventoryController {
   }
 
   @Delete(':id')
-  @RequirePermission('inventory.edit')
+  @RequirePermission('inventory.delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete (archive) an inventory unit' })
   async softDelete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {

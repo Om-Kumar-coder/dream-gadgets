@@ -110,16 +110,23 @@ export function useOfflinePOS() {
 
   /**
    * Search inventory — tries server first, falls back to cache when offline.
+   * `branchId` scopes results to one store so the POS can never add another
+   * store's units to the bill (server re-validates at sale time).
    */
   const searchItems = useCallback(
-    async (query: string): Promise<OfflineSearchResult[]> => {
+    async (query: string, branchId?: string): Promise<OfflineSearchResult[]> => {
       if (!query || query.length < 2) return [];
 
       // If online, try the API first
       if (navigator.onLine) {
         try {
           const { data } = await apiClient.get('/inventory', {
-            params: { search: query, status: 'available', limit: 20 },
+            params: {
+              search: query,
+              status: 'available',
+              limit: 20,
+              ...(branchId ? { branchId } : {}),
+            },
           });
           const items = (data.data?.items ?? data.data ?? []) as any[];
 
@@ -170,6 +177,7 @@ export function useOfflinePOS() {
       const cached = await offlineDB.searchCachedInventory(query);
       return cached
         .filter((item) => item.status === 'available')
+        .filter((item) => !branchId || item.branchId === branchId)
         .map((item) => ({ item, source: 'cache' as const }));
     },
     [],

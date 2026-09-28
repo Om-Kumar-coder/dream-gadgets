@@ -19,7 +19,7 @@
   - [x] 2.5 Create migrations for: online_orders, returns, notifications, audit_logs, settings
   - [x] 2.6 Create seed data: default roles, permissions, system settings, sample branch
 
-- [ ] 3. Authentication Module
+- [x] 3. Authentication Module
   - [x] 3.1 Implement AuthModule with JWT strategy, local strategy, refresh token rotation
   - [x] 3.2 Implement POST /auth/login (email/phone + password → JWT + refresh token)
   - [x] 3.3 Implement POST /auth/refresh (refresh token rotation with family tracking in Redis)

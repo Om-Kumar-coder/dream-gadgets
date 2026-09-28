@@ -11,6 +11,7 @@ import {
   ParseUUIDPipe,
   Res,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -34,8 +35,22 @@ export class TransferController {
 
   @Post()
   @RequirePermission('transfers.create')
+  @BranchScoped()
   @ApiOperation({ summary: 'Create a new stock transfer' })
   async create(@Body() dto: CreateTransferDto, @CurrentUser() user: any) {
+    // Store isolation (P2-7): BranchScopeGuard only inspects body.branchId,
+    // which transfers do not use — they carry fromBranchId/toBranchId. Enforce
+    // here with the same cross-branch semantics as BranchScopeGuard: staff with
+    // a branch assignment may only ship FROM their own store; owners and
+    // cross-branch managers are unrestricted.
+    const CROSS_BRANCH_ROLES = new Set(['shop_owner', 'multi_store_manager', 'store_manager']);
+    const isCrossBranch = !user?.branchId || CROSS_BRANCH_ROLES.has(user?.role);
+    if (!isCrossBranch && dto.fromBranchId !== user.branchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only transfer stock out of your assigned branch',
+      });
+    }
     return this.transferService.create(dto, user.sub);
   }
 
@@ -51,8 +66,22 @@ export class TransferController {
   @Get(':id')
   @RequirePermission('transfers.view')
   @ApiOperation({ summary: 'Get transfer by ID' })
-  async findById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.transferService.findById(id);
+  async findById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    const transfer = await this.transferService.findById(id);
+    // Store isolation (Phase 3): store-level staff may only view transfers that
+    // involve their own branch — as source or as destination. Cross-branch
+    // roles (branchId null) pass through, mirroring BranchScopeGuard.
+    if (user?.branchId) {
+      const involvesOwnBranch =
+        transfer.fromBranchId === user.branchId || transfer.toBranchId === user.branchId;
+      if (!involvesOwnBranch) {
+        throw new ForbiddenException({
+          code: 'BRANCH_SCOPE_VIOLATION',
+          message: 'You can only access transfers involving your assigned branch',
+        });
+      }
+    }
+    return transfer;
   }
 
   @Patch(':id/receive')

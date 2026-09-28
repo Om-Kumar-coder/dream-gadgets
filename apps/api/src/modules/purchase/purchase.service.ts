@@ -2,9 +2,11 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Purchase } from './entities/purchase.entity';
 import { PurchaseItem } from './entities/purchase-item.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
@@ -18,6 +20,38 @@ import { GSTIN_FORMAT } from '../admin/branch-gstin.validation';
 
 const TAX_EPSILON = 0.01;
 
+/**
+ * Add-Stock combined payload: create the purchase record AND the inventory
+ * units in ONE transaction. If either side fails, both roll back — no
+ * half-completed purchase/inventory states.
+ */
+export interface CreateInventoryUnitDto {
+  imei: string;
+  imei2?: string;
+  brandId: string;
+  modelId: string;
+  colour?: string;
+  storage?: string;
+  ram?: string;
+  boxType: string;
+  condition: string;
+  itemName?: string;
+  firstInvoiceDate?: string;
+  purchasePrice: number;
+  taxRate?: number;
+  taxAmount?: number;
+  batteryHealth?: number;
+  pkuCode?: string;
+  countryOfOrigin?: string;
+  hsnCode?: string;
+  notes?: string;
+}
+
+export interface CreatePurchaseWithStockDto extends CreatePurchaseDto {
+  /** Inventory units to create and link to this purchase (Add Stock flow). */
+  inventoryUnits?: CreateInventoryUnitDto[];
+}
+
 @Injectable()
 export class PurchaseService {
   constructor(
@@ -29,6 +63,8 @@ export class PurchaseService {
     private itemRepo: Repository<InventoryItem>,
     @InjectRepository(Branch)
     private branchRepo: Repository<Branch>,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
   // ─── Invoice number generation ───────────────────────────────────────────────
@@ -145,9 +181,16 @@ export class PurchaseService {
 
     const lines = this.resolveLines(dto, items);
 
-    // ─── GST split resolution ────────────────────────────────────────────────
+    // ─── GST split resolution ──────────────────────────────────────────────────
     const vendorStateCode = this.resolveVendorStateCode(dto);
     const branch = await this.branchRepo.findOne({ where: { id: dto.branchId } });
+    // Deactivated stores cannot receive new stock (branch deactivation).
+    if (branch && branch.isActive === false) {
+      throw new BadRequestException({
+        code: 'BRANCH_INACTIVE',
+        message: 'This store is deactivated — it cannot receive new stock',
+      });
+    }
     const branchStateCode = branch?.state ? getStateCode(branch.state) : null;
     const placeOfSupply = dto.placeOfSupply ?? vendorStateCode;
     const { supplyType, source } = this.resolveSupplyType(dto, vendorStateCode, branchStateCode);
@@ -256,6 +299,234 @@ export class PurchaseService {
     }
 
     return saved;
+  }
+
+  // ─── 6.2b Add Stock: purchase + inventory in ONE transaction ───────────────
+
+  /**
+   * Creates the purchase record and its inventory units atomically.
+   *
+   * - If any unit fails validation (duplicate IMEI, invalid Luhn, missing
+   *   brand/model, deactivated store…), the purchase record is rolled back.
+   * - If the purchase insert fails, no inventory rows are created.
+   *
+   * Reuses the same GST/supply-type resolution as create() so purchase history
+   * and ITC stay consistent with the legacy flow.
+   */
+  async createWithInventory(dto: CreatePurchaseWithStockDto, userId: string, user?: any): Promise<Purchase> {
+    const units = dto.inventoryUnits ?? [];
+    if (units.length === 0) {
+      throw new BadRequestException({
+        code: 'NO_INVENTORY_UNITS',
+        message: 'At least one inventory unit is required',
+      });
+    }
+
+    // Validate all units BEFORE opening the transaction so known user errors
+    // (Luhn, duplicates) fail fast without touching the DB.
+    const { validateIMEI } = await import('../../common/utils/business-logic');
+    const seenImeis = new Set<string>();
+    for (const u of units) {
+      if (!validateIMEI(u.imei)) {
+        throw new BadRequestException({
+          code: 'IMEI_INVALID',
+          message: `IMEI ${u.imei} failed Luhn algorithm validation`,
+        });
+      }
+      if (seenImeis.has(u.imei)) {
+        throw new BadRequestException({
+          code: 'IMEI_DUPLICATE_IN_REQUEST',
+          message: `IMEI ${u.imei} appears more than once in this submission`,
+        });
+      }
+      seenImeis.add(u.imei);
+    }
+
+    // Cross-store check for staff (mirrors BranchScopeGuard body check).
+    if (user && user.branchId && user.branchId !== dto.branchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only add stock to your assigned branch',
+      });
+    }
+
+    // Reuse create() for GST resolution — but it must not commit yet. Simplest
+    // correct approach: run create() inside the caller's transaction boundary
+    // is not possible (it saves directly), so instead we validate everything
+    // first, create inventory units inside a transaction, then call create()
+    // and link. If create() throws, we roll back the inventory side.
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let createdItems: InventoryItem[] = [];
+    try {
+      // Store must be active before any row is written.
+      const branch = await queryRunner.manager.findOne(Branch, { where: { id: dto.branchId } });
+      if (!branch) {
+        throw new NotFoundException(`Branch ${dto.branchId} not found`);
+      }
+      if (branch.isActive === false) {
+        throw new BadRequestException({
+          code: 'BRANCH_INACTIVE',
+          message: 'This store is deactivated — it cannot receive new stock',
+        });
+      }
+
+      // Duplicate IMEI check inside the transaction.
+      const existing = await queryRunner.manager.find(InventoryItem, {
+        where: units.map((u) => ({ imei: u.imei })),
+      });
+      if (existing.length > 0) {
+        throw new ConflictException({
+          code: 'IMEI_DUPLICATE',
+          message: `An inventory item with IMEI ${existing[0].imei} already exists`,
+        });
+      }
+      // Create the inventory units.
+      for (const u of units) {
+        const taxAmount = u.taxAmount ?? 0;
+        const totalCost = Number(u.purchasePrice) + Number(taxAmount);
+
+        let warrantyExpiry: Date | null = null;
+        if (u.firstInvoiceDate) {
+          const { calculateWarrantyExpiry, ItemCondition } = await import('../../common/utils/business-logic');
+          warrantyExpiry = calculateWarrantyExpiry(new Date(u.firstInvoiceDate), u.condition as any);
+        }
+
+        const item = queryRunner.manager.create(InventoryItem, {
+          imei: u.imei,
+          imei2: u.imei2 ?? null,
+          brandId: u.brandId,
+          modelId: u.modelId,
+          colour: u.colour ?? null,
+          storage: u.storage ?? null,
+          ram: u.ram ?? null,
+          boxType: u.boxType,
+          condition: u.condition,
+          itemName: u.itemName ?? null,
+          firstInvoiceDate: u.firstInvoiceDate ? new Date(u.firstInvoiceDate) : null,
+          purchasePrice: u.purchasePrice,
+          taxRate: u.taxRate ?? 0,
+          taxAmount,
+          totalCost,
+          sellingPrice: null,
+          batteryHealth: u.batteryHealth ?? null,
+          pkuCode: u.pkuCode ?? null,
+          countryOfOrigin: u.countryOfOrigin ?? null,
+          hsnCode: u.hsnCode ?? null,
+          notes: u.notes ?? null,
+          branchId: dto.branchId,
+          status: 'available',
+          warrantyExpiry,
+          createdById: userId,
+        } as any);
+        createdItems.push(await queryRunner.manager.save(InventoryItem, item));
+      }
+      // Build the purchase with explicit lines derived from the created units.
+      // (Legacy create() would look up items from itemRepo; passing explicit
+      // lines keeps the math identical while pointing itemId at the new rows.)
+      const lines = units.map((u, i) => ({
+        itemId: createdItems[i].id,
+        description: u.itemName ?? `IMEI ${u.imei}`,
+        quantity: 1,
+        unitPrice: Number(u.purchasePrice),
+        taxRate: u.taxRate ?? 0,
+        taxableValue: Number(u.purchasePrice),
+      }));
+      // Compute the same GST split as create() would.
+      const vendorStateCode = this.resolveVendorStateCode(dto);
+      const branchStateCode = branch?.state ? getStateCode(branch.state) : null;
+      const placeOfSupply = dto.placeOfSupply ?? vendorStateCode;
+      const { supplyType, source } = this.resolveSupplyType(dto, vendorStateCode, branchStateCode);
+      const dtoTaxProvided = dto.taxAmount !== undefined;
+      if (dtoTaxProvided && placeOfSupply == null && !dto.supplyType && Number(dto.taxAmount) > 0) {
+        throw new BadRequestException({
+          code: 'SUPPLY_TYPE_UNRESOLVED',
+          message:
+            'Cannot determine intra/inter-state supply — provide vendor GSTIN, vendor state code, or an explicit supplyType',
+        });
+      }
+      const isInterState = supplyType === 'inter';
+      const lineItems = lines.map((line) => {
+        const gst = calculateGST(line.taxableValue, line.taxRate, isInterState);
+        return {
+          ...line,
+          hsnCode: units[0]?.hsnCode ?? null,
+          cgstAmount: Number(gst.cgst.toFixed(2)),
+          sgstAmount: Number(gst.sgst.toFixed(2)),
+          igstAmount: Number(gst.igst.toFixed(2)),
+          taxAmount: Number(gst.total.toFixed(2)),
+          lineTotal: Number((line.taxableValue + gst.total).toFixed(2)),
+        };
+      });
+      const sumTax = lineItems.reduce((s, l) => s + l.taxAmount, 0);
+      const sumCgst = lineItems.reduce((s, l) => s + l.cgstAmount, 0);
+      const sumSgst = lineItems.reduce((s, l) => s + l.sgstAmount, 0);
+      const sumIgst = lineItems.reduce((s, l) => s + l.igstAmount, 0);
+      if (dtoTaxProvided && Math.abs(Number(dto.taxAmount) - sumTax) > TAX_EPSILON) {
+        throw new BadRequestException({
+          code: 'TAX_SPLIT_MISMATCH',
+          message: `Header taxAmount (${Number(dto.taxAmount).toFixed(2)}) does not match the computed line tax split (${sumTax.toFixed(2)}) for the resolved supply type`,
+        });
+      }
+      const totalTax = dtoTaxProvided ? Number(dto.taxAmount) : Number(sumTax.toFixed(2));
+      const totalAmount = Number(lineItems.reduce((s, l) => s + l.lineTotal, 0).toFixed(2));
+      const invoiceNumber = this.generateInvoiceNumber(dto.branchId);
+      const purchase = queryRunner.manager.create(Purchase, {
+        vendorName: dto.vendorName,
+        vendorId: dto.vendorId ?? null,
+        branchId: dto.branchId,
+        notes: dto.notes ?? null,
+        invoiceNumber,
+        totalAmount,
+        taxAmount: totalTax,
+        supplyType,
+        supplyTypeSource: source,
+        vendorGstin: dto.vendorGstin?.toUpperCase() ?? null,
+        vendorStateCode,
+        placeOfSupply: placeOfSupply ?? null,
+        isReverseCharge: dto.isReverseCharge ?? false,
+        isItcEligible: dto.isItcEligible ?? true,
+        cgstAmount: Number(sumCgst.toFixed(2)),
+        sgstAmount: Number(sumSgst.toFixed(2)),
+        igstAmount: Number(sumIgst.toFixed(2)),
+        createdById: userId,
+        status: dto.status ?? 'completed',
+        purchaseDate: new Date(dto.purchaseDate),
+      } as any);
+      const savedPurchase = await queryRunner.manager.save(Purchase, purchase);
+      // Persist purchase line items pointing at the new inventory rows.
+      for (const line of lineItems) {
+        const purchaseItem = queryRunner.manager.create(PurchaseItem, {
+          purchaseId: savedPurchase.id,
+          itemId: line.itemId,
+          description: line.description,
+          hsnCode: line.hsnCode,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          taxRate: line.taxRate,
+          taxableValue: line.taxableValue,
+          cgstAmount: line.cgstAmount,
+          sgstAmount: line.sgstAmount,
+          igstAmount: line.igstAmount,
+          taxAmount: line.taxAmount,
+          lineTotal: line.lineTotal,
+        } as any);
+        await queryRunner.manager.save(PurchaseItem, purchaseItem);
+      }
+      // Link inventory → purchase.
+      for (const item of createdItems) {
+        await queryRunner.manager.update(InventoryItem, item.id, { purchaseId: savedPurchase.id });
+      }
+      await queryRunner.commitTransaction();
+      return { ...savedPurchase, items: createdItems } as Purchase & { items?: InventoryItem[] };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // ─── 6.3 List purchases ──────────────────────────────────────────────────────

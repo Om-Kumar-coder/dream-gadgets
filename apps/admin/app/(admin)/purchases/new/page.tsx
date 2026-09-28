@@ -9,6 +9,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle, Building2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
+import toast from 'react-hot-toast';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 
@@ -22,6 +23,7 @@ const purchaseSchema = z.object({
   condition: z.enum(['sealed_pack', 'open_box', 'super_mint', 'mint', 'good']),
   purchasePrice: z.coerce.number().positive('Purchase price must be positive'),
   taxRate: z.coerce.number().min(0).max(100).default(18),
+  supplyType: z.enum(['intra', 'inter']).default('intra'),
   batteryHealth: z.coerce.number().min(0).max(100).optional(),
   vendorName: z.string().min(1, 'Vendor name is required'),
   purchaseDate: z.string().min(1, 'Purchase date is required'),
@@ -60,7 +62,7 @@ export default function NewPurchasePage() {
     formState: { errors, isSubmitting },
   } = useForm<PurchaseForm>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: { taxRate: 18, boxType: 'with_box', condition: 'good' },
+    defaultValues: { taxRate: 18, supplyType: 'intra', boxType: 'with_box', condition: 'good' },
   });
 
   const watchedBrandId = watch('brandId');
@@ -148,27 +150,47 @@ export default function NewPurchasePage() {
 
   const mutation = useMutation({
     mutationFn: async (values: PurchaseForm) => {
-      const taxAmount = (values.purchasePrice * values.taxRate) / 100;
-      const { data } = await apiClient.post('/inventory', {
-        imei: values.imei,
-        brandId: values.brandId,
-        modelId: values.modelId,
-        colour: values.colour || undefined,
-        storage: values.storage || undefined,
-        boxType: values.boxType,
-        condition: values.condition,
-        purchasePrice: values.purchasePrice,
-        taxRate: values.taxRate,
-        taxAmount,
-        batteryHealth: values.batteryHealth || undefined,
-        notes: values.notes || undefined,
-        branchId: branchId || undefined,
+      const taxAmount = Number(((values.purchasePrice * values.taxRate) / 100).toFixed(2));
+      // P1-5: single transactional call — purchase record + inventory unit are
+      // created atomically (POST /purchases/with-inventory). Previously this
+      // form created inventory only and silently dropped vendor/purchase date.
+      const { data } = await apiClient.post('/purchases/with-inventory', {
+        branchId,
         vendorName: values.vendorName,
         purchaseDate: values.purchaseDate,
+        supplyType: values.supplyType,
+        taxRate: values.taxRate,
+        taxAmount,
+        inventoryUnits: [
+          {
+            imei: values.imei,
+            brandId: values.brandId,
+            modelId: values.modelId,
+            colour: values.colour || undefined,
+            storage: values.storage || undefined,
+            boxType: values.boxType,
+            condition: values.condition,
+            purchasePrice: values.purchasePrice,
+            taxRate: values.taxRate,
+            taxAmount,
+            batteryHealth: values.batteryHealth || undefined,
+            notes: values.notes || undefined,
+          },
+        ],
       });
       return data.data;
     },
-    onSuccess: () => router.push('/inventory'),
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error?.message ??
+        error?.response?.data?.message ??
+        'Failed to add stock',
+      );
+    },
+    onSuccess: () => {
+      toast.success('Stock added and purchase recorded');
+      router.push('/inventory');
+    },
   });
 
   const onSubmit = (values: PurchaseForm) => mutation.mutate(values);
@@ -313,6 +335,13 @@ export default function NewPurchasePage() {
               <label className="block text-xs font-medium text-surface-600 mb-1">Tax Rate (%)</label>
               <input {...register('taxRate', { valueAsNumber: true })} type="number" min={0} max={100}
                 className="input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-surface-600 mb-1">Supply Type</label>
+              <select {...register('supplyType')} className="select">
+                <option value="intra">Intra-state (CGST + SGST)</option>
+                <option value="inter">Inter-state (IGST)</option>
+              </select>
             </div>
           </div>
           <button

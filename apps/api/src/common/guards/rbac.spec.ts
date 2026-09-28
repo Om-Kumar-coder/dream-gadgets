@@ -79,7 +79,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
   shop_sales: [
     'dashboard.view',
-    'inventory.view',
+    'inventory.view', 'inventory.create', 'inventory.edit',
     'purchases.view', 'purchases.create',
     'sales.view', 'sales.create',
     'clients.view', 'clients.create', 'clients.edit',
@@ -91,12 +91,14 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'coupons.view',
     'emi.view',
     'payments.view',
+    // inventory.delete intentionally absent (P1-3): staff can create/edit but
+    // never delete inventory — DELETE /inventory/:id requires inventory.delete.
     // NO financial, NO transfers, NO reports, NO settings, NO users
   ],
 
   store_sales: [
     'dashboard.view',
-    'inventory.view',
+    'inventory.view', 'inventory.create', 'inventory.edit',
     'purchases.view', 'purchases.create',
     'sales.view', 'sales.create',
     'clients.view', 'clients.create', 'clients.edit',
@@ -565,12 +567,11 @@ describe('RBAC — Complete Authorization Chain', () => {
           if (key === PERMISSION_KEY) return 'inventory.create';
           return undefined;
         });
-        // shop_sales does NOT have inventory.create — should be denied
-        // Actually, shop_sales has inventory: ['view'] only
-        // Let me fix this — shop_sales should not be able to create inventory
-
-        // Actually shop_sales has: inventory: ['view'] — no create
-        expect(staff.permissions).not.toContain('inventory.create');
+        // shop_sales HAS inventory.create + inventory.edit (migration 041 —
+        // store staff can enter purchased units), but NOT inventory.delete.
+        expect(staff.permissions).toContain('inventory.create');
+        expect(staff.permissions).toContain('inventory.edit');
+        expect(staff.permissions).not.toContain('inventory.delete');
       });
     });
 
@@ -802,6 +803,10 @@ describe('RBAC — Complete Authorization Chain', () => {
 
       it('should NOT have inventory.create permission', () => {
         expect(staff.permissions).not.toContain('inventory.create');
+      });
+
+      it('should NOT have inventory.delete permission (P1-3)', () => {
+        expect(staff.permissions).not.toContain('inventory.delete');
       });
 
       it('should NOT have transfers.create permission', () => {
@@ -1091,7 +1096,7 @@ describe('RBAC — Complete Authorization Chain', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('POST /inventory — inventory.create denied for shop_sales (no permission)', () => {
+    it('POST /inventory — inventory.create ALLOWED for shop_sales (migration 041 granted it)', () => {
       const { permGuard, permReflector } = createGuards();
       jest.spyOn(permReflector, 'getAllAndOverride').mockImplementation((key: any) => {
         if (key === PERMISSION_KEY) return 'inventory.create';
@@ -1104,7 +1109,39 @@ describe('RBAC — Complete Authorization Chain', () => {
         { guard: permGuard, reflector: permReflector },
       ], ctx);
 
+      expect(result.allowed).toBe(true);
+    });
+
+    it('DELETE /inventory/:id — inventory.delete DENIED for shop_sales (P1-3)', () => {
+      const { permGuard, permReflector } = createGuards();
+      jest.spyOn(permReflector, 'getAllAndOverride').mockImplementation((key: any) => {
+        if (key === PERMISSION_KEY) return 'inventory.delete';
+        return undefined;
+      });
+
+      const staff = makeJwtPayload('shop_sales', BRANCH_A);
+      const ctx = makeExecutionContext({}, { user: staff, method: 'DELETE' });
+      const result = runGuardChain([
+        { guard: permGuard, reflector: permReflector },
+      ], ctx);
+
       expect(result.allowed).toBe(false);
+    });
+
+    it('DELETE /inventory/:id — inventory.delete ALLOWED for shop_owner (P1-3)', () => {
+      const { permGuard, permReflector } = createGuards();
+      jest.spyOn(permReflector, 'getAllAndOverride').mockImplementation((key: any) => {
+        if (key === PERMISSION_KEY) return 'inventory.delete';
+        return undefined;
+      });
+
+      const owner = makeJwtPayload('shop_owner', null);
+      const ctx = makeExecutionContext({}, { user: owner, method: 'DELETE' });
+      const result = runGuardChain([
+        { guard: permGuard, reflector: permReflector },
+      ], ctx);
+
+      expect(result.allowed).toBe(true);
     });
 
     it('GET /reports/dashboard — reports.view + FinancialScope', () => {

@@ -203,6 +203,23 @@ export class InventoryService {
   async update(id: string, dto: UpdateInventoryItemDto, userId: string, user?: any): Promise<InventoryItem> {
     const item = await this.findById(id, user);
 
+    // Identity/location immutability (P1-2): IMEI and branch are identity fields.
+    // They are set at purchase entry and must never change via normal editing —
+    // moving a unit between stores is a TRANSFER, and a wrong IMEI is a data-entry
+    // error to be corrected by voiding/redoing the entry, not a silent PATCH.
+    if (dto.imei !== undefined && dto.imei !== item.imei) {
+      throw new BadRequestException({
+        code: 'IMEI_IMMUTABLE',
+        message: 'IMEI is an identity field and cannot be changed. Void/re-enter the unit instead.',
+      });
+    }
+    if (dto.branchId !== undefined && dto.branchId !== item.branchId) {
+      throw new BadRequestException({
+        code: 'BRANCH_IMMUTABLE',
+        message: 'Store assignment cannot be changed by editing. Use a stock transfer to move inventory between stores.',
+      });
+    }
+
     // If status is being changed, validate transition
     if (dto.status && dto.status !== item.status) {
       if (!isValidStatusTransition(item.status, dto.status)) {

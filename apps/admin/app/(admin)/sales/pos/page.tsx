@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Search,
   X,
@@ -80,8 +80,28 @@ const buildBill = (billItems: BillItem[], discountPercent: number) =>
 export default function POSPage() {
   const router = useRouter();
   const { user } = useAdminAuthStore();
-  const branchId = user?.branchId ?? '';
   const offlinePOS = useOfflinePOS();
+
+  // Store selection (P1-4/P2-8): staff are locked to their assigned branch;
+  // cross-branch users (owner without a branch, multi-store managers) must pick
+  // the store explicitly. Matches CROSS_BRANCH_ROLES in branch-scope.guard.ts.
+  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager', 'store_manager'];
+  const isCrossBranch = !user?.branchId || CROSS_BRANCH_ROLES.includes(user?.role ?? '');
+  const lockedBranchId = user?.branchId ?? '';
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(lockedBranchId);
+  const branchId = lockedBranchId || selectedBranchId;
+  const needsStoreSelection = isCrossBranch && !lockedBranchId && !selectedBranchId;
+
+  // Branch list for cross-branch users.
+  const { data: branchesData } = useQuery({
+    queryKey: ['admin-branches', 'pos'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/admin/branches');
+      return data?.data ?? [];
+    },
+    enabled: isCrossBranch && !lockedBranchId,
+  });
+  const branches: Array<{ id: string; name: string; isActive?: boolean }> = branchesData ?? [];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [billItems, setBillItems] = useState<BillItem[]>([]);
@@ -107,9 +127,10 @@ export default function POSPage() {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      if (!branchId) return; // no store selected yet — nothing to search
       setIsSearching(true);
       try {
-        const results = await offlinePOS.searchItems(searchQuery);
+        const results = await offlinePOS.searchItems(searchQuery, branchId);
         setSearchResults(results.map((r) => r.item));
       } catch {
         setSearchResults([]);
@@ -121,7 +142,7 @@ export default function POSPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchQuery, offlinePOS.searchItems]);
+  }, [searchQuery, offlinePOS.searchItems, branchId]);
 
   // Search accessories separately
   useEffect(() => {
@@ -491,6 +512,41 @@ export default function POSPage() {
           <div className="card p-4 space-y-3">
             <h2 className="font-medium text-surface-800">Order Summary</h2>
 
+            {/* Store selection (P1-4): cross-branch users must pick a store;
+                sale + inventory search are scoped to it. Staff have no selector —
+                their branch is locked server-side and implied here. */}
+            {isCrossBranch && !lockedBranchId && (
+              <div>
+                <label className="block text-xs text-surface-500 mb-1">Selling from store</label>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => {
+                    setSelectedBranchId(e.target.value);
+                    setBillItems([]); // bill is store-scoped — clear on store change
+                    setPayments([{ method: 'cash', amount: 0 }]);
+                  }}
+                  className="select"
+                >
+                  <option value="">Select store…</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}{b.isActive === false ? ' (inactive)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {branches.find((b) => b.id === selectedBranchId)?.isActive === false && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This store is deactivated — it cannot accept new sales.
+                  </p>
+                )}
+              </div>
+            )}
+            {!isCrossBranch && lockedBranchId && (
+              <p className="text-xs text-surface-500">
+                Store: <span className="font-medium text-surface-800 font-mono">{lockedBranchId.slice(0, 8)}…</span>
+              </p>
+            )}
+
             <div>
               <label className="block text-xs text-surface-500 mb-1">
                 Client Phone (optional)
@@ -644,12 +700,16 @@ export default function POSPage() {
             disabled={
               billItems.length === 0 ||
               Math.abs(balance) > 0.01 ||
-              saleMutation.isPending
+              saleMutation.isPending ||
+              !branchId || // cross-branch user must select a store first (P1-4)
+              needsStoreSelection
             }
             isLoading={saleMutation.isPending}
           >
             {saleMutation.isPending ? (
               'Processing…'
+            ) : !branchId ? (
+              'Select a store first'
             ) : !offlinePOS.isOnline ? (
               `Queue Sale — ₹${total.toFixed(2)}`
             ) : balance > 0 ? (

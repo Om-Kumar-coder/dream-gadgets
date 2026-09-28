@@ -24,6 +24,8 @@ const MODULES = [
   'payments',
   'financial',
   'products',
+  'branches',
+  'roles',
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send', 'retry'];
@@ -56,6 +58,8 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     payments: ['view', 'approve'],
     financial: ['view', 'reports'],
     products: ['publish'],
+    branches: ['view'],
+    roles: ['view'],
   },
 
   shop_sales: {
@@ -153,6 +157,8 @@ const ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
     notifications: ['view'],
     payments: ['view', 'approve'],
     financial: [],
+    branches: ['view'],
+    roles: ['view'],
   },
 
   employee: {

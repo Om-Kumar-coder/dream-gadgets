@@ -1,9 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { MapPin, Phone, Clock, ArrowRight, Store, Loader2, Building2, Package } from 'lucide-react';
+import { MapPin, Phone, Clock, ArrowRight, Store, Loader2, Building2, Package, Power, PowerOff } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import toast from 'react-hot-toast';
+import { useAdminAuthStore } from '@/store/auth.store';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 
 interface Branch {
@@ -22,12 +24,30 @@ interface Branch {
 }
 
 export default function BranchesPage() {
+  const qc = useQueryClient();
+  const { user } = useAdminAuthStore();
+  const canManage = user?.permissions?.includes('settings.edit') ?? false;
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-branches'],
     queryFn: async () => {
       const { data } = await apiClient.get('/admin/branches');
       return (data?.data ?? []) as Branch[];
     },
+  });
+
+  // P2-6: safe deactivation — no destructive delete anywhere. A deactivated
+  // store is rejected server-side for new sales and new stock; history stays.
+  const toggleActive = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { data } = await apiClient.patch(`/admin/branches/${id}`, { isActive });
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin-branches'] });
+      toast.success(vars.isActive ? 'Store activated' : 'Store deactivated — new sales and stock are blocked');
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? 'Failed to update store'),
   });
 
   return (
@@ -89,6 +109,23 @@ export default function BranchesPage() {
                 >
                   {branch.isActive !== false ? 'Active' : 'Inactive'}
                 </span>
+                {canManage && (
+                  <button
+                    onClick={() =>
+                      toggleActive.mutate({ id: branch.id, isActive: branch.isActive === false })
+                    }
+                    disabled={toggleActive.isPending}
+                    title={branch.isActive !== false ? 'Deactivate store (blocks new sales & stock)' : 'Activate store'}
+                    aria-label={branch.isActive !== false ? 'Deactivate store' : 'Activate store'}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      branch.isActive !== false
+                        ? 'text-surface-400 hover:text-red-600 hover:bg-red-50'
+                        : 'text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {branch.isActive !== false ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                  </button>
+                )}
               </div>
 
               <div className="space-y-2 text-sm text-surface-500 flex-1 mb-5">

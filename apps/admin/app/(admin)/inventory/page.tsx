@@ -60,8 +60,10 @@ export default function InventoryPage() {
   const qc = useQueryClient();
   const { user } = useAdminAuthStore();
   // Staff (branch-bound users) are locked to their store server-side; only
-  // cross-branch roles get the filter. Owner with no branch sees every store.
-  const crossBranch = !user?.branchId;
+  // cross-branch roles get the filter. Matches CROSS_BRANCH_ROLES in
+  // branch-scope.guard.ts: shop_owner, multi_store_manager, store_manager.
+  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager', 'store_manager'];
+  const crossBranch = !user?.branchId || CROSS_BRANCH_ROLES.includes(user?.role ?? '');
   const [storeFilter, setStoreFilter] = useState<string>('');
 
   // Store filter (Phase 18): owner/admin can scope the list to one store.

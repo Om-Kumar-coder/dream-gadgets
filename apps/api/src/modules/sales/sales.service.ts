@@ -101,6 +101,16 @@ export class SalesService {
   async create(dto: CreateSaleDto, userId: string, userRole: string): Promise<Sale> {
     const { items, accessoryItems = [], payments, discountAmount = 0, isInterState = false, couponCode } = dto;
 
+    // 0. Deactivated stores cannot accept new sales (branch deactivation).
+    // Tolerant lookup: an unknown branch id still fails later at the FK level.
+    const saleBranch = await this.branchRepo.findOne({ where: { id: dto.branchId } });
+    if (saleBranch && saleBranch.isActive === false) {
+      throw new BadRequestException({
+        code: 'BRANCH_INACTIVE',
+        message: 'This store is deactivated — it cannot accept new sales',
+      });
+    }
+
     // 1. Validate all items exist and are available/in_cart
     const itemIds = items.map((i) => i.itemId);
     const inventoryItems = await this.itemRepo.find({
@@ -120,6 +130,17 @@ export class SalesService {
           message: `Item ${inv.imei} is not available for sale (status: ${inv.status})`,
         });
       }
+    }
+
+    // 1b. Branch integrity: every sold unit must belong to the sale's branch.
+    // The POS UI filters item search by store, but a direct API call must never
+    // be able to persist Store B inventory into a Store A sale — for any role.
+    const wrongBranchItem = inventoryItems.find((inv) => inv.branchId !== dto.branchId);
+    if (wrongBranchItem) {
+      throw new BadRequestException({
+        code: 'ITEM_WRONG_BRANCH',
+        message: `Item ${wrongBranchItem.imei} belongs to a different store and cannot be sold on this bill`,
+      });
     }
 
     // 2. Process accessory items FIRST (validate stock, collect lines) so they

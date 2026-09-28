@@ -17,6 +17,7 @@ import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
 import { validatePaymentSplits, calculateGST } from '../../common/utils/business-logic';
+import { calculateBillTotals } from '../../common/utils/billing';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -872,6 +873,117 @@ describe('SalesService', () => {
         ),
         { numRuns: 300 },
       );
+    });
+  });
+
+  // ─── P1-1: Sale ↔ branch integrity ────────────────────────────────────────
+
+  describe('create() — item/branch integrity (P1-1)', () => {
+    function makeSaleDtoForBranch(branchId: string, itemBranches: string[]) {
+      // Canonical total so the sale passes the PAYMENT_TOTAL_MISMATCH check —
+      // this suite targets branch integrity, not the billing contract.
+      const bill = calculateBillTotals({
+        lines: itemBranches.map(() => ({ unitPrice: 10000, taxRate: 18 })),
+      });
+      return {
+        branchId,
+        items: itemBranches.map((b, i) => ({ itemId: `item-${i}`, unitPrice: 10000, taxRate: 18 })),
+        payments: [{ method: 'cash', amount: bill.grandTotal }],
+        frontendTotal: bill.grandTotal,
+      };
+    }
+
+    function mockItems(branches: string[]) {
+      (itemRepo.find as any).mockResolvedValue(
+        branches.map((b, i) =>
+          makeInventoryItem({ id: `item-${i}`, branchId: b, status: 'available' }),
+        ),
+      );
+    }
+
+    function mockHappyPath() {
+      const savedSale = makeSale({ id: 'sale-1' });
+      dataSource.createQueryRunner().manager.save.mockResolvedValue(savedSale);
+      saleRepo.findOne.mockResolvedValueOnce(null).mockResolvedValue({ ...savedSale, items: [], payments: [] });
+    }
+
+    it('allows a Store A item in a Store A sale', async () => {
+      mockItems(['branch-1']);
+      mockHappyPath();
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-1']), 'user-1', 'shop_owner'),
+      ).resolves.toBeDefined();
+    });
+
+    it('allows multiple Store A items in a Store A sale', async () => {
+      mockItems(['branch-1', 'branch-1', 'branch-1']);
+      mockHappyPath();
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-1', 'branch-1', 'branch-1']), 'user-1', 'shop_owner'),
+      ).resolves.toBeDefined();
+    });
+
+    it('rejects a Store B item in a Store A sale (ITEM_WRONG_BRANCH)', async () => {
+      mockItems(['branch-2']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-2']), 'user-1', 'shop_owner'),
+      ).rejects.toMatchObject({
+        response: { code: 'ITEM_WRONG_BRANCH' },
+      });
+    });
+
+    it('rejects mixed Store A + Store B items in a Store A sale', async () => {
+      mockItems(['branch-1', 'branch-2']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-1', 'branch-2']), 'user-1', 'shop_owner'),
+      ).rejects.toMatchObject({
+        response: { code: 'ITEM_WRONG_BRANCH' },
+      });
+    });
+
+    it('cannot be bypassed by the owner role', async () => {
+      mockItems(['branch-2']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-2']), 'owner-1', 'shop_owner'),
+      ).rejects.toMatchObject({
+        response: { code: 'ITEM_WRONG_BRANCH' },
+      });
+    });
+
+    it('cannot be bypassed by the multi_store_manager role', async () => {
+      mockItems(['branch-2']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-2']), 'msm-1', 'multi_store_manager'),
+      ).rejects.toMatchObject({
+        response: { code: 'ITEM_WRONG_BRANCH' },
+      });
+    });
+
+    it('cannot be bypassed by store_manager role', async () => {
+      mockItems(['branch-2']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-2']), 'mgr-1', 'store_manager'),
+      ).rejects.toMatchObject({
+        response: { code: 'ITEM_WRONG_BRANCH' },
+      });
+    });
+
+    it('rejects sales for a deactivated store (BRANCH_INACTIVE)', async () => {
+      (branchRepo.findOne as any).mockResolvedValue({ id: 'branch-1', code: 'MUM', isActive: false });
+      mockItems(['branch-1']);
+
+      await expect(
+        service.create(makeSaleDtoForBranch('branch-1', ['branch-1']), 'user-1', 'shop_owner'),
+      ).rejects.toMatchObject({
+        response: { code: 'BRANCH_INACTIVE' },
+      });
     });
   });
 });

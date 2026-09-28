@@ -17,6 +17,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { PurchaseService } from './purchase.service';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { CreatePurchaseWithStockDto } from './dto/create-purchase-with-stock.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { QueryPurchaseDto } from './dto/query-purchase.dto';
 import { PermissionGuard } from '../../common/guards/permission.guard';
@@ -38,6 +39,19 @@ export class PurchaseController {
   @ApiOperation({ summary: 'Create a new purchase and link inventory items' })
   async create(@Body() dto: CreatePurchaseDto, @CurrentUser() user: any) {
     return this.purchaseService.create(dto, user.sub);
+  }
+
+  /**
+   * Add Stock flow (P1-5): create the purchase record AND its inventory units
+   * in ONE transaction. If any unit fails (duplicate IMEI, invalid Luhn,
+   * deactivated store…), the purchase record rolls back — no half states.
+   * Declared BEFORE the @Get(':id') wildcard-adjacent routes.
+   */
+  @Post('with-inventory')
+  @RequirePermission('purchases.create')
+  @ApiOperation({ summary: 'Create a purchase and its inventory units atomically (Add Stock)' })
+  async createWithInventory(@Body() dto: CreatePurchaseWithStockDto, @CurrentUser() user: any) {
+    return this.purchaseService.createWithInventory(dto, user.sub, user);
   }
 
   @Get()

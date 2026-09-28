@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { PurchaseService } from './purchase.service';
 import { Purchase } from './entities/purchase.entity';
 import { PurchaseItem } from './entities/purchase-item.entity';
@@ -9,6 +10,21 @@ import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { Branch } from '../auth/entities/user.entity';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Generate a Luhn-valid 15-digit IMEI from a 14-digit base. */
+function generateValidIMEI(base: string): string {
+  const digits = base.split('').map(Number);
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    let d = digits[i];
+    if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return base + check;
+}
+
+const VALID_IMEI = generateValidIMEI('35999900000000');
 
 function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
   return {
@@ -100,6 +116,7 @@ describe('PurchaseService', () => {
         { provide: getRepositoryToken(PurchaseItem), useValue: purchaseItemRepo },
         { provide: getRepositoryToken(InventoryItem), useValue: itemRepo },
         { provide: getRepositoryToken(Branch), useValue: branchRepo },
+        { provide: DataSource, useValue: { createQueryRunner: () => (globalThis as any).__purchaseQR ?? { connect: jest.fn(), startTransaction: jest.fn(), commitTransaction: jest.fn(), rollbackTransaction: jest.fn(), release: jest.fn(), manager: {} } } },
       ],
     }).compile();
 
@@ -572,4 +589,163 @@ describe('PurchaseService', () => {
       });
     });
   });
+  // ─── P1-5: Transactional Add Stock (purchase + inventory together) ────────
+
+  describe('createWithInventory() — Add Stock transaction (P1-5)', () => {
+    function makeQueryRunner(): any {
+      return {
+        connect: jest.fn() as any,
+        startTransaction: jest.fn() as any,
+        commitTransaction: jest.fn() as any,
+        rollbackTransaction: jest.fn() as any,
+        release: jest.fn() as any,
+        manager: {
+          findOne: jest.fn() as any,
+          find: jest.fn() as any,
+          create: jest.fn((_cls: any, data: any) => data) as any,
+          save: jest.fn(async (_cls: any, data: any) => ({ ...data, id: 'generated-id' })) as any,
+          update: jest.fn() as any,
+        },
+      };
+    }
+
+    let queryRunner: any;
+
+    function makeUnitDto(overrides: any = {}) {
+      return {
+        imei: VALID_IMEI,
+        brandId: 'brand-1',
+        modelId: 'model-1',
+        boxType: 'with_box',
+        condition: 'mint',
+        purchasePrice: 10000,
+        taxRate: 18,
+        taxAmount: 1800,
+        ...overrides,
+      };
+    }
+
+    function makeWithStockDto(overrides: any = {}) {
+      return {
+        vendorName: 'Test Vendor',
+        branchId: 'branch-1',
+        purchaseDate: '2025-01-01',
+        supplyType: 'intra' as const,
+        taxAmount: 1800,
+        inventoryUnits: [makeUnitDto()],
+        ...overrides,
+      };
+    }
+
+    function setupHappyPath() {
+      queryRunner = makeQueryRunner();
+      (service as any).dataSource = { createQueryRunner: () => queryRunner };
+      // Branch lookup inside the transaction
+      queryRunner.manager.findOne.mockResolvedValue({ id: 'branch-1', state: 'Maharashtra', isActive: true });
+      // No duplicate IMEIs
+      queryRunner.manager.find.mockResolvedValue([]);
+      // create() path mocks are NOT used here — everything goes through the runner
+      return queryRunner;
+    }
+
+    beforeEach(() => {
+      (branchRepo.findOne as any).mockResolvedValue({ id: 'branch-1', state: 'Maharashtra', isActive: true });
+    });
+
+    it('creates purchase + inventory atomically and links them', async () => {
+      const qr = setupHappyPath();
+
+      const result = await service.createWithInventory(makeWithStockDto(), 'user-1');
+
+      expect(result.totalAmount).toBe(11800); // 10000 + 1800 tax
+      expect(qr.commitTransaction).toHaveBeenCalled();
+      expect(qr.rollbackTransaction).not.toHaveBeenCalled();
+      // Inventory unit saved with the correct branch and status
+      const savedItem = qr.manager.save.mock.calls.find(
+        (c: any[]) => (c[1] as any)?.imei === VALID_IMEI,
+      );
+      expect(savedItem).toBeDefined();
+      expect(savedItem[1].branchId).toBe('branch-1');
+      expect(savedItem[1].status).toBe('available');
+      // Purchase → inventory link written
+      expect(qr.manager.update).toHaveBeenCalledWith(
+        expect.anything(), expect.anything(), { purchaseId: 'generated-id' },
+      );
+    });
+
+    it('rolls back everything when the purchase insert fails', async () => {
+      const qr = setupHappyPath();
+      // Purchase save fails (2nd save call: 1st is inventory, 2nd is purchase)
+      qr.manager.save.mockImplementation(async (_cls: any, data: any) => {
+        if ((data as any)?.invoiceNumber) throw new Error('DB write failed');
+        return { ...data, id: 'generated-id' };
+      });
+
+      await expect(
+        service.createWithInventory(makeWithStockDto(), 'user-1'),
+      ).rejects.toThrow('DB write failed');
+
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects when an IMEI already exists and rolls back (no partial state)', async () => {
+      const qr = setupHappyPath();
+      qr.manager.find.mockResolvedValue([{ imei: VALID_IMEI }]); // duplicate
+
+      await expect(
+        service.createWithInventory(makeWithStockDto(), 'user-1'),
+      ).rejects.toMatchObject({ response: { code: 'IMEI_DUPLICATE' } });
+
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects invalid Luhn IMEI before any DB access', async () => {
+      const dto = makeWithStockDto({ inventoryUnits: [makeUnitDto({ imei: '123456789012345' })] });
+
+      await expect(service.createWithInventory(dto, 'user-1')).rejects.toMatchObject({
+        response: { code: 'IMEI_INVALID' },
+      });
+    });
+
+    it('rejects deactivated store (BRANCH_INACTIVE) with rollback', async () => {
+      const qr = setupHappyPath();
+      qr.manager.findOne.mockResolvedValue({ id: 'branch-1', state: 'Maharashtra', isActive: false });
+
+      await expect(
+        service.createWithInventory(makeWithStockDto(), 'user-1'),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_INACTIVE' } });
+
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+    });
+
+    it('rejects empty inventory units', async () => {
+      await expect(
+        service.createWithInventory(makeWithStockDto({ inventoryUnits: [] }), 'user-1'),
+      ).rejects.toMatchObject({ response: { code: 'NO_INVENTORY_UNITS' } });
+    });
+
+    it('blocks staff adding stock to another branch (BRANCH_SCOPE_VIOLATION)', async () => {
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({ branchId: 'branch-2' }),
+          'user-1',
+          { sub: 'staff-1', role: 'shop_sales', branchId: 'branch-1' },
+        ),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_SCOPE_VIOLATION' } });
+    });
+
+    it('allows cross-branch owner (no branchId) to add stock anywhere', async () => {
+      const qr = setupHappyPath();
+
+      await expect(
+        service.createWithInventory(makeWithStockDto(), 'owner-1', {
+          sub: 'owner-1', role: 'shop_owner', branchId: null,
+        }),
+      ).resolves.toBeDefined();
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+  });
 });
+

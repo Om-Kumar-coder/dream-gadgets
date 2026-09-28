@@ -64,6 +64,7 @@ function makeItemRepo(): any {
     create: jest.fn() as any,
     save: jest.fn() as any,
     count: jest.fn() as any,
+    update: jest.fn() as any,
     createQueryBuilder: jest.fn() as any,
   };
 }
@@ -553,4 +554,96 @@ describe('InventoryService', () => {
       expect(result.isOnline).toBe(false);
     });
   });
+  // ─── P1-2: Immutable identity fields on update ────────────────────────────────
+
+  describe('update() — immutable identity fields (P1-2)', () => {
+    function mockExistingItem() {
+      const item = makeItem({ imei: VALID_IMEI, branchId: 'branch-1' });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+      (itemRepo.save as any).mockImplementation(async (saved: any) => saved);
+      return item;
+    }
+
+    it('rejects changing the IMEI (IMEI_IMMUTABLE)', async () => {
+      const item = mockExistingItem();
+      const otherValidImei = generateValidIMEI('35888800000000');
+
+      await expect(
+        service.update(item.id, { imei: otherValidImei } as any, 'user-1'),
+      ).rejects.toMatchObject({ response: { code: 'IMEI_IMMUTABLE' } });
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('rejects changing the branch (BRANCH_IMMUTABLE)', async () => {
+      const item = mockExistingItem();
+
+      await expect(
+        service.update(item.id, { branchId: 'branch-2' } as any, 'user-1'),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_IMMUTABLE' } });
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('still allows normal edits (condition, colour, storage, purchase price)', async () => {
+      const item = mockExistingItem();
+
+      const result = await service.update(
+        item.id,
+        { condition: 'good', colour: 'Black', storage: '256GB', purchasePrice: 12000 } as any,
+        'user-1',
+      );
+
+      expect(result.condition).toBe('good');
+      expect(itemRepo.save).toHaveBeenCalled();
+    });
+
+    it('preserves the original IMEI and inventory identity after a normal edit', async () => {
+      const item = mockExistingItem();
+
+      const result = await service.update(
+        item.id,
+        { colour: 'Blue' } as any,
+        'user-1',
+      );
+
+      expect(result.imei).toBe(VALID_IMEI);
+      expect(result.id).toBe(item.id);
+      expect(result.modelId).toBe(item.modelId);
+    });
+  });
+
+  // ─── P1-3: Soft delete requires history protection regardless of caller ─────
+
+  describe('softDelete() — history protection (P1-3)', () => {
+    it('refuses to archive a sold item (ITEM_HAS_HISTORY)', async () => {
+      const item = makeItem({ status: 'sold' });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+
+      await expect(service.softDelete(item.id, 'user-1')).rejects.toMatchObject({
+        response: { code: 'ITEM_HAS_HISTORY' },
+      });
+      expect(itemRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses to archive a transferred item (ITEM_HAS_HISTORY)', async () => {
+      const item = makeItem({ status: 'transferred' });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+
+      await expect(service.softDelete(item.id, 'user-1')).rejects.toMatchObject({
+        response: { code: 'ITEM_HAS_HISTORY' },
+      });
+      expect(itemRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('archives an eligible available item via soft delete', async () => {
+      const item = makeItem({ status: 'available' });
+      (itemRepo.findOne as any).mockResolvedValue(item);
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+
+      const result = await service.softDelete(item.id, 'user-1');
+
+      expect(result.status).toBe('archived');
+      expect(itemRepo.update).toHaveBeenCalledWith(item.id, { status: 'archived' });
+    });
+  });
 });
+

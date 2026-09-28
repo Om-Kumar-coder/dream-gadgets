@@ -157,7 +157,7 @@ describe('ReportService', () => {
 
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBeGreaterThan(0);
-    });
+    }, 30000); // explicit per-test timeout: ExcelJS startup is slow on CI/Windows
 
     it('should return CSV fallback when ExcelJS is unavailable', async () => {
       dataSource.query.mockResolvedValue([

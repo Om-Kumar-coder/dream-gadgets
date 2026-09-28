@@ -538,6 +538,8 @@ describe('GstService', () => {
   describe('generateExcel()', () => {
     it('should return a Buffer', async () => {
       jest.setTimeout(30000);
+      // Note: jest.setTimeout called INSIDE the test body is too late — the
+      // default 5s has already been applied. Use per-test timeout arg instead.
       dataSource.query.mockImplementation((sql: string) => {
         if (isB2bQuery(sql)) return [b2bRow()];
         if (isB2clQuery(sql)) return [b2clRow()];
@@ -551,7 +553,7 @@ describe('GstService', () => {
 
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30000);
 
     it('should handle empty data gracefully', async () => {
       jest.setTimeout(30000);
@@ -561,7 +563,7 @@ describe('GstService', () => {
 
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30000);
 
     it('should include summary section data in the Excel', async () => {
       dataSource.query.mockImplementation((sql: string) => {
@@ -578,7 +580,7 @@ describe('GstService', () => {
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
       // Result is either an xlsx (with exceljs) or JSON fallback, both are Buffers
-    });
+    }, 30000);
   });
 
   // ─── 9. Branch filtering ────────────────────────────────────────────────────

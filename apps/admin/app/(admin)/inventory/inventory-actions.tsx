@@ -280,6 +280,7 @@ export function useInventoryActions() {
   const [priceItem, setPriceItem] = useState<InventoryRow | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryRow | null>(null);
   const hasEditPermission = useAdminAuthStore((s) => s.hasPermission('inventory.edit'));
+  const hasDeletePermission = useAdminAuthStore((s) => s.hasPermission('inventory.delete'));
 
   const dialogs = (
     <>
@@ -292,7 +293,7 @@ export function useInventoryActions() {
   const buildActions = () => {
     if (!hasEditPermission) return [];
     const editable = (row: InventoryRow) => row.status !== 'sold' && row.status !== 'transferred';
-    return [
+    const actions = [
       {
         label: 'Edit',
         icon: <Pencil className="w-4 h-4" />,
@@ -305,13 +306,19 @@ export function useInventoryActions() {
         onClick: (row: InventoryRow) => setPriceItem(row),
         visible: editable,
       },
-      {
+    ];
+    // Deletion is a separate, stronger permission — the server enforces
+    // inventory.delete authoritatively; the UI gate just hides a button the
+    // caller could not use anyway.
+    if (hasDeletePermission) {
+      actions.push({
         label: 'Delete',
         icon: <Trash2 className="w-4 h-4 text-red-400" />,
         onClick: (row: InventoryRow) => setDeleteItem(row),
         visible: editable,
-      },
-    ];
+      });
+    }
+    return actions;
   };
 
   return { dialogs, buildActions };
