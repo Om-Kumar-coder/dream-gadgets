@@ -995,7 +995,7 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 
 | ID | Bug | Area | Severity | Reproduction | Root cause | Status | Files |
 |---|---|---|---|---|---|---|---|
-| BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | CONFIRMED | admin.service.ts, auth.service.ts |
+| BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED** (2026-10-09; unit + live read-path verified; not yet deployed — §31) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
 | BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | CONFIRMED (code) | phonepe.service.ts |
 | BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | ops backups, no `.gitignore` rule | CONFIRMED | apps/api/.env.bak-* |
 | BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | CONFIRMED | report.service.ts |
@@ -1404,5 +1404,54 @@ Counts below are from read-only commands run during the audit; they are reproduc
 - **Auxiliary service internals** (`coupon`, `emi`, `buyback`, `address`, `whatsapp-template`, `whatsapp-appointment`) — reviewed via method signatures and targeted reads, not full line-by-line.
 - **Generated / build / vendor content** — `node_modules`, `.next`, `dist`, lockfile internals, and binary uploads were intentionally excluded from line review (identified and summarised in §2 instead).
 - **Deployed environment values** — secret values and live env configuration were not read or reproduced; only variable names are documented (§11).
+
+---
+
+## 31. SESSION LOG — STABILIZATION PHASE
+
+> Append-only record of confirmed fixes. Do not rewrite prior entries.
+
+### 2026-10-09 — BUG-01 fixed: RBAC permissions now authoritative in `role_permissions`
+
+**Problem (from §19).** Editing a role's permission matrix in the admin UI had no effect on the permissions carried by issued JWTs.
+
+**Root cause (traced).** Two disjoint stores:
+- Write path — `AdminService.updateRolePermissions` / `createRole` wrote the **`settings`** table key `role:{id}:permissions` only (`apps/api/src/modules/admin/admin.service.ts`).
+- Read path — `AuthService.getUserPermissions` (`apps/api/src/modules/auth/auth.service.ts:65-101`) reads **`permissions` ⨝ `role_permissions`** at login/token-build time.
+- `AdminService.getRolePermissions` (used by `GET /admin/roles/:id/permissions`, the matrix UI) also read the settings mirror, so the UI showed a *different* set than the one actually enforced. The Redis cache `perms:role:{id}` is populated from `role_permissions`, so invalidating it changed nothing.
+
+**Live-DB evidence (read-only, 2026-10-09).** Confirmed the two stores diverge badly in production:
+
+| Role | `role_permissions` rows (enforced) | settings mirror contents (what UI showed) |
+|---|---:|---|
+| shop_owner | 173 | `["products.publish"]` |
+| store_manager | 51 | `["products.publish"]` |
+| multi_store_manager | 53 | `["products.publish"]` |
+| shop_sales | 22 | `["inventory.create","inventory.edit"]` |
+| store_sales | 21 | `["inventory.create","inventory.edit"]` |
+| calling_staff | 16 | (no mirror row) |
+| employee | 1 | (no mirror row) |
+
+So the matrix UI displayed a near-empty permission set while the JWT carried the full (seed-defined) set, and any UI edit was written to a store authorization never reads.
+
+**Fix (smallest safe change).** Made `role_permissions` the single source of truth:
+- `AdminService.updateRolePermissions` now calls a new `writeRolePermissions()` helper that, in a DB transaction, **deletes and re-inserts** the role's rows in `role_permissions` (resolving `module.action` names → permission ids; unknown names ignored). Old-permission diff for the audit log is now read from `getRolePermissions()`.
+- `AdminService.createRole` writes new-role permissions the same way.
+- `AdminService.getRolePermissions` now **reads from `role_permissions`** (was the settings mirror), so the matrix UI reflects the enforced set.
+- The legacy `settings` `role:{id}:permissions` write is **retained as a compatibility mirror only** (nothing in-repo reads it anymore) — removal deferred to avoid an unforced change.
+
+**Files changed:** `apps/api/src/modules/admin/admin.service.ts` (`createRole`, `updateRolePermissions`, `getRolePermissions`, new `writeRolePermissions`), `apps/api/src/modules/admin/admin.service.spec.ts` (mock `DataSource.transaction`, new regression assertions).
+
+**Tests performed:**
+- `cd apps/api && npx jest` → **27 suites / 698 tests passed** (was 697; +1 new test). Exit 0.
+- `npx tsc --noEmit -p tsconfig.json` → clean, exit 0.
+- New tests assert: (a) `updateRolePermissions` issues `DELETE FROM role_permissions` + one `INSERT` per resolved permission; (b) `createRole` does the same; (c) the audit diff reads old perms from `role_permissions`, **not** the settings mirror.
+- New read-path SQL executed **read-only against the live DB** and returns the correct 173 / 22 permission sets.
+
+**Regression check:** the change is confined to the admin role-management path; the login/token path (`AuthService.getUserPermissions`) and guards are untouched. Full API unit suite re-run green.
+
+**Status:** ✅ FIXED at source + unit level; read-path validated against live data.
+
+**Remaining limitation:** the live PM2 `dream-gadgets-api` process still runs the **old compiled build** — the fix is not deployed (no rebuild/restart performed). UI end-to-end verification (edit matrix → re-login → observe JWT change) is **NOT VERIFIED** and requires a deploy, which is intentionally deferred. Also note pre-existing roles created via the UI before this fix may have little/no data in `role_permissions`; their settings mirror is not migrated.
 
 *End of current_status.md.*

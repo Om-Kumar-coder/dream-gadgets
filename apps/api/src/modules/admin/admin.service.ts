@@ -369,12 +369,17 @@ export class AdminService {
     const role = this.roleRepo.create({ name: dto.name, description: dto.description });
     const saved = await this.roleRepo.save(role);
 
-    // Store permissions in settings table as role:{id}:permissions
-    if (dto.permissions?.length) {
-      await this.upsertSetting(`role:${saved.id}:permissions`, dto.permissions, `Permissions for role ${dto.name}`);
+    const permissions = dto.permissions ?? [];
+    // Authoritative store: the `role_permissions` join table — the same table
+    // AuthService.getUserPermissions() reads when building the JWT (BUG-01).
+    if (permissions.length) {
+      await this.writeRolePermissions(saved.id, permissions);
+      // Compatibility mirror only (no longer read by getRolePermissions());
+      // retained so any external consumer of the legacy settings key still works.
+      await this.upsertSetting(`role:${saved.id}:permissions`, permissions, `Permissions for role ${dto.name}`);
     }
 
-    return { ...saved, permissions: dto.permissions ?? [] };
+    return { ...saved, permissions };
   }
 
   async updateRolePermissions(
@@ -385,15 +390,19 @@ export class AdminService {
     const role = await this.roleRepo.findOne({ where: { id } });
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
-    // Fetch old permissions for audit record
-    const oldSetting = await this.settingRepo.findOne({ where: { key: `role:${id}:permissions` } });
-    const oldPerms = (oldSetting?.value as string[]) ?? [];
+    // Old permissions come from the authoritative table (was: the settings mirror).
+    const oldPerms = await this.getRolePermissions(id);
     const newPerms = dto.permissions;
 
     // Compute diff for the audit record
     const added = newPerms.filter((p) => !oldPerms.includes(p));
     const removed = oldPerms.filter((p) => !newPerms.includes(p));
 
+    // BUG-01 fix: write the authoritative `role_permissions` join table so the
+    // change actually affects issued JWTs. Previously only the settings mirror
+    // was written, so the role matrix had no effect on authorization.
+    await this.writeRolePermissions(id, newPerms);
+    // Compatibility mirror only (see createRole()).
     await this.upsertSetting(`role:${id}:permissions`, newPerms, `Permissions for role ${role.name}`);
 
     // Log the change to audit_logs
@@ -402,9 +411,48 @@ export class AdminService {
     return { id, permissions: newPerms };
   }
 
+  /**
+   * Reads a role's permissions from the authoritative `role_permissions` join
+   * table (BUG-01: used to read the settings mirror, which login ignored).
+   * Returns identifiers in `module.action` form.
+   */
   async getRolePermissions(id: string): Promise<string[]> {
-    const setting = await this.settingRepo.findOne({ where: { key: `role:${id}:permissions` } });
-    return (setting?.value as string[]) ?? [];
+    const rows: Array<{ module: string; action: string }> = await this.dataSource.query(
+      `SELECT p.module, p.action
+       FROM permissions p
+       JOIN role_permissions rp ON rp.permission_id = p.id
+       WHERE rp.role_id = $1
+       ORDER BY p.module, p.action`,
+      [id],
+    );
+    return rows.map((r) => `${r.module}.${r.action}`);
+  }
+
+  /**
+   * Replaces a role's rows in the authoritative `role_permissions` join table.
+   * Unknown permission names (not present in `permissions`) are ignored.
+   * Runs in a transaction so a failed insert cannot leave the role with none.
+   */
+  private async writeRolePermissions(roleId: string, permissionNames: string[]): Promise<string[]> {
+    const unique = Array.from(new Set(permissionNames));
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(`DELETE FROM role_permissions WHERE role_id = $1`, [roleId]);
+      if (unique.length === 0) return [];
+
+      const rows: Array<{ id: string; name: string }> = await manager.query(
+        `SELECT id, module || '.' || action AS name
+         FROM permissions
+         WHERE module || '.' || action = ANY($1)`,
+        [unique],
+      );
+      for (const p of rows) {
+        await manager.query(
+          `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [roleId, p.id],
+        );
+      }
+      return rows.map((r) => r.name).sort();
+    });
   }
 
   /**

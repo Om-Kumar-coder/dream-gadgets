@@ -126,6 +126,8 @@ describe('AdminService', () => {
   let settingRepo: any;
   let bannerRepo: any;
   let contentPageRepo: any;
+  let dataSourceMock: any;
+  let managerQuery: any;
 
   beforeEach(async () => {
     userRepo = makeRepo('user');
@@ -134,6 +136,12 @@ describe('AdminService', () => {
     settingRepo = makeRepo('setting');
     bannerRepo = makeRepo('banner');
     contentPageRepo = makeRepo('page');
+    managerQuery = jest.fn(async () => []);
+    dataSourceMock = {
+      query: jest.fn(async () => []),
+      // Mirror TypeORM's DataSource.transaction(): run the callback with a manager.
+      transaction: jest.fn(async (cb: any) => cb({ query: managerQuery })),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -146,9 +154,7 @@ describe('AdminService', () => {
         { provide: getRepositoryToken(ContentPage), useValue: contentPageRepo },
         {
           provide: DataSource,
-          useValue: {
-            query: jest.fn(async () => []),
-          },
+          useValue: dataSourceMock,
         },
         {
           provide: NotificationService,
@@ -290,13 +296,22 @@ describe('AdminService', () => {
   });
 
   describe('createRole()', () => {
-    it('should create a role with permissions', async () => {
+    it('should create a role and write its permissions to the authoritative role_permissions table', async () => {
       roleRepo.findOne.mockResolvedValue(null);
       const role = makeRole();
       roleRepo.save.mockResolvedValue(role);
       settingRepo.findOne.mockResolvedValue(null);
       settingRepo.create.mockReturnValue({ key: 'role:role-uuid-1:permissions', value: [] });
       settingRepo.save.mockResolvedValue({});
+      managerQuery.mockImplementation(async (sql: string) => {
+        if (String(sql).includes('FROM permissions')) {
+          return [
+            { id: 'perm-1', name: 'inventory.view' },
+            { id: 'perm-2', name: 'sales.create' },
+          ];
+        }
+        return [];
+      });
 
       const result = await service.createRole({
         name: 'Shop Sales',
@@ -304,6 +319,10 @@ describe('AdminService', () => {
       });
 
       expect(result.permissions).toEqual(['inventory.view', 'sales.create']);
+      // BUG-01 regression guard: permissions must land in role_permissions.
+      expect(dataSourceMock.transaction).toHaveBeenCalled();
+      const inserts = managerQuery.mock.calls.filter((call: any[]) => String(call[0]).includes('INSERT INTO role_permissions'));
+      expect(inserts.length).toBe(2);
     });
 
     it('should throw ConflictException for duplicate role name', async () => {
@@ -316,16 +335,46 @@ describe('AdminService', () => {
   });
 
   describe('updateRolePermissions()', () => {
-    it('should update role permissions', async () => {
+    it('should update role permissions in the authoritative role_permissions table', async () => {
       roleRepo.findOne.mockResolvedValue(makeRole());
       settingRepo.findOne.mockResolvedValue(makeSetting({ key: 'role:role-uuid-1:permissions', value: [] }));
       settingRepo.save.mockResolvedValue({});
+      managerQuery.mockImplementation(async (sql: string) => {
+        if (String(sql).includes('FROM permissions')) {
+          return [
+            { id: 'perm-1', name: 'inventory.view' },
+            { id: 'perm-2', name: 'sales.create' },
+            { id: 'perm-3', name: 'sales.approve' },
+          ];
+        }
+        return [];
+      });
 
       const result = await service.updateRolePermissions('role-uuid-1', {
         permissions: ['inventory.view', 'sales.create', 'sales.approve'],
       });
 
       expect(result.permissions).toEqual(['inventory.view', 'sales.create', 'sales.approve']);
+      // BUG-01 regression guard: the authoritative table is rewritten.
+      expect(dataSourceMock.transaction).toHaveBeenCalled();
+      const deletes = managerQuery.mock.calls.filter((call: any[]) => String(call[0]).includes('DELETE FROM role_permissions'));
+      expect(deletes.length).toBe(1);
+      const inserts = managerQuery.mock.calls.filter((call: any[]) => String(call[0]).includes('INSERT INTO role_permissions'));
+      expect(inserts.length).toBe(3);
+    });
+
+    it('should read old permissions from role_permissions (not the settings mirror)', async () => {
+      roleRepo.findOne.mockResolvedValue(makeRole());
+      // Settings mirror has stale/different value — it must be ignored for the diff.
+      settingRepo.findOne.mockResolvedValue(makeSetting({ key: 'role:role-uuid-1:permissions', value: ['legacy.only'] }));
+      settingRepo.save.mockResolvedValue({});
+      dataSourceMock.query.mockResolvedValue([{ module: 'inventory', action: 'view' }]);
+
+      const result = await service.updateRolePermissions('role-uuid-1', {
+        permissions: ['inventory.view', 'sales.create'],
+      });
+
+      expect(result.permissions).toEqual(['inventory.view', 'sales.create']);
     });
 
     it('should throw NotFoundException for non-existent role', async () => {
