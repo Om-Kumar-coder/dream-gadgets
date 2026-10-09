@@ -7,7 +7,34 @@
 > **Audit date:** 2026-10-08
 > **Repository root:** `/var/www/dream-gadgets` (the same path `deploy.sh` deploys to on the VPS)
 > **Git HEAD at audit time:** `866c839 feat: multi-store isolation hardening and transactional Add Stock`
-> **Branch:** `main` (tracking `origin/main`)
+> **Branch:** `main` (tracking `origin/main`) — this document was committed as `9e23f9f`.
+
+> **This document is a forensic snapshot of the project at the audit date.**
+> It must be updated whenever a feature, API, database schema, configuration,
+> flow, bug status, or production behavior changes. It is a **living project map**, not a one-time report.
+
+---
+
+## READ THIS FIRST
+
+This single file is intended to let a developer or AI agent understand the whole application
+without reading the source first. It is long on purpose.
+
+- **Audit date:** 2026-10-08 · **Audited commit:** `866c839` (`main`) · **Doc commit:** `9e23f9f`.
+- **Overall status:** a large, genuinely functional multi-branch retail platform; production-capable in its core POS/purchase/inventory/auth paths, but **not production-clean** — money-safety and CI gaps remain (§19, §25).
+- **Read in this order:** §1 executive summary → §3 architecture → §7 business flows → §19 bug register → §25 EXECUTIVE TRUTH → §28 WHAT NOT TO TOUCH.
+- **Status vocabulary** (used throughout; see §0 for the evidence legend):
+
+| Emoji | Meaning |
+|---|---|
+| ✅ | VERIFIED WORKING |
+| ⚠️ | PARTIALLY WORKING / PARTIAL |
+| ❌ | CONFIRMED BROKEN |
+| ⛔ | BLOCKED (environment / provider / data) |
+| ❓ | UNVERIFIED / UNKNOWN — NOT VERIFIED |
+| 🧹 | TECH DEBT |
+| 🗑️ | DEAD / UNUSED / GARBAGE |
+| 🔒 | DO NOT TOUCH WITHOUT CARE |
 
 ---
 
@@ -1219,5 +1246,163 @@ Chronological commit themes (most recent 30): multi-store isolation hardening + 
 - Runtime behavior of the deployed production instance (env values, DB contents, whether cleanup scripts were run) is **UNKNOWN — NOT VERIFIED** from this repository.
 - Playwright e2e, shell test harnesses, and the public API contract spec were **not executed** in this audit.
 - `packages/ui` was not line-reviewed.
+
+## 27. SYSTEM & FLOW DIAGRAMS (Mermaid)
+
+> Only relationships confirmed by source inspection are drawn. Anything unproven is described in prose, not as a diagram edge.
+
+### 27.1 Runtime architecture
+
+```mermaid
+flowchart TD
+  U[User / Staff browser] --> W[apps/web storefront :3001]
+  U --> A[apps/admin back-office :3002 basePath /admin]
+  W --> WAC[web API client]
+  A --> AAC[admin apiClient]
+  WAC --> NG[Nginx: /api -> API :3000 prefix /api/v1]
+  AAC --> NG
+  NG --> C[NestJS controllers - 25 files, ~239 route decorators]
+  C --> GD[Guards: JwtAuth / Permission / BranchScope / FinancialScope]
+  GD --> S[Services]
+  S --> DB[(PostgreSQL via TypeORM, synchronize:false)]
+  S --> R[(Redis: cache, POS locks, refresh-token families, OTP, invoice seq)]
+  S --> Q[BullMQ notification queue -> notification.processor]
+  S --> EXT[Razorpay / PhonePe / SMTP / MSG91 / Twilio / S3 / Puppeteer]
+  S --> WS[Socket.IO realtime gateway]
+```
+
+### 27.2 POS sale flow (verified core path)
+
+```mermaid
+flowchart TD
+  P[admin POS page pos/page.tsx] --> CB[shared calculateBillTotals]
+  CB --> P
+  P --> API[POST /api/v1/sales]
+  API --> SC[sales.controller.createSale]
+  SC --> SS[sales.service.createSale]
+  SS --> B1[branch active check]
+  SS --> B2[item existence / status / branch integrity]
+  SS --> B3[accessory validation + optional coupon validate]
+  SS --> B4[calculateBillTotals -> payable paise]
+  SS --> B5[discount role authorization]
+  SS --> B6[validatePaymentSplits exact total]
+  SS --> B7[invoice no. DG-BR-YEAR-NNNNN + DB collision self-heal]
+  B7 --> TX[DB transaction]
+  TX --> SALE[(sales)]
+  TX --> SI[(sale_items: phone + accessory)]
+  TX --> PAY[(payments)]
+  TX --> STK[inventory_item -> sold / accessory qty--]
+  TX --> LK[post-commit: release Redis POS locks]
+  TX --> CU[record coupon usage]  
+  TX --> RT[emit realtime event]
+```
+
+### 27.3 Authentication / authorization flow
+
+```mermaid
+flowchart TD
+  L[POST /auth/login] --> LS[auth.service.login]
+  LS --> P1[fetch user + role]
+  LS --> P2[bcrypt compare]
+  LS --> P3[issue access JWT + refresh token]
+  P3 --> RD[store refresh-token family in Redis]
+  RD --> RESP[return tokens to client]
+  RESP --> AC[admin apiClient attaches Bearer token]
+  AC --> G1[JwtAuthGuard]
+  G1 --> G2[PermissionsGuard reads permissions JOIN role_permissions]
+  G2 --> G3[BranchScopeGuard / FinancialScopeGuard]
+  G3 --> H[controller handler]
+  M[AdminService.updateRolePermissions] -.->|writes settings table, NOT role_permissions| WARN[BUG-01: token permissions unchanged]
+```
+
+### 27.4 Cross-module dependencies (confirmed)
+
+```mermaid
+flowchart LR
+  Sales --> Inventory
+  Sales --> Payments
+  Sales --> Clients
+  Sales --> Notification
+  Sales --> Gst
+  Purchases --> Inventory
+  Returns --> Sales
+  Returns --> Inventory
+  Returns --> Notification
+  Transfers --> Inventory
+  Exchange --> Inventory
+  Exchange --> Payments
+  OnlineOrders --> Payments
+  OnlineOrders --> Notification
+  Notification --> Email
+  Notification --> WhatsApp
+  Reports --> Sales
+  Reports --> Purchases
+```
+
+---
+
+## 28. WHAT NOT TO TOUCH (without careful review)
+
+These areas are verified working, financially/inventory/security sensitive, or depended on by many features. Read §12 (GOLD) and §7 before editing.
+
+| Area | Files | Why sensitive |
+|---|---|---|
+| 🔒 Billing engine | `apps/api/src/common/utils/billing.ts` + `packages/shared-types/src/billing.ts` | Byte-mirrored; a mirror-sync spec enforces equality. Changing one side without the other breaks the test and diverges POS from server. |
+| 🔒 Sale creation | `apps/api/src/modules/sales/sales.service.ts` `createSale` | Financial + inventory atomic path; invoice sequencing, discount authorization, payment-split exactness. |
+| 🔒 Inventory decrement / purchase intake | `apps/api/src/modules/purchase/purchase.service.ts` `createWithInventory` | Atomic stock creation; wrong edits corrupt stock. |
+| 🔒 Guard stack | `apps/api/src/common/guards/*` | Every authorization decision flows through these. |
+| 🔒 Phone canonicalization | `apps/api/src/common/utils/phone.ts` | Identity/OTP keying; well-tested. |
+| 🔒 Auth token issuance | `apps/api/src/modules/auth/auth.service.ts` | Refresh rotation + family revocation. |
+| 🔒 DB schema | `apps/api/src/database/migrations/*`, `data-source.ts` | `synchronize:false`; schema is migration-authoritative; never enable synchronize. |
+| 🔒 PDF / invoice | `sales.service.ts` `renderPdf`, `buildA4InvoiceHtml`, `buildThermalReceiptHtml` | Previously fixed and verified (§16); do not reopen without new evidence. |
+| ⚠️ Payment providers | `payment/razorpay*`, `payment/phonepe.service.ts` | Money movement; PhonePe mock is un-gated (BUG-02). |
+
+---
+
+## 29. KNOWN DATA STATE
+
+**Important limitation — read this first:** this audit did **not** connect to any live database. All DB reads were of the migration/seed source, never a running instance. Therefore **live row counts, actual records, and whether historical cleanup was executed are `UNKNOWN — NOT VERIFIED`** and are deliberately **not** invented here. No data was created, modified, or deleted.
+
+What *is* established from source (not from a live DB):
+
+| Item | Source | Status |
+|---|---|---|
+| Seeded roles | `apps/api/src/database/seeds/001-seed-roles-permissions.ts` | shop_owner (all), store_manager, shop_sales, store_sales, calling_staff, multi_store_manager, employee (empty) |
+| Seeded branches | migrations `033`, `036`, `048` | Chetla (Main, code `CHETLA`), Jadavpur, Champahati |
+| Seeded settings | `002-seed-settings-branch.ts` | incl. `discount.threshold_*`, `return.approval_threshold_*`, `pos.lock_ttl_minutes`, `exchange.*` (several **CONFIGURED BUT UNUSED**, §15) |
+| Tables with likely-zero live rows | `invoice_sequences`, `kyc_documents`, `whatsapp_campaign_logs/automation_rules/notifications/tags/customer_preferences` | unused in code paths (§15) — live emptiness is UNVERIFIED |
+| Test/debug artifacts | `apps/api/*.env.bak-*`, `check-*remote.js`, fake/test sales mentioned in project history | presence on disk verified; whether fake sales were purged is UNVERIFIED |
+| Live table contents / counts | — | **UNKNOWN — NOT VERIFIED (no DB connection used)** |
+
+---
+
+## 30. AUDIT COMPLETENESS
+
+Counts below are from read-only commands run during the audit; they are reproducible and are not estimates of behaviour.
+
+| Metric | Count | Source |
+|---|---|---|
+| NestJS controllers | 25 | `find apps/api/src -name '*.controller.ts'` |
+| Route decorators (`@Get/@Post/@Put/@Patch/@Delete`) | ~239 | `grep` over controllers |
+| TypeORM entities | 31 | `find apps/api/src -name '*.entity.ts'` |
+| Migration files | 50 (48 unique numeric prefixes; `004` and `006` are each duplicated) | `ls apps/api/src/database/migrations` |
+| API spec files | 27 | `find apps/api/src -name '*.spec.ts'` |
+| API tests (executed) | 697 passing / 27 suites | `cd apps/api && npx jest` |
+| Admin pages | 38 | `find apps/admin/app -name 'page.tsx'` |
+| Web pages | 35 | `find apps/web/app -name 'page.tsx'` |
+| API modules | 23 | `find apps/api/src/modules -maxdepth 1 -type d` |
+| Confirmed bugs in register | 24 (see §19) | §19 |
+
+**Verified working areas:** API unit suite (697 tests); billing mirror-sync; POS sale creation path (code-consistent); purchase→inventory atomic intake; invoice PDF generation code path; guard stack.
+
+**Unverified areas (implementation exists, not executed here):** deployed-production runtime behaviour, live DB contents, Playwright e2e, shell harnesses, public API contract spec, `packages/ui`.
+
+### NOT FULLY INSPECTED (and why)
+
+- **Live production database** — no DB connection was made (audit-only, no credentials/data touched); live row state is UNKNOWN.
+- **`packages/ui`** — not line-reviewed (shared primitives only).
+- **Auxiliary service internals** (`coupon`, `emi`, `buyback`, `address`, `whatsapp-template`, `whatsapp-appointment`) — reviewed via method signatures and targeted reads, not full line-by-line.
+- **Generated / build / vendor content** — `node_modules`, `.next`, `dist`, lockfile internals, and binary uploads were intentionally excluded from line review (identified and summarised in §2 instead).
+- **Deployed environment values** — secret values and live env configuration were not read or reproduced; only variable names are documented (§11).
 
 *End of current_status.md.*
