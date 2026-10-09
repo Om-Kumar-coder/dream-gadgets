@@ -102,8 +102,15 @@ jobs:
       - name: Build shared packages
         run: npx turbo run build --filter=@dream-gadgets/shared-types --filter=@dream-gadgets/ui
 
+      # BUG-06: this ran jest from the repo root, whose jest.config.js projects
+      # point at tests/components and tests/integration — both absent — so
+      # --testPathPattern="apps/api" matched nothing and --passWithNoTests turned
+      # that into a green build with ZERO tests executed. Run the API's own suite
+      # (27 suites) from its directory instead, and drop --passWithNoTests so an
+      # empty suite can never pass CI again.
       - name: Run API unit tests
-        run: npx jest --passWithNoTests --forceExit --testPathPattern="apps/api"
+        working-directory: apps/api
+        run: npx jest --forceExit
         env:
           DATABASE_URL: postgresql://admin:secret@localhost:5432/dreamgadgets_test
           REDIS_URL: redis://localhost:6379

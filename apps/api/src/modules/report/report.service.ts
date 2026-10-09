@@ -328,7 +328,7 @@ export class ReportService {
         u.first_name || ' ' || COALESCE(u.last_name, '') AS staff_name,
         b.name AS branch_name
       FROM sales s
-      LEFT JOIN users u ON u.id = s.created_by_id
+      LEFT JOIN users u ON u.id = s.created_by
       LEFT JOIN branches b ON b.id = s.branch_id
       WHERE s.sale_date BETWEEN $1 AND $2
         AND s.is_voided = false
@@ -358,14 +358,23 @@ export class ReportService {
       SELECT
         s.invoice_number, s.sale_date, s.total_amount,
         s.tax_amount,
-        CASE WHEN s.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS cgst_amount,
-        CASE WHEN s.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS sgst_amount,
-        CASE WHEN s.is_inter_state THEN s.tax_amount ELSE 0 END AS igst_amount,
+        CASE WHEN g.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS cgst_amount,
+        CASE WHEN g.is_inter_state THEN 0 ELSE s.tax_amount / 2 END AS sgst_amount,
+        CASE WHEN g.is_inter_state THEN s.tax_amount ELSE 0 END AS igst_amount,
         b.gstin AS branch_gstin,
-        b.state AS place_of_supply,
-        CASE WHEN s.is_inter_state THEN 'IGST' ELSE 'CGST+SGST' END AS tax_type
+        COALESCE(c.state, b.state) AS place_of_supply,
+        CASE WHEN g.is_inter_state THEN 'IGST' ELSE 'CGST+SGST' END AS tax_type
       FROM sales s
       LEFT JOIN branches b ON b.id = s.branch_id
+      LEFT JOIN clients c ON c.id = s.client_id
+      -- BUG-04: sales has no is_inter_state column, so this report always threw
+      -- and returned []. Derive it exactly as GstService.isInterState() does
+      -- (branch state vs customer state, null-safe) so the report agrees with
+      -- the GSTR-1 filing instead of drifting from it.
+      CROSS JOIN LATERAL (
+        SELECT (b.state IS NOT NULL AND c.state IS NOT NULL
+                AND LOWER(TRIM(b.state)) <> LOWER(TRIM(c.state))) AS is_inter_state
+      ) g
       WHERE s.sale_date BETWEEN $1 AND $2
       ${branchFilter}
       ORDER BY s.sale_date
@@ -430,7 +439,7 @@ export class ReportService {
         SUM(s.total_amount)::numeric AS total_sales_value,
         AVG(s.total_amount)::numeric AS avg_sale_value
       FROM sales s
-      LEFT JOIN users u ON u.id = s.created_by_id
+      LEFT JOIN users u ON u.id = s.created_by
       WHERE s.sale_date BETWEEN $1 AND $2
       ${branchFilter}
       GROUP BY u.id, u.first_name, u.last_name
@@ -453,14 +462,24 @@ export class ReportService {
   }
 
   private async getExchangeReport(branchId: string | undefined, start: Date, end: Date): Promise<any[]> {
-    const branchFilter = branchId ? `AND e.branch_id = '${branchId}'` : '';
+    // BUG-04: exchange_devices has no branch_id column, so any branch-scoped
+    // call interpolated `AND e.branch_id = ...` and threw. Derive the branch from
+    // the links the table actually has (stock entry, sale, or the staff member).
+    const branchFilter = branchId
+      ? `AND COALESCE(ei.branch_id, es.branch_id, ub.branch_id) = '${branchId}'`
+      : '';
     return this.dataSource.query(`
       SELECT
-        e.id, e.brand, e.model, e.imei,
+        e.id, brd.name AS brand, mdl.name AS model, e.imei,
         e.condition, e.battery_health,
-        e.offered_price, e.final_price,
+        e.exchange_price,
         e.created_at
       FROM exchange_devices e
+      LEFT JOIN brands brd ON brd.id = e.brand_id
+      LEFT JOIN models mdl ON mdl.id = e.model_id
+      LEFT JOIN inventory_items ei ON ei.id = e.inventory_item_id
+      LEFT JOIN sales es ON es.id = e.sale_id
+      LEFT JOIN users ub ON ub.id = e.created_by
       WHERE e.created_at BETWEEN $1 AND $2
       ${branchFilter}
       ORDER BY e.created_at DESC

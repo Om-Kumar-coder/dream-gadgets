@@ -998,10 +998,10 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 | BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED + DEPLOYED** (2026-10-09, `f1d0e71`; API rebuilt & restarted — §31; UI→JWT round-trip NOT VERIFIED) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
 | BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | CONFIRMED (code) | phonepe.service.ts |
 | BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | `.gitignore` env rules were suffix-style (`*.env`), so `.env.bak-*` / `.env.local.bak-*` matched nothing | **FIXED** (2026-10-09) — **escalated**: a tracked, publicly-readable script held a literal DB + admin password — §31 | .gitignore, scripts/fix-admin-password.js |
-| BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | CONFIRMED | report.service.ts |
-| BUG-05 | Client history empty | Clients | HIGH | `GET /clients/:id/history` | SQL `return_amount/status` | CONFIRMED | client.service.ts |
-| BUG-06 | CI runs zero API tests | CI | HIGH | `npx jest --listTests --testPathPattern=apps/api` | root jest projects mismatch | CONFIRMED | jest.config.js, ci.yml |
-| BUG-07 | Admin realtime room not joined for shop_owner with branch | Realtime | HIGH | Connect WS as owner with branchId | `'Shop Owner'` vs `shop_owner` | CONFIRMED (code) | realtime.gateway.ts |
+| BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | **FIXED** (2026-10-09; 4 queries; 19/19 live-verified w/ + w/o branch filter — §31) | report.service.ts |
+| BUG-05 | Client history empty | Clients | HIGH | `GET /clients/:id/history` | SQL `return_amount/status` (and a second break: `created_by_id`) | **FIXED** (2026-10-09; live-verified — §31) | client.service.ts |
+| BUG-06 | CI runs zero API tests | CI | HIGH | `npx jest --listTests --testPathPattern=apps/api` | root jest projects point at absent dirs + `--passWithNoTests` masked it | **FIXED** (2026-10-09, ci.yml; dead root `jest.config.js` projects remain — see BUG-21 — §31) | ci.yml |
+| BUG-07 | Admin realtime room not joined for shop_owner with branch | Realtime | HIGH | Connect WS as owner with branchId | `'Shop Owner'` vs `shop_owner` | **FIXED** (2026-10-09; regression test proven to fail on old code — §31) | realtime.gateway.ts, realtime.gateway.spec.ts |
 | BUG-08 | Orders store user id in client_id | Orders | HIGH | Place order logged-in, inspect `client` | `req.user.sub` used as clientId | CONFIRMED (code) | public.controller.ts |
 | BUG-09 | Return refund not transactional | Returns | HIGH | Fail after inventory restore | refund before insert, no tx | CONFIRMED (code) | return.service.ts |
 | BUG-10 | S3 presign always falls back | Inventory | HIGH | Call `POST /inventory/:id/photos` | `@aws-sdk/*` not installed | CONFIRMED | inventory.service.ts, package.json |
@@ -1020,6 +1020,7 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 | BUG-23 | Dashboard `netIncome` ignores purchases | Reports | LOW | View dashboard | `todayPurchasesValue=0` TODO | CONFIRMED | report.service.ts:135 |
 | BUG-24 | `invoice_sequences` unused | DB | LOW | grep | Redis authoritative | CONFIRMED | redis.service.ts |
 | BUG-25 | Permission grid silently revokes permissions it cannot render | Admin UI / RBAC | HIGH | Apply any preset, or click a role's **All**/**None**, on a role holding `branches.*`/`roles.*` | `MODULE_GROUPS`/`ALL_ACTIONS` are a hardcoded subset of the 24 modules in `permissions`; All/None/preset rebuild the set from that subset only | FIXED (2026-10-09, deployed with BUG-01 — §31) | PermissionMatrix.tsx |
+| BUG-26 | **SQL injection in every report query** | Security | CRITICAL | `GET /reports/gst?branchId=x' OR '1'='1` | `@Query('branchId')` flows into `filters.branchId` and is interpolated as `\`AND s.branch_id = '${branchId}'\`` in ~12 queries; no `IsUUID`/`ParseUUIDPipe` anywhere in the report module | CONFIRMED (code) — found while fixing BUG-04, **not yet fixed** | report.controller.ts, report.service.ts |
 
 ---
 
@@ -1569,5 +1570,83 @@ Deploying BUG-01 made the matrix's writes *effective* for the first time, which 
 1. **History purge.** The secret-bearing script and `.freebuff/desktop-v2.db` (added in `3d7189c`, absent from HEAD) remain in git history and on GitHub. Purging requires a history rewrite + force-push.
 2. **Credential rotation** — the Postgres password and `admin@test.com` should both be rotated; rotating the DB password restarts nothing by itself but will break anything still using the old one.
 3. **Deleting the backup files** — left on disk as ops backups.
+
+### 2026-10-09 (later) — BUG-04, BUG-05, BUG-06, BUG-07 fixed; BUG-26 discovered
+
+**Method.** Rather than eyeball the SQL, every raw query in `report.service.ts` and `client.service.ts` was extracted programmatically and **executed read-only against the live DB** (each wrapped in `SET statement_timeout='8000'`, `ON_ERROR_STOP=1`). Each query was run twice — once with `${branchFilter}` empty and once with a branch filter present — because the first pass strips interpolations and would have hidden a whole class of failures.
+
+#### BUG-04 — reports returned empty (4 queries, not the 3 in the register)
+
+Baseline before the fix — **15/19 passed, 4 failed**:
+
+| Method | Error |
+|---|---|
+| `getSalesReport` (`daily_sales`/`weekly_sales`/`monthly_sales`) | `column s.created_by_id does not exist` |
+| `getGstReport` | `column s.is_inter_state does not exist` |
+| `getEmployeeSalesReport` | `column s.created_by_id does not exist` ← **not in the register** |
+| `getExchangeReport` | `column e.brand does not exist` |
+
+Fixes:
+- `s.created_by_id` → **`s.created_by`** (2 occurrences; `sales` has no `created_by_id`).
+- **GST inter-state:** `sales.is_inter_state` never existed. Replaced with a `CROSS JOIN LATERAL` deriving it from branch state vs customer state using the *same* rule as the existing `GstService.isInterState()` (`null` → intra-state, otherwise case/space-insensitive compare), so this report now agrees with the GSTR-1 filing instead of drifting from it. Added `LEFT JOIN clients c ON c.id = s.client_id`; `place_of_supply` now uses `COALESCE(c.state, b.state)` to match `gst.service`.
+- **Exchange:** `exchange_devices` has **no** `brand`/`model`/`offered_price`/`final_price`/`branch_id`. Now joins `brands`/`models` for the names (aliased back to `brand`/`model`, so the response shape is unchanged) and returns the one real price column `exchange_price`. The two phantom price columns were dropped — they cannot have been consumed by anything, because the query has *always* thrown, so no caller ever received them.
+- **Exchange branch scope:** the old `AND e.branch_id = '${branchId}'` threw for any branch-scoped call. Now derives the branch from the links the table does have: `COALESCE(ei.branch_id, es.branch_id, ub.branch_id)` over `inventory_item_id` / `sale_id` / `created_by`.
+
+**After: 19/19 PASS with no branch filter, and 19/19 PASS with a branch filter.**
+
+#### BUG-05 — client history (2 broken sub-queries, not 1)
+
+`ClientService.getHistory` runs four independent `safeQuery` calls that each swallow their own error, so failures are invisible — the section is simply always empty.
+
+| Sub-query | Error / fix |
+|---|---|
+| purchases | `column p.created_by_id does not exist` → `p.created_by` (**the register only mentioned returns**) |
+| returns | `column r.return_amount does not exist` → `r.refund_amount AS return_amount`, `r.refund_status AS status` |
+| sales, exchanges | already valid |
+
+The returns columns are **aliased back to the original response keys** (`return_amount`, `status`) so the HTTP contract is unchanged — a schema-mapping error, not an API-design change. **After: all 3 statically-testable queries PASS.**
+
+The 4th method in the file, `getFollowUpQueue`, showed a FAIL in my harness; I checked it rather than “fixing” it and it is **valid** — the harness substitutes `${whereClause}` with an empty string, producing `WHERE ORDER BY`. Re-run with its real `whereClause` it executes cleanly. Not a bug.
+
+#### BUG-06 — CI ran zero API tests
+
+Root cause, exactly: the `test-api` job ran `npx jest --passWithNoTests --forceExit --testPathPattern="apps/api"` **from the repo root**, where `jest.config.js` declares only two projects matching `<rootDir>/tests/components/**` and `<rootDir>/tests/integration/**` — **both directories are absent**. The pattern matched nothing, and `--passWithNoTests` converted that into exit 0: a green build with 0 tests.
+
+Demonstrated both halves:
+- old command from repo root → **exit 0** (green, zero tests)
+- new command with an empty suite → **exit 1** (would correctly fail CI)
+
+Fix in `.github/workflows/ci.yml`: run the API's own suite from its directory (`working-directory: apps/api`, `npx jest --forceExit`) and **drop `--passWithNoTests`** so an empty suite can never pass again. YAML re-parsed OK, all 6 jobs intact, step env unchanged. That now executes the real **27 suites / 701 tests**.
+
+The dead root `jest.config.js` projects are the same root cause as **BUG-21** (`test:components`/`test:integration` no-op) and are deliberately left there rather than half-fixed twice.
+
+#### BUG-07 — realtime admin room never joined by an owner with a branch
+
+`realtime.gateway.ts:74` compared `payload.role === 'Shop Owner'`. `roles.name` in the DB is snake_case (`shop_owner`, `store_manager`, … — verified live) and `AuthService` puts `user.role.name` straight into the JWT, so the comparison **never** matched. An owner *with* a `branchId` therefore never joined `admin` and silently missed every admin-room event: `sale.created`, `sale.voided`, `order.created`, `order.status_changed`, `payment.confirmed`, `stock.transfer.*`, `return.created`.
+
+Fix: a `normalizeRole()` helper (trim → lowercase → spaces/hyphens to `_`) so `shop_owner`, `Shop Owner` and legacy tokens all resolve.
+
+**The pre-existing tests were part of the problem:** they asserted against `'Shop Owner'` and `'Shop Sales'` — values that can never occur — so they passed while proving nothing. Added 3 regression tests using the **real** role names, including the exact failing scenario (owner **with** `branchId` must join both `branch:` and `admin`) and a negative control (`store_manager` with a branch must **not** join `admin`).
+
+**Proof the guard is real:** with the fix reverted the new tests **FAIL** (`Received: ["user:user-uuid-1", "branch:branch-uuid-1"]` — no `admin`, exit 1); with the fix restored they **PASS** (exit 0).
+
+#### Verification summary
+
+| Check | Result |
+|---|---|
+| `npx jest` (apps/api) | **27 suites / 701 tests passed** (was 698; +3 BUG-07) — exit 0 |
+| `npx tsc --noEmit -p apps/api/tsconfig.json` | exit 0 |
+| Report queries, live read-only | **19/19** (no branch) and **19/19** (branch filter) |
+| Client history queries, live read-only | 3/3 statically-testable PASS |
+| `.github/workflows/ci.yml` YAML parse | OK, 6 jobs intact |
+| BUG-07 regression guard | fails on old code, passes on new |
+
+**NOT VERIFIED:** these fixes are **not deployed** — `apps/api/dist` still holds the build from the BUG-01 deploy, so the running PM2 process predates these changes. End-to-end UI confirmation (Reports → GST / Daily Sales / Exchange; a client's history) is **NOT VERIFIED** and needs a rebuild + restart. Also note `clients`, `sales.client_id` and `exchange_devices` are all **empty** in the live DB, so those paths can be verified for *validity* but not for *rows returned*.
+
+#### New bug found: BUG-26 — SQL injection (CRITICAL, not fixed)
+
+While editing these queries I found that `@Query('branchId')` in `report.controller.ts` flows unvalidated into `filters.branchId` and is interpolated directly into SQL in ~12 places (`AND s.branch_id = '${branchId}'`). There is **no `IsUUID` / `ParseUUIDPipe` anywhere in the report module**, and several routes require only `reports.export`/`reports.view`. This is a textbook injection and is strictly more severe than any of the four bugs fixed here.
+
+It was **deliberately not fixed in this batch**: the correct remediation is to parameterise every query (or add one UUID guard at the service boundary) with its own tests, not a rushed edit alongside four unrelated fixes. Logged as **BUG-26, CRITICAL, CONFIRMED (code)** — recommended as the next item.
 
 *End of current_status.md.*

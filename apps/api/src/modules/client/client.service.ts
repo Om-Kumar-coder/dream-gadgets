@@ -141,7 +141,7 @@ export class ClientService {
          )
          UNION
          SELECT p.id, p.invoice_number, p.vendor_name, p.total_amount, p.purchase_date, p.status
-         FROM purchases p WHERE p.created_by_id = $1
+         FROM purchases p WHERE p.created_by = $1
          LIMIT 50`,
         [id],
       ),
@@ -156,7 +156,11 @@ export class ClientService {
         [id],
       ),
       safeQuery(
-        `SELECT r.id, r.return_amount, r.reason, r.status, r.created_at
+        // BUG-05: `returns` stores `refund_amount` / `refund_status`; selecting the
+        // non-existent `return_amount` / `status` threw, safeQuery swallowed it and
+        // the Returns section of client history was always empty. Aliased back to
+        // the original response keys so the API contract is unchanged.
+        `SELECT r.id, r.refund_amount AS return_amount, r.reason, r.refund_status AS status, r.created_at
          FROM returns r WHERE r.client_id = $1 ORDER BY r.created_at DESC LIMIT 50`,
         [id],
       ),

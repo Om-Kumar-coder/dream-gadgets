@@ -160,6 +160,57 @@ describe('RealtimeGateway', () => {
       expect(client.join).toHaveBeenCalledWith('admin');
     });
 
+    // BUG-07 regression guards. `roles.name` in the DB is snake_case and
+    // AuthService puts `user.role.name` straight into the JWT, so `shop_owner`
+    // is the value that actually arrives — the old check only ever matched the
+    // display label 'Shop Owner'.
+
+    it('BUG-07: should join admin room for `shop_owner` WITH a branchId', async () => {
+      const jwt = require('jsonwebtoken');
+      const payload = makeJwtPayload({ role: 'shop_owner', branchId: 'branch-uuid-1' });
+      const token = jwt.sign(payload, 'test-secret');
+
+      const client = makeClient({
+        handshake: { auth: { token }, query: {} },
+      });
+
+      await gateway.handleConnection(client);
+
+      const joinCalls = (client.join as any).mock.calls.map((c: any) => c[0]);
+      expect(joinCalls).toContain('branch:branch-uuid-1');
+      expect(joinCalls).toContain('admin');
+    });
+
+    it('BUG-07: should still join admin room for `shop_owner` with no branchId', async () => {
+      const jwt = require('jsonwebtoken');
+      const payload = makeJwtPayload({ role: 'shop_owner', branchId: null });
+      const token = jwt.sign(payload, 'test-secret');
+
+      const client = makeClient({
+        handshake: { auth: { token }, query: {} },
+      });
+
+      await gateway.handleConnection(client);
+
+      expect(client.join).toHaveBeenCalledWith('admin');
+    });
+
+    it('BUG-07: should NOT join admin room for `store_manager` with a branchId', async () => {
+      const jwt = require('jsonwebtoken');
+      const payload = makeJwtPayload({ role: 'store_manager', branchId: 'branch-uuid-1' });
+      const token = jwt.sign(payload, 'test-secret');
+
+      const client = makeClient({
+        handshake: { auth: { token }, query: {} },
+      });
+
+      await gateway.handleConnection(client);
+
+      const joinCalls = (client.join as any).mock.calls.map((c: any) => c[0]);
+      expect(joinCalls).toContain('branch:branch-uuid-1');
+      expect(joinCalls).not.toContain('admin');
+    });
+
     it('should NOT join admin room for non-owner staff', async () => {
       const jwt = require('jsonwebtoken');
       const payload = makeJwtPayload({ role: 'Shop Sales', branchId: 'branch-uuid-1' });

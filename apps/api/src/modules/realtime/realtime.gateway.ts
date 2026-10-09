@@ -12,6 +12,18 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RealtimeService } from './realtime.service';
 
+/**
+ * Role names live in the `roles` table as snake_case (`shop_owner`,
+ * `store_manager`, …) and `AuthService` puts `user.role.name` straight into the
+ * JWT, so `payload.role` is always snake_case. Normalise anyway so display
+ * labels such as `Shop Owner` (and any legacy tokens) still resolve.
+ */
+const normalizeRole = (role: unknown): string =>
+  String(role ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -70,8 +82,12 @@ export class RealtimeGateway
         await client.join(`branch:${payload.branchId}`);
       }
 
-      // Owners join admin room
-      if (!payload.branchId || payload.role === 'Shop Owner') {
+      // Owners join admin room.
+      // BUG-07: this compared against the display label 'Shop Owner', which is
+      // never what `payload.role` contains — so an owner WITH a branchId never
+      // joined `admin` and silently missed every admin-room event (sale.created,
+      // order.status_changed, payment.confirmed, stock.transfer.*, return.created).
+      if (!payload.branchId || normalizeRole(payload.role) === 'shop_owner') {
         await client.join('admin');
       }
 
