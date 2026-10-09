@@ -997,7 +997,7 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 |---|---|---|---|---|---|---|---|
 | BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED + DEPLOYED** (2026-10-09, `f1d0e71`; API rebuilt & restarted — §31; UI→JWT round-trip NOT VERIFIED) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
 | BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | CONFIRMED (code) | phonepe.service.ts |
-| BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | ops backups, no `.gitignore` rule | CONFIRMED | apps/api/.env.bak-* |
+| BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | `.gitignore` env rules were suffix-style (`*.env`), so `.env.bak-*` / `.env.local.bak-*` matched nothing | **FIXED** (2026-10-09) — **escalated**: a tracked, publicly-readable script held a literal DB + admin password — §31 | .gitignore, scripts/fix-admin-password.js |
 | BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | CONFIRMED | report.service.ts |
 | BUG-05 | Client history empty | Clients | HIGH | `GET /clients/:id/history` | SQL `return_amount/status` | CONFIRMED | client.service.ts |
 | BUG-06 | CI runs zero API tests | CI | HIGH | `npx jest --listTests --testPathPattern=apps/api` | root jest projects mismatch | CONFIRMED | jest.config.js, ci.yml |
@@ -1516,5 +1516,58 @@ Deploying BUG-01 made the matrix's writes *effective* for the first time, which 
 **NOT VERIFIED:** the human UI round-trip (open matrix → toggle → Save → re-login → JWT reflects the change). This needs a real admin session and was not performed; it is the outstanding item for BUG-01.
 
 **Deferred follow-up (not a bug, an incompleteness):** the grid still cannot *display* `branches.*`, `roles.*`, `products.publish` or `financial.pnl/reports`, so an operator can't toggle them here — they are now protected from silent revocation, but remain unmanageable through this UI. Logged as a P3 enhancement.
+
+### 2026-10-09 (later) — BUG-03 fixed, and it was worse than the register described
+
+**Stated bug:** `.env.bak-*` backups were untracked but not ignored, so a stray `git add -A` would commit them.
+
+**Root cause (traced).** The root `.gitignore` used *suffix-style* patterns:
+
+```
+*.env
+*.env.local
+*.env.production
+```
+
+`*.env` happened to catch `apps/api/.env`, and `*.env.local` caught the two `.env.local` files — but **nothing** matched `.env.bak-*` or `.env.local.bak-*`. Verified empirically with `git check-ignore -v` before the change.
+
+**Live exposure found (6 files, all listed by `git status` as `??`):**
+
+| File | Register had it? |
+|---|---|
+| `apps/api/.env.bak-1785609094` | yes |
+| `apps/api/.env.bak-1785610209` | yes |
+| `apps/api/.env.bak-1785611094` | yes |
+| `apps/api/.env.bak-1790103298` | yes |
+| `apps/api/.env.bak-tid-1790111492` | yes |
+| **`apps/web/.env.local.bak-1790103298`** | **NO — missed by the audit** |
+
+**Same root cause, second half.** The "One-off local debug/deploy/ops scripts" block was written as `/check-*.js`, `/deploy-*.js`, … — **anchored to the repo root**, so it silently missed `apps/api/check-migration-remote.js`, `apps/api/check-vps-branches-remote.js` and `apps/api/seed-vps-remote.js`, all of which were also sitting in `git status` as `??`. The comment on that block literally says these "talk to production (many embed SSH credentials)".
+
+**Fix:**
+- Added `.env` / `.env.*` with `!.env.example` — covers `.env`, `.env.bak-*`, `.env.local`, `.env.local.bak-*` at any depth while keeping both `.env.example` files trackable.
+- De-anchored the ops-script patterns to `check-*.js`, `deploy-*.js`, `seed-vps-*.js` (any depth).
+- Added an explicit rule for `scripts/fix-admin-password.js` (below).
+
+**ESCALATION — a tracked file contains real credentials.** While verifying I scanned every tracked file containing `DATABASE_URL=` / `JWT_SECRET=` / `AWS_SECRET_ACCESS_KEY=` across **all** history (filenames only, values never printed):
+
+- Clean: `apps/api/.env.example`, `System.md`, `deploy.sh`. Their literals are local/dev placeholders. The one "match" against the live `.env` was `REDIS_URL`, which is `redis://localhost:6379` in all three — a false positive, not a secret. **No `.env` or `.env.bak` was ever committed.**
+- **Not clean: `scripts/fix-admin-password.js` — tracked at HEAD since `3be1f19` (2026-05-29) and on `origin/main`.** The repository is **PUBLIC**; the raw file fetches **HTTP 200** from `raw.githubusercontent.com`. It contains:
+  - a literal Postgres password in `PGPASSWORD='…'` for user `dg_user`, db `dreamgadgets`;
+  - a hardcoded admin password for `admin@test.com`.
+
+**Severity checks (read-only, values never printed):**
+- The exposed `PGPASSWORD` **does not equal** the current `apps/.env` `DATABASE_URL` password → almost certainly rotated/stale, but it *was* a live credential for the production database and is world-readable today.
+- `admin@test.com` **exists in the live production DB** (1 row; 4 `@test.com`/`@example.com` accounts total).
+- Its `password_hash` is **only 2 characters** (`b0`), while 95 of 96 users have proper 60-char bcrypt hashes. A `bcrypt.compare` against it returns `false` *regardless of input*, so **the "password already changed" reading I first produced was unsound** — the honest status is *indeterminate; the account's stored hash is malformed*. Treat the exposed admin password as un-rotated until proven otherwise.
+
+**Actions taken:**
+- `git rm --cached scripts/fix-admin-password.js` — untracked from HEAD, **file kept on disk** (not deleted). Now covered by `.gitignore`.
+- Ignore rules added and re-verified with `git check-ignore -v` (and `--no-index` for the previously-tracked file): all 6 backups ignored, both `.env.example` files still trackable, ops scripts ignored.
+
+**Deliberately NOT done (needs your explicit go-ahead — destructive or disruptive):**
+1. **History purge.** The secret-bearing script and `.freebuff/desktop-v2.db` (added in `3d7189c`, absent from HEAD) remain in git history and on GitHub. Purging requires a history rewrite + force-push.
+2. **Credential rotation** — the Postgres password and `admin@test.com` should both be rotated; rotating the DB password restarts nothing by itself but will break anything still using the old one.
+3. **Deleting the backup files** — left on disk as ops backups.
 
 *End of current_status.md.*

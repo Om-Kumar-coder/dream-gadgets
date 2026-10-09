@@ -8,6 +8,14 @@ coverage
 *.env
 *.env.local
 *.env.production
+
+# Env files and their ops backups (BUG-03): these hold live DB/JWT/AWS secrets.
+# The patterns above only matched names *ending* in `.env`, so `.env` itself was
+# covered by luck and `.env.bak-*` / `.env.local.bak-*` were not covered at all.
+.env
+.env.*
+!.env.example
+
 .DS_Store
 
 # Test artifacts
@@ -39,7 +47,13 @@ NUL
 
 # One-off local debug/deploy/ops scripts.
 # These talk to production (many embed SSH credentials) — keep them out of the repo.
-/check-*.js
+# NOTE: the original rules below were anchored with a leading `/`, so they only
+# matched the repo root and silently missed the copies under apps/api/.
+check-*.js
+deploy-*.js
+seed-vps-*.js
+# Contains a literal Postgres password and an admin password — see BUG-03.
+scripts/fix-admin-password.js
 /deploy-*.js
 /debug-*.js
 /fix-*.js
