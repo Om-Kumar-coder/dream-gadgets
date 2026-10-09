@@ -77,6 +77,14 @@ export class WhatsappController {
     );
   }
 
+  @Patch('conversations/:id/read')
+  @RequirePermission('whatsapp.view')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark a conversation as read (explicit — GET no longer mutates)' })
+  async markConversationRead(@Param('id', ParseUUIDPipe) id: string) {
+    return this.whatsappService.markConversationRead(id);
+  }
+
   @Patch('conversations/:id')
   @RequirePermission('whatsapp.edit')
   @ApiOperation({ summary: 'Update conversation details (status, type, assignee, priority, tags)' })

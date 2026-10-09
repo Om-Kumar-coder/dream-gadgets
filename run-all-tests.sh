@@ -190,55 +190,6 @@ run_e2e_tests() {
   log_info "E2E tests completed in ${duration}s"
 }
 
-run_component_tests() {
-  log_section "Running Component Tests"
-  
-  if ! command -v npm &> /dev/null; then
-    log_warn "npm not installed, skipping component tests"
-    return 1
-  fi
-  
-  local start_time=$(date +%s)
-  
-  # Jest component tests
-  log_info "Running component tests with Jest..."
-  if npm run test:components > "$LOG_DIR/components.log" 2>&1; then
-    log_test "Component Tests" "PASS"
-    ((total_pass++))
-  else
-    log_test "Component Tests" "FAIL"
-    ((total_fail++))
-  fi
-  
-  local end_time=$(date +%s)
-  local duration=$((end_time - start_time))
-  log_info "Component tests completed in ${duration}s"
-}
-
-run_integration_tests() {
-  log_section "Running Integration Tests"
-  
-  if ! command -v npm &> /dev/null; then
-    log_warn "npm not installed, skipping integration tests"
-    return 1
-  fi
-  
-  local start_time=$(date +%s)
-  
-  log_info "Running integration tests..."
-  if npm run test:integration > "$LOG_DIR/integration.log" 2>&1; then
-    log_test "Integration Tests" "PASS"
-    ((total_pass++))
-  else
-    log_test "Integration Tests" "FAIL"
-    ((total_fail++))
-  fi
-  
-  local end_time=$(date +%s)
-  local duration=$((end_time - start_time))
-  log_info "Integration tests completed in ${duration}s"
-}
-
 run_performance_tests() {
   log_section "Running Performance Tests"
   
@@ -380,7 +331,10 @@ main() {
         RUN_SERVERS="true"
         shift
         ;;
-      api|e2e|components|integration|performance|all)
+      # BUG-21: 'components' and 'integration' test types were removed — the
+      # tests/components and tests/integration directories never existed and
+      # their npm scripts could never pass (no tests to run).
+      api|e2e|performance|all)
         test_type="$1"
         shift
         ;;
@@ -401,20 +355,12 @@ main() {
     e2e)
       run_e2e_tests
       ;;
-    components)
-      run_component_tests
-      ;;
-    integration)
-      run_integration_tests
-      ;;
     performance)
       run_performance_tests
       ;;
     all)
       run_api_tests
       run_e2e_tests
-      run_component_tests
-      run_integration_tests
       run_performance_tests
       ;;
   esac

@@ -4,6 +4,8 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -14,7 +16,14 @@ import { Branch } from '../auth/entities/user.entity';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { QueryPurchaseDto } from './dto/query-purchase.dto';
-import { calculateGST } from '../../common/utils/business-logic';
+import { CROSS_BRANCH_ROLES } from '../../common/guards/branch-scope.guard';
+import {
+  validateIMEI,
+  normalizeIMEI,
+  calculateGST,
+  calculateWarrantyExpiry,
+  ItemCondition,
+} from '../../common/utils/business-logic';
 import { getStateCode } from '../../common/utils/state-codes';
 import { GSTIN_FORMAT } from '../admin/branch-gstin.validation';
 
@@ -54,6 +63,7 @@ export interface CreatePurchaseWithStockDto extends CreatePurchaseDto {
 
 @Injectable()
 export class PurchaseService {
+  private readonly logger = new Logger(PurchaseService.name);
   constructor(
     @InjectRepository(Purchase)
     private purchaseRepo: Repository<Purchase>,
@@ -327,23 +337,33 @@ export class PurchaseService {
     const { validateIMEI } = await import('../../common/utils/business-logic');
     const seenImeis = new Set<string>();
     for (const u of units) {
-      if (!validateIMEI(u.imei)) {
+      const imei = normalizeIMEI(u.imei);
+      if (!validateIMEI(imei)) {
         throw new BadRequestException({
           code: 'IMEI_INVALID',
           message: `IMEI ${u.imei} failed Luhn algorithm validation`,
         });
       }
-      if (seenImeis.has(u.imei)) {
+      if (!/^\d{15}$/.test(imei)) {
+        throw new BadRequestException({
+          code: 'IMEI_FORMAT',
+          message: `IMEI ${u.imei} must be exactly 15 digits`,
+        });
+      }
+      if (seenImeis.has(imei)) {
         throw new BadRequestException({
           code: 'IMEI_DUPLICATE_IN_REQUEST',
           message: `IMEI ${u.imei} appears more than once in this submission`,
         });
       }
-      seenImeis.add(u.imei);
+      seenImeis.add(imei);
+      u.imei = imei; // store the normalized value
     }
 
-    // Cross-store check for staff (mirrors BranchScopeGuard body check).
-    if (user && user.branchId && user.branchId !== dto.branchId) {
+    // Cross-store check: only non cross-branch roles are locked to their
+    // assigned store. Owner / multi-store manager is free to add to any
+    // authorized store (mirrors BranchScopeGuard for cross-branch roles).
+    if (user && user.branchId && !CROSS_BRANCH_ROLES.has(user.role ?? '') && user.branchId !== dto.branchId) {
       throw new ForbiddenException({
         code: 'BRANCH_SCOPE_VIOLATION',
         message: 'You can only add stock to your assigned branch',
@@ -373,7 +393,7 @@ export class PurchaseService {
         });
       }
 
-      // Duplicate IMEI check inside the transaction.
+      // Duplicate IMEI check inside the transaction (uses normalized IMEI).
       const existing = await queryRunner.manager.find(InventoryItem, {
         where: units.map((u) => ({ imei: u.imei })),
       });
@@ -383,7 +403,8 @@ export class PurchaseService {
           message: `An inventory item with IMEI ${existing[0].imei} already exists`,
         });
       }
-      // Create the inventory units.
+
+      // Create the inventory units.
       for (const u of units) {
         const taxAmount = u.taxAmount ?? 0;
         const totalCost = Number(u.purchasePrice) + Number(taxAmount);
@@ -423,7 +444,8 @@ export class PurchaseService {
         } as any);
         createdItems.push(await queryRunner.manager.save(InventoryItem, item));
       }
-      // Build the purchase with explicit lines derived from the created units.
+
+      // Build the purchase with explicit lines derived from the created units.
       // (Legacy create() would look up items from itemRepo; passing explicit
       // lines keeps the math identical while pointing itemId at the new rows.)
       const lines = units.map((u, i) => ({
@@ -434,12 +456,14 @@ export class PurchaseService {
         taxRate: u.taxRate ?? 0,
         taxableValue: Number(u.purchasePrice),
       }));
-      // Compute the same GST split as create() would.
+
+      // Compute the same GST split as create() would.
       const vendorStateCode = this.resolveVendorStateCode(dto);
       const branchStateCode = branch?.state ? getStateCode(branch.state) : null;
       const placeOfSupply = dto.placeOfSupply ?? vendorStateCode;
       const { supplyType, source } = this.resolveSupplyType(dto, vendorStateCode, branchStateCode);
-      const dtoTaxProvided = dto.taxAmount !== undefined;
+
+      const dtoTaxProvided = dto.taxAmount !== undefined;
       if (dtoTaxProvided && placeOfSupply == null && !dto.supplyType && Number(dto.taxAmount) > 0) {
         throw new BadRequestException({
           code: 'SUPPLY_TYPE_UNRESOLVED',
@@ -447,7 +471,8 @@ export class PurchaseService {
             'Cannot determine intra/inter-state supply — provide vendor GSTIN, vendor state code, or an explicit supplyType',
         });
       }
-      const isInterState = supplyType === 'inter';
+
+      const isInterState = supplyType === 'inter';
       const lineItems = lines.map((line) => {
         const gst = calculateGST(line.taxableValue, line.taxRate, isInterState);
         return {
@@ -460,20 +485,25 @@ export class PurchaseService {
           lineTotal: Number((line.taxableValue + gst.total).toFixed(2)),
         };
       });
-      const sumTax = lineItems.reduce((s, l) => s + l.taxAmount, 0);
+
+      const sumTax = lineItems.reduce((s, l) => s + l.taxAmount, 0);
       const sumCgst = lineItems.reduce((s, l) => s + l.cgstAmount, 0);
       const sumSgst = lineItems.reduce((s, l) => s + l.sgstAmount, 0);
       const sumIgst = lineItems.reduce((s, l) => s + l.igstAmount, 0);
-      if (dtoTaxProvided && Math.abs(Number(dto.taxAmount) - sumTax) > TAX_EPSILON) {
+
+      if (dtoTaxProvided && Math.abs(Number(dto.taxAmount) - sumTax) > TAX_EPSILON) {
         throw new BadRequestException({
           code: 'TAX_SPLIT_MISMATCH',
           message: `Header taxAmount (${Number(dto.taxAmount).toFixed(2)}) does not match the computed line tax split (${sumTax.toFixed(2)}) for the resolved supply type`,
         });
       }
-      const totalTax = dtoTaxProvided ? Number(dto.taxAmount) : Number(sumTax.toFixed(2));
+
+      const totalTax = dtoTaxProvided ? Number(dto.taxAmount) : Number(sumTax.toFixed(2));
       const totalAmount = Number(lineItems.reduce((s, l) => s + l.lineTotal, 0).toFixed(2));
-      const invoiceNumber = this.generateInvoiceNumber(dto.branchId);
-      const purchase = queryRunner.manager.create(Purchase, {
+
+      const invoiceNumber = this.generateInvoiceNumber(dto.branchId);
+
+      const purchase = queryRunner.manager.create(Purchase, {
         vendorName: dto.vendorName,
         vendorId: dto.vendorId ?? null,
         branchId: dto.branchId,
@@ -496,7 +526,8 @@ export class PurchaseService {
         purchaseDate: new Date(dto.purchaseDate),
       } as any);
       const savedPurchase = await queryRunner.manager.save(Purchase, purchase);
-      // Persist purchase line items pointing at the new inventory rows.
+
+      // Persist purchase line items pointing at the new inventory rows.
       for (const line of lineItems) {
         const purchaseItem = queryRunner.manager.create(PurchaseItem, {
           purchaseId: savedPurchase.id,
@@ -515,11 +546,13 @@ export class PurchaseService {
         } as any);
         await queryRunner.manager.save(PurchaseItem, purchaseItem);
       }
-      // Link inventory → purchase.
+
+      // Link inventory → purchase.
       for (const item of createdItems) {
         await queryRunner.manager.update(InventoryItem, item.id, { purchaseId: savedPurchase.id });
       }
-      await queryRunner.commitTransaction();
+
+      await queryRunner.commitTransaction();
       return { ...savedPurchase, items: createdItems } as Purchase & { items?: InventoryItem[] };
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -621,9 +654,14 @@ export class PurchaseService {
       const pdfBuffer = await page.pdf({ format: 'A4' });
       await browser.close();
       return Buffer.from(pdfBuffer);
-    } catch {
-      // Puppeteer not available — return placeholder buffer
-      return Buffer.from(`%PDF-1.4 placeholder\n${html}`);
+    } catch (err: any) {
+      // BUG-12: a placeholder buffer served as application/pdf is a corrupted
+      // file. Surface the failure instead of pretending the render succeeded.
+      this.logger.error(`Purchase PDF generation failed: ${err?.message}`);
+      throw new InternalServerErrorException({
+        code: 'PDF_GENERATION_FAILED',
+        message: 'PDF rendering is unavailable — please retry or contact support',
+      });
     }
   }
 }

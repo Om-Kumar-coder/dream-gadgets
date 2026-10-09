@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -21,10 +22,12 @@ import {
   getRequiredDiscountRole,
 } from '../../common/utils/business-logic';
 import { calculateBillTotals } from '../../common/utils/billing';
+import { loadDiscountThresholds } from '../../common/utils/settings-thresholds';
 import { CouponService } from '../coupon/coupon.service';
 import { NotificationService } from '../notification/notification.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { EventService } from '../../common/events/event.service';
+import { CROSS_BRANCH_ROLES } from '../../common/guards/branch-scope.guard';
 
 const POS_LOCK_TTL = 15 * 60; // 15 minutes in seconds
 
@@ -299,9 +302,12 @@ export class SalesService {
 
     // 4.5 Validate discount authorization (7.5) — on the effective (post-coupon)
     // discount so a coupon can never be used to bypass role thresholds.
+    // BUG-19: thresholds are read from the `settings` table (5/15% defaults)
+    // instead of being hardcoded, so operators can actually tune them.
+    const discountThresholds = await loadDiscountThresholds(this.dataSource);
     if (finalDiscountAmount > 0 && subtotal > 0) {
       const discountPercent = (finalDiscountAmount / subtotal) * 100;
-      const requiredRole = getRequiredDiscountRole(discountPercent);
+      const requiredRole = getRequiredDiscountRole(discountPercent, discountThresholds);
       const userLevel = getUserRoleLevel(userRole);
       const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
 
@@ -354,7 +360,7 @@ export class SalesService {
     // authorization test is intentionally repeated here on the final value.)
     if (finalDiscountAmount > 0 && subtotal > 0) {
       const effectiveDiscountPercent = (finalDiscountAmount / subtotal) * 100;
-      const requiredRole = getRequiredDiscountRole(effectiveDiscountPercent);
+      const requiredRole = getRequiredDiscountRole(effectiveDiscountPercent, discountThresholds);
       const userLevel = getUserRoleLevel(userRole);
       const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
 
@@ -526,6 +532,8 @@ export class SalesService {
     const qb = this.saleRepo
       .createQueryBuilder('sale')
       .leftJoinAndSelect('sale.branch', 'branch')
+      .leftJoinAndSelect('sale.client', 'client')
+      .leftJoinAndSelect('sale.items', 'items')
       .orderBy('sale.saleDate', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -545,27 +553,46 @@ export class SalesService {
 
   // ─── 7.6 Get sale by ID ──────────────────────────────────────────────────────
 
-  async findById(id: string): Promise<Sale> {
+  async findById(id: string, user?: any): Promise<Sale> {
     const sale = await this.saleRepo.findOne({
       where: { id },
-      relations: ['branch', 'createdBy', 'items', 'payments'],
+      relations: ['branch', 'createdBy', 'client', 'items', 'payments'],
     });
     if (!sale) throw new NotFoundException(`Sale ${id} not found`);
+    if (user) this.assertBranchAccess(sale, user);
     return sale;
+  }
+
+  /**
+   * Server-side store isolation for single-resource access: branch-bound staff
+   * may only read/mutate sales belonging to their assigned branch. Owner /
+   * multi-store-manager (and any user without a branch) keep global access.
+   * Mirrors InventoryService.assertBranchAccess.
+   */
+  private assertBranchAccess(sale: Sale, user: any): void {
+    if (!user) return;
+    const crossBranch = !user.branchId || CROSS_BRANCH_ROLES.has(user.role);
+    if (crossBranch) return;
+    if (sale.branchId !== user.branchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only access sales in your assigned branch',
+      });
+    }
   }
 
   // ─── 7.7 Generate A4 invoice PDF ─────────────────────────────────────────────
 
-  async generateInvoicePdf(id: string): Promise<Buffer> {
-    const sale = await this.findById(id);
+  async generateInvoicePdf(id: string, user?: any): Promise<Buffer> {
+    const sale = await this.findById(id, user);
     const html = this.buildA4InvoiceHtml(sale);
     return this.renderPdf(html, { format: 'A4' });
   }
 
   // ─── 7.7 Generate thermal 80mm receipt PDF ───────────────────────────────────
 
-  async generateThermalPdf(id: string): Promise<Buffer> {
-    const sale = await this.findById(id);
+  async generateThermalPdf(id: string, user?: any): Promise<Buffer> {
+    const sale = await this.findById(id, user);
     const html = this.buildThermalReceiptHtml(sale);
     return this.renderPdf(html, { width: '80mm', height: 'auto' });
   }
@@ -662,15 +689,25 @@ ${itemRows}
       const pdfBuffer = await page.pdf(options);
       await browser.close();
       return Buffer.from(pdfBuffer);
-    } catch {
-      return Buffer.from(`%PDF-1.4 placeholder\n${html}`);
+    } catch (err: any) {
+      // BUG-12: never emit a "%PDF placeholder" with a 200 application/pdf —
+      // that hands the customer corrupted invoice bytes while everything looks
+      // fine. Fail loudly so the broken renderer is visible and fixable.
+      this.logger.error(`PDF generation failed: ${err?.message}`);
+      throw new InternalServerErrorException({
+        code: 'PDF_GENERATION_FAILED',
+        message: 'PDF rendering is unavailable — please retry or contact support',
+      });
     }
   }
 
   // ─── 7.8 Email invoice ───────────────────────────────────────────────────────
 
-  async emailInvoice(id: string, email?: string): Promise<{ message: string }> {
-    const sale = await this.findById(id);
+  // Guard key for duplicate rapid invoice-email sends (Redis set, TTL 300s).
+  private readonly INVOICE_EMAIL_GUARD_PREFIX = 'invoice:emailing:';
+
+  async emailInvoice(id: string, email?: string, user?: any): Promise<{ success: boolean; message: string; error?: string }> {
+    const sale = await this.findById(id, user);
 
     // Resolve recipient: use provided email, or look up from client
     let targetEmail = email;
@@ -687,7 +724,14 @@ ${itemRows}
     }
 
     if (!targetEmail) {
-      return { message: `Invoice ${sale.invoiceNumber}: no email address available` };
+      return { success: false, message: `Invoice ${sale.invoiceNumber}: no email address available` };
+    }
+
+    // Duplicate-rapid-send guard: same invoice+email within the TTL is rejected.
+    const guardKey = `${this.INVOICE_EMAIL_GUARD_PREFIX}${id}:${targetEmail}`;
+    const reserved = await this.redisService.setWithTTL(guardKey, '1', 300);
+    if (!reserved) {
+      return { success: false, message: `Invoice ${sale.invoiceNumber}: could not reserve email delivery slot for ${targetEmail}` };
     }
 
     const vars: Record<string, string> = {
@@ -696,23 +740,45 @@ ${itemRows}
       amount: Number(sale.totalAmount).toFixed(2),
     };
 
-    this.notificationService.sendEmail({
-      to: targetEmail,
-      type: 'invoice_delivery',
-      templateKey: 'invoice_delivery',
-      templateVars: vars,
-      metadata: { saleId: id, invoiceNumber: sale.invoiceNumber },
-    }).catch((err: any) =>
-      this.logger.warn(`[Sales] Failed to send invoice email to ${targetEmail}: ${err?.message}`),
-    );
+    try {
+      // Attach the SAME A4 invoice rendered by the Download PDF action so the
+      // emailed document and the downloaded document are byte-for-byte the same
+      // template. Uses the already-loaded sale to avoid a second DB read.
+      const pdfHtml = this.buildA4InvoiceHtml(sale);
+      const pdfBuffer = await this.renderPdf(pdfHtml, { format: 'A4' });
 
-    return { message: `Invoice ${sale.invoiceNumber} queued for email delivery to ${targetEmail}` };
+      await this.notificationService.sendEmail({
+        to: targetEmail,
+        type: 'invoice_delivery',
+        templateKey: 'invoice_delivery',
+        templateVars: vars,
+        metadata: { saleId: id, invoiceNumber: sale.invoiceNumber },
+        attachments: [
+          {
+            filename: `invoice-${sale.invoiceNumber}.pdf`,
+            contentBase64: pdfBuffer.toString('base64'),
+            contentType: 'application/pdf',
+          },
+        ],
+      });
+
+      // Delivery runs asynchronously on the notification queue, so the final
+      // status is not known here. A created notification means the email (with
+      // its invoice attachment) is queued — previously this checked for a
+      // synchronous 'sent' status that never arrives and always reported failure.
+      return { success: true, message: `Invoice ${sale.invoiceNumber} queued for email delivery to ${targetEmail}` };
+    } catch (err: any) {
+      return { success: false, message: `Invoice ${sale.invoiceNumber}: email failed for ${targetEmail}: ${err?.message}`, error: err?.message };
+    } finally {
+      await this.redisService.del(guardKey);
+    }
   }
+
 
   // ─── 7.8 WhatsApp invoice ────────────────────────────────────────────────────
 
-  async whatsappInvoice(id: string, phone?: string): Promise<{ message: string }> {
-    const sale = await this.findById(id);
+  async whatsappInvoice(id: string, phone?: string, user?: any): Promise<{ message: string }> {
+    const sale = await this.findById(id, user);
 
     // Resolve recipient: use provided phone, or look up from client
     let targetPhone = phone;
@@ -753,8 +819,8 @@ ${itemRows}
 
   // ─── 7.9 Void sale ───────────────────────────────────────────────────────────
 
-  async voidSale(id: string, userId: string): Promise<Sale> {
-    const sale = await this.findById(id);
+  async voidSale(id: string, userId: string, user?: any): Promise<Sale> {
+    const sale = await this.findById(id, user);
 
     if (sale.isVoided) {
       throw new BadRequestException({ code: 'ALREADY_VOIDED', message: 'Sale is already voided' });

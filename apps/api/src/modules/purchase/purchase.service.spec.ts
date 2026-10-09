@@ -734,9 +734,7 @@ describe('PurchaseService', () => {
           { sub: 'staff-1', role: 'shop_sales', branchId: 'branch-1' },
         ),
       ).rejects.toMatchObject({ response: { code: 'BRANCH_SCOPE_VIOLATION' } });
-    });
-
-    it('allows cross-branch owner (no branchId) to add stock anywhere', async () => {
+    });    it('allows cross-branch owner (no branchId) to add stock anywhere', async () => {
       const qr = setupHappyPath();
 
       await expect(
@@ -746,6 +744,77 @@ describe('PurchaseService', () => {
       ).resolves.toBeDefined();
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
+
+    it('blocks branch-bound staff from adding stock to another branch', async () => {
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({ branchId: 'branch-2' }),
+          'user-1',
+          { sub: 'staff-1', role: 'shop_sales', branchId: 'branch-1' },
+        ),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_SCOPE_VIOLATION' } });
+    });
+
+    it('blocks store_manager from adding stock to another branch (assigned-store only)', async () => {
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({ branchId: 'branch-2' }),
+          'user-1',
+          { sub: 'mgr-1', role: 'store_manager', branchId: 'branch-1' },
+        ),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_SCOPE_VIOLATION' } });
+    });
+
+    it('allows owner with branchId to add stock to any authorized branch', async () => {
+      const qr = setupHappyPath();
+
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({ branchId: 'branch-2' }),
+          'owner-1',
+          { sub: 'owner-1', role: 'shop_owner', branchId: 'branch-1' },
+        ),
+      ).resolves.toBeDefined();
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('normalizes whitespace around IMEI before validation and storage', async () => {
+      const qr = setupHappyPath();
+      qr.manager.save.mockImplementation((entity: any) => Promise.resolve(entity));
+
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({
+            inventoryUnits: [{ imei: ' 490154203237518  ' }],
+          }),
+          'user-1',
+          { sub: 'user-1', role: 'shop_sales', branchId: 'branch-1' },
+        ),
+      ).resolves.toBeDefined();
+      const saved = qr.manager.save.mock.calls[0][1];
+      expect(saved.imei).toBe('490154203237518');
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('normalizes IMEI with separators before validation and storage', async () => {
+      const qr = setupHappyPath();
+      qr.manager.save.mockImplementation((entity: any) => Promise.resolve(entity));
+
+      await expect(
+        service.createWithInventory(
+          makeWithStockDto({
+            inventoryUnits: [{ imei: '49-01-5420-32-37518' }],
+          }),
+          'user-1',
+          { sub: 'user-1', role: 'shop_sales', branchId: 'branch-1' },
+        ),
+      ).resolves.toBeDefined();
+      const saved = qr.manager.save.mock.calls[0][1];
+      expect(saved.imei).toBe('490154203237518');
+    });
   });
 });
+
+
+
 

@@ -4,13 +4,10 @@ import { Reflector } from '@nestjs/core';
 export const BRANCH_SCOPED_KEY = 'branchScoped';
 
 /**
- * Roles that can see ALL branches (not forced to their own branch).
+ * Roles allowed to see ALL branches (not forced to their own branch).
+ * Store managers are intentionally excluded: they are assigned-store only.
  */
-const CROSS_BRANCH_ROLES = new Set([
-  'shop_owner',
-  'multi_store_manager',
-  'store_manager',
-]);
+export const CROSS_BRANCH_ROLES = new Set(['shop_owner', 'multi_store_manager']);
 
 /**
  * Validates that the authenticated user can only access resources

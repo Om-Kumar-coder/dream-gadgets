@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Branch, User } from '../../auth/entities/user.entity';
+import { Client } from '../../client/entities/client.entity';
 import { SaleItem } from './sale-item.entity';
 import { Payment } from './payment.entity';
 
@@ -22,6 +23,13 @@ export class Sale {
 
   @Column({ name: 'client_id', nullable: true, type: 'varchar' })
   clientId: string | null;
+
+  // The sales list/detail UI and invoice email/WhatsApp resolution need the
+  // client record. Previously this relation was missing, so every sale rendered
+  // as "Walk-in" and the UI never showed the customer's name or email.
+  @ManyToOne(() => Client, { eager: false, nullable: true })
+  @JoinColumn({ name: 'client_id' })
+  client: Client | null;
 
   @ManyToOne(() => Branch, { eager: false, nullable: false })
   @JoinColumn({ name: 'branch_id' })

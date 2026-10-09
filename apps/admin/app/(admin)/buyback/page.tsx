@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, X, Phone, CheckCircle, XCircle, MoreHorizontal, Eye } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { resolvePhotoUrl } from '@/lib/images';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
@@ -178,13 +179,13 @@ function LeadDetailModal({
                 {lead.photos.map((photo) => (
                   <a
                     key={photo.id}
-                    href={photo.url}
+                    href={resolvePhotoUrl(photo.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:opacity-90 transition-opacity"
                   >
                     <img
-                      src={photo.url}
+                      src={resolvePhotoUrl(photo.url)}
                       alt="Device photo"
                       className="w-full h-full object-cover"
                     />

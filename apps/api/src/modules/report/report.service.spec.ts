@@ -59,12 +59,12 @@ describe('ReportService', () => {
     it('should return KPIs with correct structure', async () => {
       dataSource.query
         .mockResolvedValueOnce([{ count: 5, value: '50000' }])   // sales
-        .mockResolvedValueOnce([{ count: 2 }])                    // purchases
+        .mockResolvedValueOnce([{ count: 2, value: '20000' }])   // purchases
         .mockResolvedValueOnce([{ count: 100, value: '500000', booked: 3 }]) // inventory
         .mockResolvedValueOnce([{ count: 1 }])                    // returns
         .mockResolvedValueOnce([{ count: 10 }]);                  // clients
 
-      const result = await service.getDashboardKpis('branch-uuid-1');
+      const result = await service.getDashboardKpis('11111111-1111-4111-8111-111111111111');
 
       expect(result).toMatchObject({
         todaySalesCount: expect.any(Number),
@@ -78,6 +78,19 @@ describe('ReportService', () => {
         newClientsToday: expect.any(Number),
         onlineOrdersCount: expect.any(Number),
       });
+    });
+
+    it('should subtract today\'s purchases from netIncome (BUG-23)', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ count: 5, value: '50000' }])   // sales
+        .mockResolvedValueOnce([{ count: 3, value: '20000' }])   // purchases
+        .mockResolvedValueOnce([{ count: 100, value: '500000', booked: 3 }])
+        .mockResolvedValueOnce([{ count: 1 }])
+        .mockResolvedValueOnce([{ count: 10 }]);
+
+      const result = await service.getDashboardKpis();
+
+      expect(result.netIncome).toBe(30000);
     });
 
     it('should return zero KPIs gracefully when DB query fails', async () => {
@@ -135,10 +148,63 @@ describe('ReportService', () => {
     it('should include branchId filter when provided', async () => {
       dataSource.query.mockResolvedValue([]);
 
-      await service.getReportData('daily_sales', { ...filters, branchId: 'branch-uuid-1' });
+      const uuid = '11111111-1111-4111-8111-111111111111';
+      await service.getReportData('daily_sales', { ...filters, branchId: uuid });
 
       const callArgs = dataSource.query.mock.calls[0];
-      expect(callArgs[0]).toContain('branch-uuid-1');
+      expect(callArgs[0]).toContain(uuid);
+    });
+  });
+
+  // ─── BUG-26: SQL injection guard on branchId ───────────────────────────
+
+  describe('branchId validation (BUG-26)', () => {
+    const filters = {
+      startDate: new Date('2025-01-01'),
+      endDate: new Date('2025-01-31'),
+    };
+    const injection = "x' OR '1'='1";
+
+    it('rejects a non-UUID branchId in getReportData before any query runs', async () => {
+      await expect(
+        service.getReportData('daily_sales', { ...filters, branchId: injection }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(dataSource.query).not.toHaveBeenCalled();
+    });
+
+    it('rejects UNION-style payloads with code INVALID_BRANCH_ID', async () => {
+      await expect(
+        service.getReportData('gst', {
+          ...filters,
+          branchId: "1' UNION SELECT * FROM users--",
+        }),
+      ).rejects.toMatchObject({ response: { code: 'INVALID_BRANCH_ID' } });
+    });
+
+    it('rejects injection in getDashboardKpis', async () => {
+      await expect(service.getDashboardKpis(injection)).rejects.toThrow(BadRequestException);
+      expect(dataSource.query).not.toHaveBeenCalled();
+    });
+
+    it('rejects injection in getWeeklySalesChart', async () => {
+      await expect(service.getWeeklySalesChart(injection)).rejects.toThrow(BadRequestException);
+      expect(dataSource.query).not.toHaveBeenCalled();
+    });
+
+    it('rejects injection in getStockByConditionChart', async () => {
+      await expect(service.getStockByConditionChart(injection)).rejects.toThrow(BadRequestException);
+      expect(dataSource.query).not.toHaveBeenCalled();
+    });
+
+    it('still accepts a valid UUID', async () => {
+      dataSource.query.mockResolvedValue([]);
+      const uuid = '22222222-2222-4222-8222-222222222222';
+
+      await expect(
+        service.getReportData('daily_sales', { ...filters, branchId: uuid }),
+      ).resolves.toEqual([]);
+      expect(dataSource.query.mock.calls[0][0]).toContain(uuid);
     });
   });
 
@@ -218,13 +284,16 @@ describe('ReportService', () => {
   // ─── 15.6 Async report ────────────────────────────────────────────────────────
 
   describe('enqueueReport()', () => {
-    it('should return jobId and queued status', async () => {
+    it('should generate synchronously and report completed status (BUG-18)', async () => {
+      dataSource.query.mockResolvedValue([]);
+
       const result = await service.enqueueReport('daily_sales', {}, 'excel');
 
       expect(result).toMatchObject({
         jobId: expect.any(String),
-        status: 'queued',
+        status: 'completed',
       });
+      expect(dataSource.query).toHaveBeenCalled();
     });
   });
 

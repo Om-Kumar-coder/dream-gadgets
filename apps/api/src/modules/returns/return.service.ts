@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,7 +16,8 @@ import { Payment } from '../sales/entities/payment.entity';
 import { Purchase } from '../purchase/entities/purchase.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { CreateSaleReturnDto, CreatePurchaseReturnDto } from './dto/create-return.dto';
-import { getRequiredReturnRole } from '../../common/utils/business-logic';
+import { getRequiredReturnRole, calculateGST } from '../../common/utils/business-logic';
+import { loadReturnThresholds } from '../../common/utils/settings-thresholds';
 import { RedisService } from '../../common/redis/redis.service';
 import { EventService } from '../../common/events/event.service';
 
@@ -94,9 +96,11 @@ export class ReturnService {
       });
     }
 
-    // 11.3 Check approval threshold
+    // 11.3 Check approval threshold — BUG-19: thresholds come from `settings`
+    // (₹5000/₹25000 defaults) instead of hardcoded constants.
     const refundAmount = dto.refundAmount ?? Number(sale.totalAmount);
-    const requiredRole = getRequiredReturnRole(refundAmount);
+    const returnThresholds = await loadReturnThresholds(this.dataSource);
+    const requiredRole = getRequiredReturnRole(refundAmount, returnThresholds);
 
     if (requiredRole !== 'any') {
       const userLevel = getUserRoleLevel(userRole);
@@ -109,58 +113,57 @@ export class ReturnService {
       }
     }
 
-    // 11.4 Update inventory items status
+    // 11.4 + return record: ONE transaction (BUG-09). Inventory restore and
+    // the return row must commit or roll back together — previously items were
+    // restored first, then the row was inserted with no transaction, so a
+    // failed insert left restored inventory with no return record.
     const conditionAssessment = dto.conditionAssessment ?? 'available';
     const saleItems = sale.items ?? [];
-    for (const si of saleItems) {
-      await this.itemRepo.update(si.itemId, { status: conditionAssessment });
-    }
 
-    // 11.5 Razorpay refund trigger (INTEGRATED)
-    let refundStatus = 'pending';
-    if (dto.refundMethod === 'original_payment') {
-      // Find the original payment record
-      const originalPayment = sale.payments?.find(p => p.razorpayPaymentId);
-      if (originalPayment && originalPayment.razorpayPaymentId) {
-        try {
-          const Razorpay = require('razorpay');
-          const razorpay = new Razorpay({
-            key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
-            key_secret: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
-          });
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const itemsRepo = manager.getRepository(InventoryItem);
+      const returnsRepo = manager.getRepository(Return);
 
-          const refund = await razorpay.payments.refund(
-            originalPayment.razorpayPaymentId,
-            { amount: Math.round(refundAmount * 100) }, // Convert to paise
-          );
-
-          refundStatus = refund.status;
-          this.logger.log(`[Returns] Razorpay refund processed for sale ${saleId}: ${refund.id}`);
-        } catch (err: any) {
-          this.logger.warn(`[Returns] Razorpay refund failed for sale ${saleId}: ${err?.message}`);
-          refundStatus = 'failed';
-        }
-      } else {
-        this.logger.log(`[Returns] No Razorpay payment found for sale ${saleId}, marking refund as processed`);
-        refundStatus = 'processed';
+      // 11.4 Update inventory items status
+      for (const si of saleItems) {
+        await itemsRepo.update(si.itemId, { status: conditionAssessment });
       }
-    }
 
-    // Create return record
-    const returnRecord = this.returnRepo.create({
-      returnNumber: generateReturnNumber(),
-      returnType: 'sale',
-      originalId: saleId,
-      clientId: sale.clientId ?? null,
-      reason: dto.reason,
-      refundMethod: dto.refundMethod ?? null,
-      refundAmount,
-      refundStatus,
-      approvedById: dto.approvedById ?? null,
-      createdById: userId,
+      // Create return record — refundStatus starts 'pending' for online
+      // refunds; the actual money movement happens AFTER this commits.
+      const returnRecord = returnsRepo.create({
+        returnNumber: generateReturnNumber(),
+        returnType: 'sale',
+        originalId: saleId,
+        clientId: sale.clientId ?? null,
+        reason: dto.reason,
+        refundMethod: dto.refundMethod ?? null,
+        refundAmount,
+        refundStatus: 'pending',
+        approvedById: dto.approvedById ?? null,
+        createdById: userId,
+      });
+
+      return returnsRepo.save(returnRecord);
     });
 
-    const saved = await this.returnRepo.save(returnRecord);
+    // 11.5 Razorpay refund trigger (INTEGRATED) — runs only once the return
+    // record is durable. Refunding before the insert meant a failed insert
+    // left the money gone with nothing on record; with this ordering a failed
+    // refund leaves a 'failed' record that can be retried, never a lost one.
+    if (dto.refundMethod === 'original_payment') {
+      const refundStatus = await this.executeOriginalPaymentRefund(sale, saleId, refundAmount);
+      if (refundStatus !== saved.refundStatus) {
+        try {
+          await this.returnRepo.update(saved.id, { refundStatus });
+          saved.refundStatus = refundStatus;
+        } catch (err: any) {
+          this.logger.error(
+            `[Returns] Refund for sale ${saleId} finished with status '${refundStatus}' but the status update failed: ${err?.message}`,
+          );
+        }
+      }
+    }
 
     // Emit realtime event
     try {
@@ -201,26 +204,33 @@ export class ReturnService {
       items = await this.itemRepo.find({ where: { purchaseId } as any });
     }
 
-    // 12.1 Remove items from active inventory
+    // 12.1 Remove items from active inventory + record the return atomically
+    // (BUG-09): a failed insert must never leave half the stock scrapped.
     const conditionAssessment = dto.conditionAssessment ?? 'scrapped';
-    for (const item of items) {
-      await this.itemRepo.update(item.id, { status: conditionAssessment });
-    }
 
-    const returnRecord = this.returnRepo.create({
-      returnNumber: generateReturnNumber(),
-      returnType: 'purchase',
-      originalId: purchaseId,
-      clientId: null,
-      reason: dto.reason,
-      refundMethod: null,
-      refundAmount: Number(purchase.totalAmount),
-      refundStatus: 'pending',
-      approvedById: null,
-      createdById: userId,
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const itemsRepo = manager.getRepository(InventoryItem);
+      const returnsRepo = manager.getRepository(Return);
+
+      for (const item of items) {
+        await itemsRepo.update(item.id, { status: conditionAssessment });
+      }
+
+      const returnRecord = returnsRepo.create({
+        returnNumber: generateReturnNumber(),
+        returnType: 'purchase',
+        originalId: purchaseId,
+        clientId: null,
+        reason: dto.reason,
+        refundMethod: null,
+        refundAmount: Number(purchase.totalAmount),
+        refundStatus: 'pending',
+        approvedById: null,
+        createdById: userId,
+      });
+
+      return returnsRepo.save(returnRecord);
     });
-
-    const saved = await this.returnRepo.save(returnRecord);
 
     // Emit realtime event
     try {
@@ -315,12 +325,55 @@ ${ret.refundMethod ? `<p><strong>Refund Method:</strong> ${ret.refundMethod}</p>
       const pdfBuffer = await page.pdf({ format: 'A4' });
       await browser.close();
       return Buffer.from(pdfBuffer);
-    } catch {
-      return Buffer.from(`%PDF-1.4 placeholder\n${html}`);
+    } catch (err: any) {
+      // BUG-12: fail loudly instead of returning corrupted placeholder bytes.
+      this.logger.error(`Return PDF generation failed: ${err?.message}`);
+      throw new InternalServerErrorException({
+        code: 'PDF_GENERATION_FAILED',
+        message: 'PDF rendering is unavailable — please retry or contact support',
+      });
     }
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Execute the Razorpay refund for an original_payment return and return the
+   * refund status to persist. Called AFTER the return record is committed
+   * (BUG-09) so money movement can never precede the record of the return.
+   * Returns 'processed' when there is no online payment to refund, and
+   * 'failed' when the provider call throws — never silently loses the refund.
+   */
+  private async executeOriginalPaymentRefund(
+    sale: Sale,
+    saleId: string,
+    refundAmount: number,
+  ): Promise<string> {
+    const originalPayment = sale.payments?.find(p => p.razorpayPaymentId);
+    if (!originalPayment?.razorpayPaymentId) {
+      this.logger.log(`[Returns] No Razorpay payment found for sale ${saleId}, marking refund as processed`);
+      return 'processed';
+    }
+
+    try {
+      const Razorpay = require('razorpay');
+      const razorpay = new Razorpay({
+        key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
+        key_secret: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
+      });
+
+      const refund = await razorpay.payments.refund(
+        originalPayment.razorpayPaymentId,
+        { amount: Math.round(refundAmount * 100) }, // Convert to paise
+      );
+
+      this.logger.log(`[Returns] Razorpay refund processed for sale ${saleId}: ${refund.id}`);
+      return refund.status ?? 'processed';
+    } catch (err: any) {
+      this.logger.warn(`[Returns] Razorpay refund failed for sale ${saleId}: ${err?.message}`);
+      return 'failed';
+    }
+  }
 
   private getReturnWindowDays(): number {
     try {

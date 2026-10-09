@@ -18,6 +18,8 @@
     "db:setup": "npm run migration:run && npm run seed"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1148.0",
+    "@aws-sdk/s3-request-presigner": "^3.1148.0",
     "@dream-gadgets/shared-types": "0.0.1",
     "@getbrevo/brevo": "^6.0.2",
     "@nestjs/bull": "^10.0.0",
@@ -52,6 +54,7 @@
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "pg": "^8.11.0",
+    "puppeteer": "^24.43.1",
     "razorpay": "^2.9.6",
     "redis": "^4.6.0",
     "reflect-metadata": "^0.1.13",

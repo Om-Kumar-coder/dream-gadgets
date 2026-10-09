@@ -11,6 +11,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -22,6 +23,7 @@ import { SearchService } from '../search/search.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { OnlineOrderService, CreateOnlineOrderDto } from '../sales/online-order.service';
 import { PaymentService } from '../payment/payment.service';
+import { OptionalAuthGuard } from '../../common/guards/optional-auth.guard';
 import { OnlineOrderStatus } from '@dream-gadgets/shared-types';
 import { IsArray, IsObject, IsOptional, IsNumber, IsString, MinLength } from 'class-validator';
 
@@ -40,6 +42,35 @@ class ContactInquiryDto {
   @IsString()
   @MinLength(10)
   message: string;
+}
+
+// BUG-16: apps/web/app/partner/page.tsx POSTs this payload to
+// /public/partner/inquiry — the route did not exist, so every partner form
+// submission 404'd (the page even special-cased 404 to fail silently).
+class PartnerInquiryDto {
+  @IsString()
+  @MinLength(1)
+  name: string;
+
+  @IsString()
+  @MinLength(6)
+  phone: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  businessName?: string;
+
+  @IsOptional()
+  @IsString()
+  partnerType?: string;
+
+  @IsOptional()
+  @IsString()
+  message?: string;
 }
 
 class CreatePublicOrderDto {
@@ -66,6 +97,8 @@ class CreatePublicOrderDto {
 @ApiTags('Public')
 @Controller('public')
 export class PublicController {
+  private readonly logger = new Logger(PublicController.name);
+
   constructor(
     private readonly searchService: SearchService,
     private readonly onlineOrderService: OnlineOrderService,
@@ -74,6 +107,79 @@ export class PublicController {
     private readonly redisService: RedisService,
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
+
+  // ─── BUG-08: resolve the `clients` row for a web user ──────────────────────
+  //
+  // `online_orders.client_id` has an FK to `clients(id)` and the order→client
+  // relation drives "my orders", order cancellation ownership and profile
+  // stats. Storing (or comparing against) `users.id` here was wrong in every
+  // one of those paths. Match an existing client by phone (both canonical
+  // forms) or email; lazily create one on first order so future lookups are
+  // stable. Returns null when nothing can be linked — callers fall back to
+  // guest semantics instead of failing the request.
+  private async resolveClientIdForUser(userId: string): Promise<string | null> {
+    try {
+      const userRows: any[] = await this.dataSource.query(
+        `SELECT id, first_name, last_name, email, phone FROM users WHERE id = $1`,
+        [userId],
+      );
+      const user = userRows?.[0];
+      if (!user) return null;
+
+      // Phone identity: users store '91XXXXXXXXXX' (auth normalizer) while
+      // staff-created clients often store bare 'XXXXXXXXXX' — match both.
+      const phoneVariants = new Set<string>();
+      if (user.phone) {
+        const raw = String(user.phone).trim();
+        const digits = raw.replace(/\D/g, '');
+        phoneVariants.add(raw);
+        if (digits) phoneVariants.add(digits);
+        if (digits.length === 12 && digits.startsWith('91')) phoneVariants.add(digits.slice(2));
+        if (digits.length === 10) phoneVariants.add(`91${digits}`);
+      }
+      const phones = [...phoneVariants];
+      const email = user.email ? String(user.email).trim().toLowerCase() : null;
+
+      const existing: any[] = await this.dataSource.query(
+        `SELECT id FROM clients
+          WHERE (phone = ANY($1) OR ($2::text IS NOT NULL AND LOWER(email) = $2::text))
+          ORDER BY created_at ASC
+          LIMIT 1`,
+        [phones, email],
+      );
+      if (existing?.length) return existing[0].id;
+
+      // Nothing to link yet. clients.phone is NOT NULL + UNIQUE, so a client
+      // can only be created when the user actually has a phone number.
+      if (phones.length === 0) return null;
+
+      const created: any[] = await this.dataSource.query(
+        `INSERT INTO clients (first_name, last_name, phone, email, customer_type, created_by)
+         VALUES ($1, $2, $3, $4, 'online', $5)
+         ON CONFLICT (phone) DO NOTHING
+         RETURNING id`,
+        [
+          user.first_name ?? 'Online Customer',
+          user.last_name ?? null,
+          user.phone,
+          email,
+          userId,
+        ],
+      );
+      if (created?.length) return created[0].id;
+
+      // CONFLICT lost a race with a concurrent request — re-select.
+      const retry: any[] = await this.dataSource.query(
+        `SELECT id FROM clients WHERE phone = ANY($1) LIMIT 1`,
+        [phones],
+      );
+      return retry?.[0]?.id ?? null;
+    } catch (err: any) {
+      // Linkage must never break the order flow — degrade to guest.
+      this.logger.warn(`[Public] Could not resolve client for user ${userId}: ${err?.message}`);
+      return null;
+    }
+  }
 
   // ─── Health check ──────────────────────────────────────────────────────────────
 
@@ -212,6 +318,7 @@ export class PublicController {
   // ─── Orders ───────────────────────────────────────────────────────────────────
 
   @Post('orders')
+  @UseGuards(OptionalAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a public online order (guest or authenticated)' })
   async createOrder(@Body() dto: CreatePublicOrderDto, @Request() req: any) {
@@ -235,8 +342,9 @@ export class PublicController {
       });
     }
 
-    // Use authenticated user's clientId if available, otherwise null (guest)
-    const clientId = req.user?.sub ?? null;
+    // Link the order to the customer's `clients` row (FK on online_orders),
+    // never to `users.id` — that was BUG-08. No user → guest order (null).
+    const clientId = req.user?.sub ? await this.resolveClientIdForUser(req.user.sub) : null;
 
     const createDto: CreateOnlineOrderDto = {
       clientId: clientId ?? undefined,
@@ -280,9 +388,11 @@ export class PublicController {
       });
     }
 
-    // Verify the order belongs to this user
+    // Verify the order belongs to this user — ownership is decided by the
+    // resolved `clients` id (BUG-08: comparing to users.id never matched).
     const order = await this.onlineOrderService.findById(id);
-    if (order.clientId !== req.user.sub) {
+    const clientId = await this.resolveClientIdForUser(req.user.sub);
+    if (!clientId || order.clientId !== clientId) {
       throw new BadRequestException({
         code: 'ORDER_NOT_OWNED',
         message: 'You can only cancel your own orders',
@@ -337,8 +447,13 @@ export class PublicController {
     const status = query.status as string | undefined;
     const search = query.search as string | undefined;
 
-    // Orders are stored with clientId = userId (from checkout flow)
-    const result = await this.onlineOrderService.findByClientId(userId, page, limit, status, search);
+    // Orders are linked by the resolved `clients` id (BUG-08: querying by
+    // users.id matched nothing because client_id never stores a user id).
+    const clientId = await this.resolveClientIdForUser(userId);
+    if (!clientId) {
+      return { data: { data: [], total: 0, page, limit } };
+    }
+    const result = await this.onlineOrderService.findByClientId(clientId, page, limit, status, search);
 
     return {
       data: {
@@ -389,6 +504,31 @@ export class PublicController {
   }
 
   // ─── Contact ────────────────────────────────────────────────────────────────────
+
+  @Post('partner/inquiry')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Submit a partner/franchise inquiry' })
+  async submitPartnerInquiry(@Body() dto: PartnerInquiryDto) {
+    // contact_inquiries only has (name, phone, email, message) — fold the
+    // partner-specific fields into the message text so nothing is lost.
+    const message = [
+      `Partner type: ${dto.partnerType?.trim() || 'unspecified'}`,
+      dto.businessName?.trim() ? `Business: ${dto.businessName.trim()}` : null,
+      dto.message?.trim() || null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const [inquiry] = await this.dataSource.query(
+      `INSERT INTO contact_inquiries (name, phone, email, message)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, created_at`,
+      [dto.name, dto.phone, dto.email ?? null, message],
+    );
+
+    return { data: inquiry };
+  }
 
   @Post('contact')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
@@ -555,17 +695,21 @@ export class PublicController {
 
     const user = userRow[0];
 
-    // Get order stats
-    const stats = await this.dataSource.query(
-      `SELECT
-        COUNT(*)::int AS total_orders,
-        COALESCE(SUM(total_amount), 0)::numeric(12,2) AS total_spent,
-        COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered_count,
-        COUNT(*) FILTER (WHERE status = 'pending_payment')::int AS pending_count
-      FROM online_orders
-      WHERE client_id = $1`,
-      [req.user.sub],
-    );
+    // Get order stats — counted against the customer's `clients` id, not the
+    // user id (BUG-08: this query always returned zeros).
+    const clientId = await this.resolveClientIdForUser(req.user.sub);
+    const stats = clientId
+      ? await this.dataSource.query(
+          `SELECT
+            COUNT(*)::int AS total_orders,
+            COALESCE(SUM(total_amount), 0)::numeric(12,2) AS total_spent,
+            COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered_count,
+            COUNT(*) FILTER (WHERE status = 'pending_payment')::int AS pending_count
+          FROM online_orders
+          WHERE client_id = $1`,
+          [clientId],
+        )
+      : [{ total_orders: 0, total_spent: 0, delivered_count: 0, pending_count: 0 }];
 
     return {
       data: {

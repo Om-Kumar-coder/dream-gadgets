@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiClient } from '@/lib/api';
+import { setSessionCookie } from '@/lib/session';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { Button } from '@dream-gadgets/ui';
 import { Eye, EyeOff, Shield } from 'lucide-react';
@@ -39,11 +40,10 @@ export default function LoginPage() {
       const { accessToken, refreshToken, user } = data.data;
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', refreshToken);
-      // Session cookie: long-lived (7 days) so the Next.js middleware doesn't
+      // Session presence cookie (7 days) so the Next.js middleware doesn't
       // redirect to login before the client-side interceptor can refresh.
       // The middleware validates presence; the interceptor handles refresh.
-      const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
-      document.cookie = `admin_access_token=${accessToken}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+      setSessionCookie();
       const jwtPayload = JSON.parse(atob(accessToken.split('.')[1]));
       setTokens(accessToken, refreshToken, jwtPayload);
       router.push('/dashboard');

@@ -8,10 +8,11 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ReviewsService } from './reviews.service';
-import { IsString, IsNumber, IsOptional, Min, Max, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, Max, MinLength, MaxLength } from 'class-validator';
 
 export class CreateReviewDto {
   @IsNumber()
@@ -21,9 +22,12 @@ export class CreateReviewDto {
 
   @IsString()
   @MinLength(10)
+  @MaxLength(2000)
   comment: string;
 
   @IsString()
+  @MinLength(1)
+  @MaxLength(120)
   clientName: string;
 }
 
@@ -41,10 +45,27 @@ export class ReviewsController {
   ) {
     const reviews = await this.reviewsService.getReviews(id, page ?? 1, limit ?? 20);
     const summary = await this.reviewsService.getRatingSummary(id);
-    return { data: reviews, summary };
+    return {
+      status: 'success',
+      data: {
+        reviews: reviews.data,
+        data: reviews.data,
+        summary,
+        meta: {
+          total: reviews.total,
+          page: reviews.page,
+          limit: reviews.limit,
+          totalPages: reviews.totalPages,
+        },
+      },
+    };
   }
 
   @Post(':id/reviews')
+  // BUG-20: anonymous review creation had no rate limit, so a bot could spam
+  // any product's review list. 5/min per IP (the global ThrottlerGuard makes
+  // this effective — see BUG-13) plus strict payload length caps.
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Add a review for a product' })
   async createReview(
     @Param('id') id: string,

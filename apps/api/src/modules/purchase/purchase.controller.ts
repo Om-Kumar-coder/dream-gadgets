@@ -36,6 +36,7 @@ export class PurchaseController {
 
   @Post()
   @RequirePermission('purchases.create')
+  @BranchScoped()
   @ApiOperation({ summary: 'Create a new purchase and link inventory items' })
   async create(@Body() dto: CreatePurchaseDto, @CurrentUser() user: any) {
     return this.purchaseService.create(dto, user.sub);
@@ -49,6 +50,7 @@ export class PurchaseController {
    */
   @Post('with-inventory')
   @RequirePermission('purchases.create')
+  @BranchScoped()
   @ApiOperation({ summary: 'Create a purchase and its inventory units atomically (Add Stock)' })
   async createWithInventory(@Body() dto: CreatePurchaseWithStockDto, @CurrentUser() user: any) {
     return this.purchaseService.createWithInventory(dto, user.sub, user);

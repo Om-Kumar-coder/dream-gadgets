@@ -94,8 +94,15 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
       const { data } = await apiClient.post(`/sales/${id}/invoice/email`);
       return data;
     },
-    onSuccess: () => {
-      toast.success('Invoice queued for email delivery');
+    onSuccess: (data: any) => {
+      // The endpoint returns HTTP 200 with { success: false, message } when there
+      // is no recipient — surface that as an error instead of a false success.
+      const result = data?.data ?? data;
+      if (result?.success === false) {
+        toast.error(result.message || 'Failed to send email');
+      } else {
+        toast.success(result?.message || 'Invoice queued for email delivery');
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to send email');
@@ -112,6 +119,41 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to send WhatsApp');
+    },
+  });
+
+  // The invoice endpoint is JWT-protected (Bearer token from localStorage), so it
+  // must be fetched through apiClient and handled as binary data — a plain
+  // <a href> navigation carries no Authorization header and returns 401.
+  const downloadInvoice = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.get(`/sales/${id}/invoice`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], { type: 'application/pdf' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sale.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+    onError: async (error: any) => {
+      // With responseType 'blob' an error body arrives as a Blob — read it back.
+      let message = 'Failed to download invoice';
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          message = parsed?.error?.message || parsed?.message || message;
+        } catch {
+          // keep default message
+        }
+      } else {
+        message = data?.error?.message || data?.message || message;
+      }
+      toast.error(message);
     },
   });
 
@@ -156,14 +198,14 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={`/api/v1/sales/${sale.id}/invoice`}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary btn-md"
+          <button
+            type="button"
+            onClick={() => downloadInvoice.mutate(sale.id)}
+            disabled={downloadInvoice.isPending}
+            className="btn-primary btn-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileText className="w-4 h-4" /> Download PDF
-          </a>
+          </button>
         </div>
       </div>
 

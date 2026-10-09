@@ -8,6 +8,16 @@ export interface EmailDeliveryResult {
   error?: string;
 }
 
+/**
+ * Attachment payload as it travels through the BullMQ queue (JSON-safe).
+ * `contentBase64` is decoded to a Buffer only when the message is actually sent.
+ */
+export interface EmailAttachment {
+  filename: string;
+  contentBase64: string;
+  contentType?: string;
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -18,7 +28,12 @@ export class EmailService {
    * Send an email via Nodemailer SMTP.
    * Throws on connection/auth failure so callers can handle retries.
    */
-  async send(to: string, subject: string, html: string): Promise<EmailDeliveryResult> {
+  async send(
+    to: string,
+    subject: string,
+    html: string,
+    attachments?: EmailAttachment[],
+  ): Promise<EmailDeliveryResult> {
     const smtpHost = this.configService.get<string>('SMTP_HOST');
 
     if (!smtpHost) {
@@ -62,6 +77,15 @@ export class EmailService {
         to,
         subject,
         html,
+        ...(attachments && attachments.length
+          ? {
+              attachments: attachments.map((a) => ({
+                filename: a.filename,
+                content: Buffer.from(a.contentBase64, 'base64'),
+                contentType: a.contentType ?? 'application/octet-stream',
+              })),
+            }
+          : {}),
       });
 
       this.logger.log(`[Email] Sent to ${to}: messageId=${info.messageId}`);

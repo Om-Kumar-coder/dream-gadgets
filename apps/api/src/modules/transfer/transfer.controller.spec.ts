@@ -64,9 +64,16 @@ describe('TransferController — branch scoping (P2-7)', () => {
       ).resolves.toBeDefined();
     });
 
-    it('allows store_manager (cross-branch role) even with a branchId', async () => {
+    it('blocks store_manager transferring out of their assigned branch', async () => {
       await expect(
         controller.create(dto as any, makeUser('store_manager', 'branch-Z')),
+      ).rejects.toMatchObject({ response: { code: 'BRANCH_SCOPE_VIOLATION' } });
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    it('allows store_manager to transfer from their own branch', async () => {
+      await expect(
+        controller.create({ ...dto, fromBranchId: 'branch-Z' }, makeUser('store_manager', 'branch-Z')),
       ).resolves.toBeDefined();
     });
   });

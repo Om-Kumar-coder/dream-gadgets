@@ -6,15 +6,38 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle, Building2 } from 'lucide-react';
+import { Scan, Upload, Lightbulb, ArrowLeft, Loader2, Check, AlertTriangle, Building2, ChevronDown } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@dream-gadgets/ui';
 import toast from 'react-hot-toast';
 import { useAdminAuthStore } from '@/store/auth.store';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 
+// Owner and multi-store manager can see/send to every authorized store.
+// Store manager and branch-bound staff are auto-locked to their own store.
+const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager'];
+
+function luhnValid(imei: string): boolean {
+  let sum = 0;
+  let double = false;
+  for (let i = imei.length - 1; i >= 0; i--) {
+    let digit = Number(imei[i]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
 const purchaseSchema = z.object({
-  imei: z.string().length(15, 'IMEI must be 15 digits').regex(/^\d+$/, 'IMEI must be numeric'),
+  imei: z
+    .string()
+    .transform((v) => v.replace(/[\s-]+/g, ''))
+    .refine((v) => /^\d{15}$/.test(v), 'IMEI must be exactly 15 digits')
+    .refine((v) => luhnValid(v), 'Invalid IMEI — the last digit (Luhn checksum) does not match'),
   brandId: z.string().uuid('Select a valid brand'),
   modelId: z.string().uuid('Select a valid model'),
   colour: z.string().optional(),
@@ -40,8 +63,14 @@ export default function NewPurchasePage() {
   // accidentally assigned elsewhere. Staff are always locked to their own store.
   const requestedBranchId = searchParams.get('branchId') ?? '';
   const staffBranchId = user?.branchId ?? '';
-  const branchId = staffBranchId || requestedBranchId;
-  const isStoreLocked = Boolean(staffBranchId || requestedBranchId);
+  const isCrossBranch = !user?.branchId || CROSS_BRANCH_ROLES.includes(user?.role ?? '');
+  // Locked when arriving from Store Details (explicit target) or when the user
+  // is branch-bound (store manager / staff). Otherwise show a store picker.
+  const isStoreLocked = Boolean(requestedBranchId) || !isCrossBranch;
+  const [branchId, setBranchId] = useState<string>(
+    requestedBranchId || staffBranchId || '',
+  );
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(staffBranchId || '');
   const [priceSuggestion, setPriceSuggestion] = useState<number | null>(null);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   // Price-suggestion UI state: idle | loading | success | no-data | error
@@ -69,18 +98,34 @@ export default function NewPurchasePage() {
   const watchedModelId = watch('modelId');
   const watchedCondition = watch('condition');
 
-  // Load branches (to resolve the locked store's name for the banner)
-  const { data: branchesData } = useQuery({
+  // Load branches (to resolve the store name and, for cross-branch users, the picker).
+  const {
+    data: branchesData,
+    isLoading: branchesLoading,
+    error: branchesError,
+  } = useQuery({
     queryKey: ['admin-branches'],
     queryFn: async () => {
       const { data } = await apiClient.get('/admin/branches');
       return data?.data ?? [];
     },
-    enabled: isStoreLocked,
   });
   const branches: any[] = branchesData ?? [];
+  const activeBranches = branches.filter((b: any) => b.isActive);
+  if (branchesLoading) return null;
+  if (branchesError) {
+    // eslint-disable-next-line no-console
+    console.error(branchesError);
+  }
   const branchName =
-    branches.find((b: any) => b.id === branchId)?.name ?? '';
+    activeBranches.find((b: any) => b.id === branchId)?.name ?? '';
+
+  // Default selection: requested branch if any, then the current store.
+  if (!selectedBranchId && staffBranchId && activeBranches.some((b: any) => b.id === staffBranchId)) {
+    setSelectedBranchId(staffBranchId);
+  } else if (!selectedBranchId && activeBranches.length > 0) {
+    setSelectedBranchId(activeBranches[0].id);
+  }
 
   // Load brands
   const { data: brandsData } = useQuery({
@@ -178,6 +223,32 @@ export default function NewPurchasePage() {
           },
         ],
       });
+
+      // Attach any selected photos to the newly created inventory unit. The
+      // purchase response carries the created items, so the first unit is the
+      // one this form submitted. Photo upload failure must not roll back the
+      // already-committed stock — surface it as a warning instead.
+      const createdItem = (data?.data?.items ?? [])[0];
+      if (createdItem?.id && photoFiles.length > 0) {
+        let uploaded = 0;
+        for (let i = 0; i < photoFiles.length; i++) {
+          const formData = new FormData();
+          formData.append('file', photoFiles[i]);
+          formData.append('sortOrder', String(i));
+          try {
+            await apiClient.post(`/inventory/${createdItem.id}/photos/upload`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            uploaded++;
+          } catch {
+            // continue — partial upload is better than none
+          }
+        }
+        if (uploaded < photoFiles.length) {
+          toast.error(`${uploaded}/${photoFiles.length} photos uploaded`);
+        }
+      }
+
       return data.data;
     },
     onError: (error: any) => {
@@ -249,7 +320,7 @@ export default function NewPurchasePage() {
           <div>
             <label className="block text-xs font-medium text-surface-600 mb-1">IMEI * (15 digits)</label>
             <div className="flex gap-2">
-              <input {...register('imei')} placeholder="e.g. 356938035643809" maxLength={15}
+              <input {...register('imei')} placeholder="e.g. 356938035643809" maxLength={24}
                 className="input flex-1 font-mono" />
               <button type="button" className="btn-outline btn-md">
                 <Scan className="w-4 h-4" /> Scan
@@ -257,6 +328,25 @@ export default function NewPurchasePage() {
             </div>
             {errors.imei && <p className="text-red-500 text-xs mt-1">{errors.imei.message}</p>}
           </div>
+
+          {!isStoreLocked && (
+            <div className="pt-2 border-t border-surface-100">
+              <label className="block text-xs font-medium text-surface-600 mb-1">Store *</label>
+              <select
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                className="input w-full"
+                disabled={activeBranches.length === 0}
+              >
+                {activeBranches.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+              {activeBranches.length === 0 && (
+                <p className="text-xs text-surface-500 mt-1">No active stores available.</p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

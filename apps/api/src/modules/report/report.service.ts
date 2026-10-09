@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +24,28 @@ export interface ReportFilters {
   userId?: string;
 }
 
+/**
+ * BUG-26: `branchId` arrives as a raw @Query() string and was interpolated
+ * directly into ~12 report queries (`AND s.branch_id = '${branchId}'`) with no
+ * validation — a textbook SQL injection. One guard at the service boundary
+ * covers every query because all of them build their branch filter from this
+ * value. Only a canonical UUID can ever reach the SQL string, so an injection
+ * payload can never be formed.
+ */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function assertValidBranchId(branchId?: string | null): string | undefined {
+  if (branchId === undefined || branchId === null || branchId === '') return undefined;
+  const value = String(branchId).trim();
+  if (!UUID_PATTERN.test(value)) {
+    throw new BadRequestException({
+      code: 'INVALID_BRANCH_ID',
+      message: 'branchId must be a valid UUID',
+    });
+  }
+  return value;
+}
+
 export interface DashboardKpi {
   todaySalesCount: number;
   todaySalesValue: number;
@@ -40,37 +62,17 @@ export interface DashboardKpi {
 @Injectable()
 export class ReportService {
   private readonly logger = new Logger(ReportService.name);
-  private queue: any = null;
 
   constructor(
     @InjectDataSource()
     private dataSource: DataSource,
     private configService: ConfigService,
-  ) {
-    this.initQueue();
-  }
-
-  // ─── Queue init ───────────────────────────────────────────────────────────────
-
-  private initQueue(): void {
-    try {
-      const { Queue } = require('bullmq');
-      const redisUrl = this.configService.get<string>('redis.url') ?? this.configService.get<string>('REDIS_URL');
-      if (redisUrl) {
-        this.queue = new Queue('report', {
-          connection: { url: redisUrl },
-          defaultJobOptions: { attempts: 2, backoff: { type: 'exponential', delay: 5000 } },
-        });
-        this.logger.log('Report BullMQ queue initialized');
-      }
-    } catch {
-      this.logger.warn('BullMQ not available — reports will be generated synchronously');
-    }
-  }
+  ) {}
 
   // ─── 15.2 Dashboard KPIs ─────────────────────────────────────────────────────
 
   async getDashboardKpis(branchId?: string): Promise<DashboardKpi> {
+    branchId = assertValidBranchId(branchId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -93,7 +95,9 @@ export class ReportService {
       `, [today, tomorrow]);
 
       const [purchaseResult] = await this.dataSource.query(`
-        SELECT COUNT(*)::int AS count
+        SELECT
+          COUNT(*)::int AS count,
+          COALESCE(SUM(p.total_amount), 0)::numeric AS value
         FROM purchases p
         WHERE p.purchase_date >= $1 AND p.purchase_date < $2
         ${branchFilterPurchase}
@@ -132,7 +136,10 @@ export class ReportService {
       `, [today, tomorrow]).catch(() => [{ count: 0 }]);
 
       const todaySalesValue = parseFloat(salesResult?.value ?? '0');
-      const todayPurchasesValue = 0; // TODO: purchase valuation not tracked yet
+      // BUG-23: purchases were hardcoded to 0 (TODO), so dashboard netIncome
+      // always ignored today's stock purchases. Use today's purchase value so
+      // the KPI reflects real money out as well as money in.
+      const todayPurchasesValue = parseFloat(purchaseResult?.value ?? '0');
       const netIncome = todaySalesValue - todayPurchasesValue;
 
       return {
@@ -167,6 +174,7 @@ export class ReportService {
   // ─── Chart data for dashboard ────────────────────────────────────────────────
 
   async getWeeklySalesChart(branchId?: string): Promise<{ day: string; sales: number }[]> {
+    branchId = assertValidBranchId(branchId);
     const branchFilter = branchId ? `AND branch_id = '${branchId}'` : '';
     try {
       const rows = await this.dataSource.query(`
@@ -188,6 +196,7 @@ export class ReportService {
   }
 
   async getStockByConditionChart(branchId?: string): Promise<{ condition: string; count: number }[]> {
+    branchId = assertValidBranchId(branchId);
     const branchFilter = branchId ? `AND branch_id = '${branchId}'` : '';
     const CONDITION_LABELS: Record<string, string> = {
       sealed_pack: 'Sealed',
@@ -281,6 +290,8 @@ export class ReportService {
   // ─── 15.4 Report data queries ─────────────────────────────────────────────────
 
   async getReportData(type: ReportType, filters: ReportFilters): Promise<any[]> {
+    // BUG-26: single choke point for every report query below.
+    filters = { ...filters, branchId: assertValidBranchId(filters.branchId) };
     const { branchId, startDate, endDate } = filters;
     const start = startDate ?? new Date(new Date().setDate(new Date().getDate() - 30));
     const end = endDate ?? new Date();
@@ -595,8 +606,14 @@ export class ReportService {
       return Buffer.from(pdfBuffer);
     } catch (err: any) {
       if (err?.code === 'MODULE_NOT_FOUND' || err?.message?.includes('Cannot find module')) {
-        this.logger.warn('Puppeteer not available, returning HTML as buffer');
-        return Buffer.from(html);
+        // BUG-12: returning raw HTML with a PDF content-type is a corrupted
+        // export. Fail loudly so the operator switches to Excel or fixes the
+        // renderer instead of shipping a broken file.
+        this.logger.error('Puppeteer not available — refusing to emit a fake PDF export');
+        throw new InternalServerErrorException({
+          code: 'PDF_GENERATION_FAILED',
+          message: 'PDF export is unavailable on this deployment — use the Excel export instead',
+        });
       }
       throw err;
     }
@@ -642,14 +659,12 @@ export class ReportService {
   // ─── 15.6 Async report generation ────────────────────────────────────────────
 
   async enqueueReport(type: ReportType, filters: ReportFilters, format: 'excel' | 'pdf' = 'excel'): Promise<{ jobId: string; status: string }> {
-    if (this.queue) {
-      const job = await this.queue.add('generate-report', { type, filters, format });
-      return { jobId: job.id, status: 'queued' };
-    }
-
-    // Synchronous fallback for MVP
-    this.logger.log(`[DEV] Generating ${type} report synchronously`);
-    return { jobId: `sync_${Date.now()}`, status: 'queued' };
+    // BUG-18: this queue had no worker — jobs added to it were never consumed,
+    // so the endpoint always lied about being 'queued'. Generate synchronously
+    // and report the real outcome.
+    const rows = await this.getReportData(type, filters);
+    this.logger.log(`Report ${type} (${format}) generated synchronously (${rows.length} rows)`);
+    return { jobId: `sync_${Date.now()}`, status: 'completed' };
   }
 
   // ─── 15.7 Scheduled report definitions ───────────────────────────────────────

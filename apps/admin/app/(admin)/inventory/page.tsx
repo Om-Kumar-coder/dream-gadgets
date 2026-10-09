@@ -61,8 +61,9 @@ export default function InventoryPage() {
   const { user } = useAdminAuthStore();
   // Staff (branch-bound users) are locked to their store server-side; only
   // cross-branch roles get the filter. Matches CROSS_BRANCH_ROLES in
-  // branch-scope.guard.ts: shop_owner, multi_store_manager, store_manager.
-  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager', 'store_manager'];
+  // branch-scope.guard.ts: shop_owner, multi_store_manager only. Store
+  // manager is excluded — store manager is assigned-store only.
+  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager'];
   const crossBranch = !user?.branchId || CROSS_BRANCH_ROLES.includes(user?.role ?? '');
   const [storeFilter, setStoreFilter] = useState<string>('');
 

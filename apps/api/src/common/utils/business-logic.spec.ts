@@ -2,16 +2,16 @@ import { describe, it, expect } from '@jest/globals';
 import * as fc from 'fast-check';
 import {
   validateIMEI,
-  calculateExchangePrice,
-  calculateGST,
   validatePaymentSplits,
-  calculateWarrantyExpiry,
+  VALID_STATUS_TRANSITIONS,
+  isValidStatusTransition,
+  PaymentSplit,
   getRequiredDiscountRole,
   getRequiredReturnRole,
-  isValidStatusTransition,
-  VALID_STATUS_TRANSITIONS,
+  calculateGST,
+  calculateExchangePrice,
+  calculateWarrantyExpiry,
   ItemCondition,
-  PaymentSplit,
 } from './business-logic';
 
 // ---------------------------------------------------------------------------
@@ -64,6 +64,24 @@ describe('validateIMEI', () => {
 
   it('returns false for empty string', () => {
     expect(validateIMEI('')).toBe(false);
+  });
+
+  it('normalizes whitespace/newline and accepts real IMEIs', () => {
+    expect(validateIMEI('  490154203237518\r\n')).toBe(true);
+    expect(validateIMEI('\t490154203237518 ')).toBe(true);
+  });
+
+  it('normalizes digit-group separators', () => {
+    expect(validateIMEI('49-01-5420-32-37518')).toBe(true);
+    expect(validateIMEI('49 01 5420 32 37518')).toBe(true);
+  });
+
+  it('coerces numeric input to string', () => {
+    expect(validateIMEI(490154203237518)).toBe(true);
+  });
+
+  it('rejects wrong last digit after normalization', () => {
+    expect(validateIMEI(490154203237519)).toBe(false);
   });
 });
 
@@ -224,6 +242,33 @@ describe('getRequiredReturnRole', () => {
   it('returns manager for 25000', () => expect(getRequiredReturnRole(25000)).toBe('manager'));
   it('returns owner for 25001', () => expect(getRequiredReturnRole(25001)).toBe('owner'));
   it('returns owner for large amounts', () => expect(getRequiredReturnRole(100000)).toBe('owner'));
+});
+
+// BUG-19: settings-driven threshold overrides
+describe('threshold overrides from settings (BUG-19)', () => {
+  it('honours custom discount thresholds when provided', () => {
+    const t = { manager: 10, owner: 20 };
+    expect(getRequiredDiscountRole(10, t)).toBe('sales');
+    expect(getRequiredDiscountRole(10.1, t)).toBe('manager');
+    expect(getRequiredDiscountRole(20, t)).toBe('manager');
+    expect(getRequiredDiscountRole(20.1, t)).toBe('owner');
+  });
+
+  it('honours custom return thresholds when provided', () => {
+    const t = { manager: 10000, owner: 50000 };
+    expect(getRequiredReturnRole(9999, t)).toBe('any');
+    expect(getRequiredReturnRole(10000, t)).toBe('manager');
+    expect(getRequiredReturnRole(50000, t)).toBe('manager');
+    expect(getRequiredReturnRole(50001, t)).toBe('owner');
+  });
+
+  it('keeps historical defaults when no override is passed', () => {
+    expect(getRequiredDiscountRole(5)).toBe('sales');
+    expect(getRequiredDiscountRole(5.1)).toBe('manager');
+    expect(getRequiredDiscountRole(15.1)).toBe('owner');
+    expect(getRequiredReturnRole(4999)).toBe('any');
+    expect(getRequiredReturnRole(25001)).toBe('owner');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -407,9 +452,9 @@ describe('PBT Property 6: Item Status State Machine', () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...allStatuses),
-        (from) => {
-          const validTos = VALID_STATUS_TRANSITIONS[from];
-          return validTos.every((to) => isValidStatusTransition(from, to) === true);
+        (status) => {
+          const validTos = VALID_STATUS_TRANSITIONS[status];
+          return validTos?.every((to: string) => isValidStatusTransition(status, to) === true) ?? true;
         },
       ),
     );

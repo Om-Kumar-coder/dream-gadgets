@@ -161,8 +161,23 @@ export default function WhatsAppInboxPage() {
   const handleSelectConv = (id: string) => {
     setSelectedConvId(id);
     setShowMobileList(false);
-    // Conversations will re-fetch and reset unread count in 10s via refetchInterval
   };
+
+  // BUG-22: reading a conversation no longer clears the unread badge as a
+  // side effect of GET /messages — mark-read is an explicit PATCH fired once
+  // per conversation selection.
+  useEffect(() => {
+    if (!selectedConvId) return;
+    apiClient
+      .patch(`/whatsapp/conversations/${selectedConvId}/read`)
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['whatsapp-stats'] });
+        qc.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+      })
+      .catch(() => {
+        // Badge refresh is non-critical — ignore failures
+      });
+  }, [selectedConvId, qc]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

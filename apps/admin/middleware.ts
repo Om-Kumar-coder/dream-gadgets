@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { ADMIN_SESSION_COOKIE } from './lib/session';
 
 // With basePath: '/admin', Next.js strips the basePath from pathname
 // So pathname here is relative — e.g. '/', '/dashboard', '/login'
@@ -18,8 +19,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth cookie
-  const token = request.cookies.get('admin_access_token')?.value;
+  // Check for the session presence cookie (the JWT itself lives in localStorage;
+  // it is far too large to store in a cookie and was silently dropped before).
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
 
   if (!token) {
     // Redirect to /login (relative to basePath — Next.js prepends basePath automatically)

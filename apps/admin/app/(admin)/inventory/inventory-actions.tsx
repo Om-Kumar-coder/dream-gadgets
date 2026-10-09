@@ -12,9 +12,10 @@
  */
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil, IndianRupee, Trash2, X } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pencil, IndianRupee, Trash2, X, Image as ImageIcon, Upload } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { resolvePhotoUrl } from '@/lib/images';
 import { Button } from '@dream-gadgets/ui';
 import { toast } from 'react-hot-toast';
 import { useAdminAuthStore } from '@/store/auth.store';
@@ -273,12 +274,177 @@ export function EditDialog({ item, onClose }: { item: InventoryRow; onClose: () 
   );
 }
 
+// ─── Manage Product Photos ────────────────────────────────────────────────────
+
+type ItemPhoto = { id: string; cdnUrl: string | null; sortOrder?: number };
+
+
+/**
+ * Attach / remove photos for an ALREADY-EXISTING inventory unit, reusing the
+ * exact same upload/storage/photo endpoints as the Purchase → New flow
+ * (POST /inventory/:id/photos/upload → item_photos row → public search API →
+ * storefront card + product details page).
+ */
+export function ManagePhotosDialog({
+  item,
+  onClose,
+}: {
+  item: InventoryRow;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [files, setFiles] = useState<File[]>([]);
+
+  const detailQuery = useQuery({
+    queryKey: ['inventory-item', item.id],
+    queryFn: async () => {
+      const { data: res } = await apiClient.get(`/inventory/${item.id}`);
+      return res?.data ?? null;
+    },
+  });
+  const photos: ItemPhoto[] = detailQuery.data?.photos ?? [];
+
+  const invalidate = () => {
+    // ['inventory'] is the DataTable key prefix (['inventory', storeFilter])
+    // and ['inventory-item', id] is this dialog's own detail query.
+    qc.invalidateQueries({ queryKey: ['inventory'] });
+    qc.invalidateQueries({ queryKey: ['inventory-item', item.id] });
+  };
+
+  const uploadMutation = useMutation({
+    mutationFn: async (selected: File[]) => {
+      let uploaded = 0;
+      for (let i = 0; i < selected.length; i++) {
+        const fd = new FormData();
+        fd.append('file', selected[i]);
+        fd.append('sortOrder', String(photos.length + i));
+        try {
+          await apiClient.post(`/inventory/${item.id}/photos/upload`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          uploaded++;
+        } catch {
+          // keep going — partial upload is better than none (matches Purchase flow)
+        }
+      }
+      return { uploaded, total: selected.length };
+    },
+    onSuccess: ({ uploaded, total }) => {
+      invalidate();
+      setFiles([]);
+      if (uploaded === total) {
+        toast.success(`${uploaded} photo(s) attached to ${item.itemName ?? item.imei}`);
+      } else {
+        toast.error(`${uploaded}/${total} photos uploaded`);
+      }
+    },
+    onError: (error: any) => toast.error(errText(error, 'Failed to upload photo')),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      await apiClient.delete(`/inventory/${item.id}/photos/${photoId}`);
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success('Photo removed');
+    },
+    onError: (error: any) => toast.error(errText(error, 'Failed to delete photo')),
+  });
+
+  const atLimit = photos.length >= 10;
+
+  return (
+    <Modal title="Manage Product Photos" onClose={onClose}>
+      <p className="text-sm text-surface-500">
+        {item.itemName ?? item.imei}
+        {item.colour ? ` · ${item.colour}` : ''}
+        {item.storage ? ` · ${item.storage}` : ''}
+      </p>
+      <p className="text-xs text-surface-400">
+        Photos attached here are shown on the website product card and the product
+        details page (up to 10).
+      </p>
+
+      {detailQuery.isLoading ? (
+        <p className="text-sm text-surface-400">Loading photos…</p>
+      ) : photos.length === 0 ? (
+        <p className="text-sm text-amber-600">
+          No photos yet — the website shows a placeholder for this product.
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {photos.map((photo) => (
+            <div
+              key={photo.id}
+              className="relative rounded-lg overflow-hidden border border-surface-200 bg-surface-100"
+            >
+              {resolvePhotoUrl(photo.cdnUrl) ? (
+                <img
+                  src={resolvePhotoUrl(photo.cdnUrl)}
+                  alt="Product photo"
+                  className="w-full h-24 object-cover"
+                />
+              ) : (
+                <div className="w-full h-24 flex items-center justify-center text-xs text-surface-400">
+                  No URL
+                </div>
+              )}
+              <button
+                onClick={() => deleteMutation.mutate(photo.id)}
+                disabled={deleteMutation.isPending}
+                className="absolute top-1 right-1 p-1 rounded bg-black/50 text-white hover:bg-red-600 transition-colors"
+                aria-label="Remove photo"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Same picker as Purchase → New */}
+      <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-colors">
+        <Upload className="w-5 h-5 text-gray-400" />
+        <span className="text-sm text-gray-500">
+          {files.length > 0 ? `${files.length} file(s) selected` : 'Click to choose product photos'}
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 10))}
+        />
+      </label>
+      {atLimit && (
+        <p className="text-xs text-amber-600">Maximum of 10 photos per product reached.</p>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" type="button" onClick={onClose}>
+          Close
+        </Button>
+        <Button
+          type="button"
+          isLoading={uploadMutation.isPending}
+          disabled={files.length === 0 || atLimit || uploadMutation.isPending}
+          onClick={() => uploadMutation.mutate(files)}
+        >
+          Upload & Attach
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Actions dropdown wiring ──────────────────────────────────────────────────
 
 export function useInventoryActions() {
   const [editItem, setEditItem] = useState<InventoryRow | null>(null);
   const [priceItem, setPriceItem] = useState<InventoryRow | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryRow | null>(null);
+  const [photoItem, setPhotoItem] = useState<InventoryRow | null>(null);
   const hasEditPermission = useAdminAuthStore((s) => s.hasPermission('inventory.edit'));
   const hasDeletePermission = useAdminAuthStore((s) => s.hasPermission('inventory.delete'));
 
@@ -287,6 +453,7 @@ export function useInventoryActions() {
       {editItem && <EditDialog item={editItem} onClose={() => setEditItem(null)} />}
       {priceItem && <ChangePriceDialog item={priceItem} onClose={() => setPriceItem(null)} />}
       {deleteItem && <DeleteDialog item={deleteItem} onClose={() => setDeleteItem(null)} />}
+      {photoItem && <ManagePhotosDialog item={photoItem} onClose={() => setPhotoItem(null)} />}
     </>
   );
 
@@ -299,6 +466,14 @@ export function useInventoryActions() {
         icon: <Pencil className="w-4 h-4" />,
         onClick: (row: InventoryRow) => setEditItem(row),
         visible: editable,
+      },
+      {
+        // Product imagery for the storefront — available for ANY unit (sold
+        // included): attaching a photo never mutates inventory identity, and
+        // the server still enforces inventory.edit authoritatively.
+        label: 'Manage Photos',
+        icon: <ImageIcon className="w-4 h-4" />,
+        onClick: (row: InventoryRow) => setPhotoItem(row),
       },
       {
         label: 'Change Selling Price',

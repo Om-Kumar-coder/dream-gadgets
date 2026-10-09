@@ -1,37 +1,16 @@
+/**
+ * Root Jest config.
+ *
+ * BUG-21: this file used to declare two `projects` — `tests/components` and
+ * `tests/integration` — directories that do not exist, so the root
+ * `test:components` / `test:integration` scripts (and a bare `npx jest` at the
+ * repo root) could never run a single test. The dead projects and scripts were
+ * removed (see package.json and run-all-tests.sh); the root config now points
+ * at the one real Jest project in the repo — the API suite in apps/api, which
+ * is also what CI runs (working-directory: apps/api).
+ */
 module.exports = {
-  projects: [
-    {
-      displayName: 'components',
-      testMatch: ['<rootDir>/tests/components/**/*.spec.ts?(x)'],
-      preset: 'ts-jest',
-      testEnvironment: 'jsdom',
-      moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/apps/web/src/$1',
-        '^@admin/(.*)$': '<rootDir>/apps/admin/src/$1',
-        '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-      },
-      collectCoverageFrom: [
-        'apps/**/*.{ts,tsx}',
-        '!apps/**/*.d.ts',
-        '!apps/**/node_modules/**',
-      ],
-      coveragePathIgnorePatterns: [
-        '/node_modules/',
-        '/.next/',
-        '/dist/',
-      ],
-    },
-    {
-      displayName: 'integration',
-      testMatch: ['<rootDir>/tests/integration/**/*.spec.ts'],
-      preset: 'ts-jest',
-      testEnvironment: 'node',
-      collectCoverageFrom: [
-        'apps/api/src/**/*.{ts}',
-        '!apps/api/src/**/*.d.ts',
-      ],
-    },
-  ],
+  projects: ['<rootDir>/apps/api'],
   testTimeout: 30000,
   verbose: true,
 };

@@ -520,7 +520,13 @@ export class GstService {
         if (!map.has(row.sale_id)) {
           map.set(row.sale_id, []);
         }
-        const taxableValue = Number(row.unit_price) - Number(row.discount);
+        // BUG-15: taxable was computed as `unit_price - discount`, which
+        // ignored `quantity` — an accessory line of 3×₹500 reported ₹500
+        // instead of ₹1500 in the HSN breakup. `total` is the persisted
+        // paise-exact line total (taxable + tax, quantity and any distributed
+        // bill discount already included), so total - tax_amount reconstructs
+        // the exact taxable value the tax was computed on.
+        const taxableValue = Number(row.total ?? 0) - Number(row.tax_amount ?? 0);
         const taxRate = Number(row.tax_rate);
         const taxAmount = Number(row.tax_amount);
 

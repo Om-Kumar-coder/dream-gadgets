@@ -16,7 +16,12 @@ import { Payment } from './entities/payment.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { Accessory } from '../inventory/entities/accessory.entity';
 import { Branch } from '../auth/entities/user.entity';
-import { validatePaymentSplits, calculateGST } from '../../common/utils/business-logic';
+import {
+  validatePaymentSplits,
+  calculateGST,
+  getRequiredDiscountRole,
+  ItemCondition,
+} from '../../common/utils/business-logic';
 import { calculateBillTotals } from '../../common/utils/billing';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

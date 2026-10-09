@@ -142,7 +142,7 @@ describe('SearchService', () => {
       dataSource.query
         .mockResolvedValueOnce([{ total: 3 }])
         .mockResolvedValueOnce([
-          { id: 'item-1', brand_name: 'Samsung', model_name: 'Galaxy S23', online_price: 45000 },
+          { id: 'item-1', brand_name: 'Samsung', model_name: 'Galaxy S23', status: 'available', online_price: 45000 },
         ])
         .mockResolvedValueOnce([]) // condition facets
         .mockResolvedValueOnce([]); // storage facets

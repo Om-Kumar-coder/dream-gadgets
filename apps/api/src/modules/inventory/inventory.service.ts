@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -24,11 +25,13 @@ import {
 import { EventService } from '../../common/events/event.service';
 import { RedisService } from '../../common/redis/redis.service';
 
+import { CROSS_BRANCH_ROLES } from '../../common/guards/branch-scope.guard';
+
 /**
  * Roles allowed to operate across branches even when a branchId is present on
  * their token — mirrors CROSS_BRANCH_ROLES in branch-scope.guard.ts.
+ * Store managers are excluded: they are assigned-store only.
  */
-const CROSS_BRANCH_ROLES = new Set(['shop_owner', 'multi_store_manager', 'store_manager']);
 
 /**
  * Statuses that mean the unit participates in completed business history.
@@ -38,7 +41,7 @@ const HISTORY_LOCKED_STATUSES = new Set(['sold', 'transferred']);
 
 @Injectable()
 export class InventoryService {
-  private searchQueue: any = null;
+  private readonly logger = new Logger(InventoryService.name);
 
   constructor(
     @InjectRepository(InventoryItem)
@@ -54,11 +57,6 @@ export class InventoryService {
     private eventService: EventService,
     private redisService: RedisService,
   ) {}
-
-  // Allow optional queue injection from module
-  setSearchQueue(queue: any) {
-    this.searchQueue = queue;
-  }
 
   /**
    * Invalidates all cached public product listings so repeat visitors
@@ -96,16 +94,24 @@ export class InventoryService {
   // ─── 5.2 Create ─────────────────────────────────────────────────────────────
 
   async create(dto: CreateInventoryItemDto, userId: string): Promise<InventoryItem> {
-    // Validate IMEI
-    if (!validateIMEI(dto.imei)) {
+    // Normalize input and validate IMEI (far from whitespace/separators;
+    // stored value must be exactly 15 digits and Luhn-valid).
+    const imei = dto.imei;
+    if (!validateIMEI(imei)) {
       throw new BadRequestException({
         code: 'IMEI_INVALID',
         message: 'IMEI failed Luhn algorithm validation',
       });
     }
+    if (!/^\d{15}$/.test(imei)) {
+      throw new BadRequestException({
+        code: 'IMEI_FORMAT',
+        message: 'IMEI must be exactly 15 digits',
+      });
+    }
 
     // Check duplicate IMEI
-    const existing = await this.itemRepo.findOne({ where: { imei: dto.imei } });
+    const existing = await this.itemRepo.findOne({ where: { imei } });
     if (existing) {
       throw new ConflictException({
         code: 'IMEI_DUPLICATE',
@@ -416,10 +422,20 @@ export class InventoryService {
 
   // ─── 5.7 Photo upload ───────────────────────────────────────────────────────
 
-  async getPresignedUploadUrl(itemId: string, filename: string): Promise<{ uploadUrl: string; key: string }> {
-    await this.findById(itemId); // ensure item exists
+  async getPresignedUploadUrl(itemId: string, filename: string, user?: any): Promise<{ uploadUrl: string; key: string }> {
+    await this.findById(itemId, user); // ensure item exists + branch access
 
     const key = `inventory/${itemId}/original/${Date.now()}-${filename}`;
+
+    // BUG-10: the AWS SDK used to be missing from package.json entirely, so
+    // this always threw and silently returned a placeholder URL. The SDK is now
+    // a real dependency; when credentials are also absent we keep the dev
+    // placeholder but must never fake a working URL in production.
+    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID') ?? '';
+    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY') ?? '';
+    if (!accessKeyId || !secretAccessKey) {
+      return this.unconfiguredPresign(key);
+    }
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -429,10 +445,7 @@ export class InventoryService {
 
       const s3 = new S3Client({
         region: this.configService.get<string>('AWS_REGION') ?? 'ap-south-1',
-        credentials: {
-          accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID') ?? '',
-          secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY') ?? '',
-        },
+        credentials: { accessKeyId, secretAccessKey },
       });
 
       const command = new PutObjectCommand({
@@ -443,41 +456,76 @@ export class InventoryService {
 
       const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
       return { uploadUrl, key };
-    } catch {
-      // AWS SDK not installed or not configured — return placeholder in dev
+    } catch (err: any) {
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(`[Inventory] S3 presign failed in production: ${err?.message}`);
+        throw new BadRequestException({
+          code: 'S3_PRESIGN_FAILED',
+          message: 'Could not create an upload URL — image uploads are unavailable',
+        });
+      }
       const cdnBase = this.configService.get<string>('CDN_BASE_URL') ?? 'http://localhost';
       return { uploadUrl: `${cdnBase}/dev-upload-placeholder?key=${key}`, key };
     }
   }
 
-  async addPhoto(itemId: string, s3Key: string, sortOrder = 0): Promise<ItemPhoto> {
-    const item = await this.findById(itemId);
+  /** Presign with no credentials configured: dev keeps a placeholder, production fails loudly. */
+  private unconfiguredPresign(key: string): { uploadUrl: string; key: string } {
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.error('[Inventory] S3 presign requested in production but AWS credentials are not configured');
+      throw new BadRequestException({
+        code: 'S3_NOT_CONFIGURED',
+        message: 'Image uploads are not configured on this deployment',
+      });
+    }
+    const cdnBase = this.configService.get<string>('CDN_BASE_URL') ?? 'http://localhost';
+    return { uploadUrl: `${cdnBase}/dev-upload-placeholder?key=${key}`, key };
+  }
+
+  async addPhoto(itemId: string, s3Key: string, sortOrder = 0, user?: any, publicUrl?: string): Promise<ItemPhoto> {
+    const item = await this.findById(itemId, user);
 
     const photoCount = await this.photoRepo.count({ where: { itemId } });
     if (photoCount >= 10) {
       throw new BadRequestException('Maximum 10 photos allowed per item');
     }
 
-    const cdnBase = this.configService.get<string>('CDN_BASE_URL') ?? '';
+    // Prefer the caller-supplied public URL (local disk upload). Otherwise fall
+    // back to the CDN, and finally to a root-relative path so the value is
+    // always a usable, non-empty URL rather than `https://host/` + nothing.
+    const cdnBase = (this.configService.get<string>('CDN_BASE_URL') ?? '').replace(/\/$/, '');
+    const resolvedUrl = publicUrl ?? (cdnBase ? `${cdnBase}/${s3Key}` : `/${s3Key}`);
+
     const photo = this.photoRepo.create({
       itemId: item.id,
       s3Key,
-      cdnUrl: `${cdnBase}/${s3Key}`,
+      cdnUrl: resolvedUrl,
       sortOrder,
     });
-    return this.photoRepo.save(photo);
+    const saved = await this.photoRepo.save(photo);
+
+    // Product imagery is public catalogue data — drop cached listings so a new
+    // photo appears immediately on the storefront instead of after the TTL.
+    await this.invalidatePublicCache();
+
+    return saved;
   }
 
-  async deletePhoto(itemId: string, photoId: string): Promise<void> {
+  async deletePhoto(itemId: string, photoId: string, user?: any): Promise<void> {
+    await this.findById(itemId, user); // enforce branch access before mutation
     const photo = await this.photoRepo.findOne({ where: { id: photoId, itemId } });
     if (!photo) throw new NotFoundException(`Photo ${photoId} not found for item ${itemId}`);
     await this.photoRepo.remove(photo);
+
+    // Same as addPhoto: the storefront reads cached public listings — drop them
+    // so a removed photo stops appearing immediately instead of after the TTL.
+    await this.invalidatePublicCache();
   }
 
   // ─── 5.8 Toggle online ──────────────────────────────────────────────────────
 
-  async toggleOnline(id: string, userId: string): Promise<InventoryItem> {
-    const item = await this.findById(id);
+  async toggleOnline(id: string, userId: string, user?: any): Promise<InventoryItem> {
+    const item = await this.findById(id, user);
 
     // Enforce: an item cannot be published online without a selling price.
     // This prevents incomplete catalogue records from reaching the storefront.
@@ -495,17 +543,7 @@ export class InventoryService {
     item.isOnline = nextOnline;
     const saved = await this.itemRepo.save(item);
 
-    // Enqueue search index sync
-    if (this.searchQueue) {
-      try {
-        await this.searchQueue.add(
-          saved.isOnline ? 'index-item' : 'remove-item',
-          { itemId: id },
-        );
-      } catch {
-        // Queue not available — log and continue
-      }
-    }
+    // (BUG-18: the old 'search' queue producer here had no worker — removed.)
 
     // Invalidate public product cache when online status toggles
     await this.invalidatePublicCache();
@@ -545,8 +583,10 @@ export class InventoryService {
       const rowErrors: string[] = [];
 
       // Validate required fields
-      if (!row.imei) rowErrors.push('imei is required');
-      else if (!validateIMEI(row.imei)) rowErrors.push('imei failed Luhn validation');
+      const rowImei = row.imei;
+      if (!rowImei) rowErrors.push('imei is required');
+      else if (!validateIMEI(rowImei)) rowErrors.push('imei failed Luhn validation');
+      if (!/^\d{15}$/.test(rowImei)) rowErrors.push('imei must be exactly 15 digits');
       if (!row.brandId) rowErrors.push('brandId is required');
       if (!row.modelId) rowErrors.push('modelId is required');
       if (!row.boxType) rowErrors.push('boxType is required');
@@ -562,8 +602,8 @@ export class InventoryService {
       try {
         await this.create(
           {
-            imei: row.imei,
-            brandId: row.brandId,
+          imei: rowImei,
+          brandId: row.brandId,
             modelId: row.modelId,
             boxType: row.boxType,
             condition: row.condition,

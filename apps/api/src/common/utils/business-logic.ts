@@ -1,8 +1,17 @@
-export function validateIMEI(imei: string): boolean {
-  if (!/^\d{15}$/.test(imei)) return false;
+export function normalizeIMEI(input: unknown): string {
+  if (typeof input === 'number' && Number.isFinite(input)) return String(input);
+  if (typeof input !== 'string') return '';
+  // Normalize common paste/scan formatting before validation:
+  // trim surrounding whitespace/newlines and drop digit-group separators.
+  return input.replace(/[\s-]+/g, '').trim();
+}
+
+export function validateIMEI(imei: unknown): boolean {
+  const value = normalizeIMEI(imei);
+  if (!/^\d{15}$/.test(value)) return false;
   let sum = 0;
   for (let i = 0; i < 15; i++) {
-    let digit = parseInt(imei[i]);
+    let digit = parseInt(value[i]);
     if (i % 2 === 1) { digit *= 2; if (digit > 9) digit -= 9; }
     sum += digit;
   }
@@ -36,15 +45,28 @@ export function calculateWarrantyExpiry(firstInvoiceDate: Date, condition: ItemC
   return d;
 }
 
-export function getRequiredDiscountRole(discountPercent: number): string {
-  if (discountPercent <= 5) return 'sales';
-  if (discountPercent <= 15) return 'manager';
+// BUG-19: thresholds are configurable via the `settings` table (see
+// settings-thresholds.ts). The optional argument keeps the historical
+// defaults (5/15% and ₹5000/₹25000) for callers and tests that pass none.
+export function getRequiredDiscountRole(
+  discountPercent: number,
+  thresholds?: { manager: number; owner: number },
+): string {
+  const manager = thresholds?.manager ?? 5;
+  const owner = thresholds?.owner ?? 15;
+  if (discountPercent <= manager) return 'sales';
+  if (discountPercent <= owner) return 'manager';
   return 'owner';
 }
 
-export function getRequiredReturnRole(returnAmount: number): string {
-  if (returnAmount < 5000) return 'any';
-  if (returnAmount <= 25000) return 'manager';
+export function getRequiredReturnRole(
+  returnAmount: number,
+  thresholds?: { manager: number; owner: number },
+): string {
+  const manager = thresholds?.manager ?? 5000;
+  const owner = thresholds?.owner ?? 25000;
+  if (returnAmount < manager) return 'any';
+  if (returnAmount <= owner) return 'manager';
   return 'owner';
 }
 

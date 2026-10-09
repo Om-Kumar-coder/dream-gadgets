@@ -196,6 +196,34 @@ describe('GstService', () => {
       expect(entry.items[0].hsnCode).toBe('84713000');
     });
 
+    it('reports full line taxable value for accessory lines with quantity > 1 (BUG-15)', async () => {
+      dataSource.query.mockImplementation((sql: string) => {
+        if (isB2bQuery(sql)) return [b2bRow()];
+        if (isSaleItemsQuery(sql)) {
+          return [
+            saleItemRow({
+              hsn_code: '85176290',
+              unit_price: '500',
+              discount: '50',
+              quantity: 3,
+              tax_rate: '18',
+              tax_amount: '243',
+              total: '1593',
+            }),
+          ];
+        }
+        return [];
+      });
+
+      const result = await service.generateGstr1('2025-01-01', '2025-01-31');
+
+      const item = result.b2b[0].items[0];
+      // 3 × (₹500 − ₹50) = ₹1350 taxable — the old `unit_price - discount`
+      // formula reported ₹450, understating the HSN breakup.
+      expect(item.taxableValue).toBe(1350);
+      expect(item.total).toBe(1593);
+    });
+
     it('should classify inter-state sale as B2B with IGST', async () => {
       dataSource.query.mockImplementation((sql: string) => {
         if (isB2bQuery(sql)) return [b2bRow({ customer_state: 'Karnataka' })];

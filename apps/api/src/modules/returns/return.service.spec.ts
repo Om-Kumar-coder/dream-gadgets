@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ReturnService } from './return.service';
+import { getRequiredReturnRole, calculateGST } from '../../common/utils/business-logic';
 import { EventService } from '../../common/events/event.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { Return } from './entities/return.entity';
@@ -13,6 +14,17 @@ import { Payment } from '../sales/entities/payment.entity';
 import { Purchase } from '../purchase/entities/purchase.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { DataSource } from 'typeorm';
+
+// BUG-09: the refund path runs AFTER the return row is committed; keep the
+// Razorpay SDK fully mocked so tests can order and fail it deterministically.
+const mockRazorpayRefund = jest.fn<(...args: any[]) => any>();
+jest.mock('razorpay', () => {
+  // Module export must be directly constructable: the service does `new Razorpay(...)`.
+  const Razorpay: any = jest.fn().mockImplementation(() => ({
+    payments: { refund: (...args: any[]) => mockRazorpayRefund(...args) },
+  }));
+  return Razorpay;
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -114,6 +126,7 @@ describe('ReturnService', () => {
   let purchaseRepo: any;
   let itemRepo: any;
   let configService: any;
+  let dataSourceMock: any;
 
   beforeEach(async () => {
     returnRepo = makeRepo();
@@ -148,6 +161,17 @@ describe('ReturnService', () => {
                 query: jest.fn(() => Promise.resolve([])),
               },
             }),
+            // BUG-09: runs the callback against a tx manager whose repositories
+            // are the same mocks, mirroring TypeORM's dataSource.transaction().
+            transaction: jest.fn(async (cb: any) =>
+              cb({
+                getRepository: jest.fn((entity: any) => {
+                  if (entity === Return) return returnRepo;
+                  if (entity === InventoryItem) return itemRepo;
+                  throw new Error(`Unexpected repository in transaction: ${entity?.name}`);
+                }),
+              }),
+            ),
           },
         },
         {
@@ -167,6 +191,8 @@ describe('ReturnService', () => {
     }).compile();
 
     service = module.get<ReturnService>(ReturnService);
+    dataSourceMock = module.get<DataSource>(DataSource);
+    mockRazorpayRefund.mockReset();
   });
 
   // ─── 11.2 createSaleReturn ────────────────────────────────────────────────
@@ -355,7 +381,9 @@ describe('ReturnService', () => {
 
     it('should set refundStatus to "processed" for original_payment method', async () => {
       const sale = makeSale({ saleDate: new Date() });
-      const savedReturn = makeReturn({ refundStatus: 'processed', refundMethod: 'original_payment' });
+      // The record is persisted with 'pending'; the final status is written
+      // once the refund has actually run (BUG-09 ordering).
+      const savedReturn = makeReturn({ refundStatus: 'pending', refundMethod: 'original_payment' });
 
       (saleRepo.findOne as any).mockResolvedValue(sale);
       (itemRepo.update as any).mockResolvedValue({ affected: 1 });
@@ -369,9 +397,13 @@ describe('ReturnService', () => {
         'sales',
       );
 
-      // Verify create was called with processed status
+      // Insert starts as pending, then the completed status is persisted.
       const createCall = (returnRepo.create as any).mock.calls[0][0];
-      expect(createCall.refundStatus).toBe('processed');
+      expect(createCall.refundStatus).toBe('pending');
+      expect(returnRepo.update).toHaveBeenCalledWith(savedReturn.id, {
+        refundStatus: 'processed',
+      });
+      expect(result.refundStatus).toBe('processed');
     });
 
     it('should set refundStatus to "pending" for non-online refund methods', async () => {
@@ -403,6 +435,103 @@ describe('ReturnService', () => {
       const createCall = (returnRepo.create as any).mock.calls[0][0];
       expect(createCall.returnNumber).toMatch(/^RET-\d{4}-\d+$/);
     });
+
+    // ─── BUG-09: transactional guarantees ───────────────────────────────────
+
+    it('runs inventory restore and return insert inside ONE transaction', async () => {
+      const sale = makeSale({ saleDate: new Date() });
+      const savedReturn = makeReturn();
+
+      (saleRepo.findOne as any).mockResolvedValue(sale);
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+      (returnRepo.create as any).mockReturnValue(savedReturn);
+      (returnRepo.save as any).mockResolvedValue(savedReturn);
+
+      await service.createSaleReturn('sale-uuid-1', baseDto, 'user-1', 'sales');
+
+      expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
+      // Both writes happened through the transaction manager (same mocks).
+      expect(itemRepo.update).toHaveBeenCalledWith('item-1', { status: 'available' });
+      expect(returnRepo.save).toHaveBeenCalled();
+    });
+
+    it('persists the return record BEFORE attempting the refund', async () => {
+      const sale = makeSale({
+        saleDate: new Date(),
+        payments: [{ razorpayPaymentId: 'pay_1' } as any],
+      });
+      const savedReturn = makeReturn({ refundStatus: 'pending', refundMethod: 'original_payment' });
+
+      (saleRepo.findOne as any).mockResolvedValue(sale);
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+      (returnRepo.create as any).mockReturnValue(savedReturn);
+      (returnRepo.save as any).mockResolvedValue(savedReturn);
+      mockRazorpayRefund.mockResolvedValue({ id: 'rfnd_1', status: 'processed' });
+
+      await service.createSaleReturn(
+        'sale-uuid-1',
+        { ...baseDto, refundMethod: 'original_payment' },
+        'user-1',
+        'sales',
+      );
+
+      expect(mockRazorpayRefund).toHaveBeenCalledTimes(1);
+      expect((returnRepo.save as any).mock.invocationCallOrder[0]).toBeLessThan(
+        mockRazorpayRefund.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('never attempts a refund when the return record fails to persist', async () => {
+      const sale = makeSale({
+        saleDate: new Date(),
+        payments: [{ razorpayPaymentId: 'pay_1' } as any],
+      });
+      const savedReturn = makeReturn({ refundStatus: 'pending', refundMethod: 'original_payment' });
+
+      (saleRepo.findOne as any).mockResolvedValue(sale);
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+      (returnRepo.create as any).mockReturnValue(savedReturn);
+      (returnRepo.save as any).mockRejectedValue(new Error('insert failed'));
+
+      await expect(
+        service.createSaleReturn(
+          'sale-uuid-1',
+          { ...baseDto, refundMethod: 'original_payment' },
+          'user-1',
+          'sales',
+        ),
+      ).rejects.toThrow('insert failed');
+
+      expect(mockRazorpayRefund).not.toHaveBeenCalled();
+      expect(returnRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('marks refundStatus failed when the gateway errors, keeping the record', async () => {
+      const sale = makeSale({
+        saleDate: new Date(),
+        payments: [{ razorpayPaymentId: 'pay_1' } as any],
+      });
+      const savedReturn = makeReturn({ refundStatus: 'pending', refundMethod: 'original_payment' });
+
+      (saleRepo.findOne as any).mockResolvedValue(sale);
+      (itemRepo.update as any).mockResolvedValue({ affected: 1 });
+      (returnRepo.create as any).mockReturnValue(savedReturn);
+      (returnRepo.save as any).mockResolvedValue(savedReturn);
+      mockRazorpayRefund.mockRejectedValue(new Error('gateway down'));
+
+      const result = await service.createSaleReturn(
+        'sale-uuid-1',
+        { ...baseDto, refundMethod: 'original_payment' },
+        'user-1',
+        'sales',
+      );
+
+      expect(result.id).toBeDefined(); // the return itself was never lost
+      expect(returnRepo.update).toHaveBeenCalledWith(savedReturn.id, {
+        refundStatus: 'failed',
+      });
+      expect(result.refundStatus).toBe('failed');
+    });
   });
 
   // ─── 12.1 createPurchaseReturn ────────────────────────────────────────────
@@ -426,6 +555,8 @@ describe('ReturnService', () => {
       expect(result).toBeDefined();
       expect(result.returnType).toBe('purchase');
       expect(itemRepo.update).toHaveBeenCalledWith('item-1', { status: 'scrapped' });
+      // BUG-09: scrap + insert are atomic
+      expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
     });
 
     it('should throw NotFoundException when purchase not found', async () => {

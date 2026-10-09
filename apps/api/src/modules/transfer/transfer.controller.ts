@@ -42,8 +42,8 @@ export class TransferController {
     // which transfers do not use — they carry fromBranchId/toBranchId. Enforce
     // here with the same cross-branch semantics as BranchScopeGuard: staff with
     // a branch assignment may only ship FROM their own store; owners and
-    // cross-branch managers are unrestricted.
-    const CROSS_BRANCH_ROLES = new Set(['shop_owner', 'multi_store_manager', 'store_manager']);
+    // cross-branch managers (owner, multi-store manager) are unrestricted.
+    const { CROSS_BRANCH_ROLES } = await import('../../common/guards/branch-scope.guard');
     const isCrossBranch = !user?.branchId || CROSS_BRANCH_ROLES.has(user?.role);
     if (!isCrossBranch && dto.fromBranchId !== user.branchId) {
       throw new ForbiddenException({

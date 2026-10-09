@@ -100,10 +100,24 @@ export class SyncQueue {
       } catch (error: any) {
         const errorMsg = error?.response?.data?.message || error?.message || 'Unknown error';
 
-        // For 409 conflicts (item already sold), mark as synced
+        // BUG-11: a 409 (item already sold elsewhere) used to be marked
+        // 'synced', which silently dropped a real offline sale — the money was
+        // taken at the counter but no sale ever existed and the record was
+        // auto-cleared after 7 days. Keep it as a visible failure so staff can
+        // resolve it (refunded/re-run on available stock) instead of losing it.
         if (error?.response?.status === 409) {
-          await offlineDB.updateSaleStatus(sale.id!, 'synced', 'Item already sold');
-          synced++;
+          const conflictMsg =
+            errorMsg || 'Item already sold — offline sale not recorded, resolve manually';
+          await offlineDB.updateSaleStatus(sale.id!, 'failed', conflictMsg);
+          failed++;
+          this.notify({
+            type: 'sale-failed',
+            saleId: sale.id,
+            error: conflictMsg,
+            pending: pending.length - synced - failed,
+            synced,
+            failed,
+          });
           continue;
         }
 

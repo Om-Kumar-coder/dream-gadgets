@@ -334,10 +334,20 @@ export class WhatsappService {
       take: limit,
     });
 
-    // Mark conversation as read when fetching messages
-    await this.conversationRepo.update(conversationId, { unreadCount: 0 });
-
+    // BUG-22: reading must not mutate. The unread-count reset moved to the
+    // explicit PATCH /whatsapp/conversations/:id/read endpoint — a GET that
+    // silently cleared badges broke pagination (page 2 cleared the badge too),
+    // made GETs non-idempotent and surprised any prefetching client.
     return { data, total };
+  }
+
+  async markConversationRead(conversationId: string): Promise<{ unreadCount: number }> {
+    const conversation = await this.conversationRepo.findOne({ where: { id: conversationId } });
+    if (!conversation) throw new NotFoundException(`Conversation ${conversationId} not found`);
+    if (conversation.unreadCount !== 0) {
+      await this.conversationRepo.update(conversationId, { unreadCount: 0 });
+    }
+    return { unreadCount: 0 };
   }
 
   async updateConversation(

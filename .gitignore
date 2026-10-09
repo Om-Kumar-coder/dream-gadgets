@@ -88,6 +88,9 @@ deploy-emi*.js
 /test-rbac.js
 /test-endpoints-with-token.js
 
+# Runtime product-image uploads (15 MB of production photos — data, not source)
+apps/uploads/
+
 # Generated tooling output
 graphify-out/
 jq.exe

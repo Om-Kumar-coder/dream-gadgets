@@ -139,6 +139,39 @@ export default function SalesPage() {
     },
   });
 
+  // JWT-protected PDF endpoint — fetch as a blob through apiClient so the
+  // Bearer token is attached, then trigger the browser download.
+  const downloadInvoice = useMutation({
+    mutationFn: async (sale: Sale) => {
+      const res = await apiClient.get(`/sales/${sale.id}/invoice`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], { type: 'application/pdf' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sale.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+    onError: async (error: any) => {
+      let message = 'Failed to download invoice';
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          message = parsed?.error?.message || parsed?.message || message;
+        } catch {
+          // keep default message
+        }
+      } else {
+        message = data?.error?.message || data?.message || message;
+      }
+      toast.error(message);
+    },
+  });
+
   const SaleActions = ({ sale }: { sale: Sale }) => {
     const [showMenu, setShowMenu] = useState(false);
 
@@ -158,14 +191,16 @@ export default function SalesPage() {
               onClick={() => setShowMenu(false)}
             />
             <div className="absolute right-0 top-6 z-20 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-              <Link
-                href={`/api/v1/sales/${sale.id}/invoice`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  downloadInvoice.mutate(sale);
+                }}
+                disabled={downloadInvoice.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FileText className="w-3.5 h-3.5" /> View PDF
-              </Link>
+                <FileText className="w-3.5 h-3.5" /> Download PDF
+              </button>
               <Link
                 href={`/sales/${sale.id}`}
                 className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

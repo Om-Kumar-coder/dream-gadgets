@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearSessionCookie, setSessionCookie } from './session';
 
 // Track in-flight refresh to avoid concurrent requests
 let isRefreshing = false;
@@ -16,24 +17,14 @@ function processQueue(error: any, token: string | null = null) {
 }
 
 /**
- * Update the session cookie so the Next.js middleware doesn't redirect to login.
- * The cookie max-age matches the refresh token lifetime (7 days).
- */
-function updateSessionCookie(accessToken: string) {
-  const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
-  document.cookie = `admin_access_token=${accessToken}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
-}
-
-/**
  * Fully clear all admin auth state — localStorage tokens AND the zustand persisted store.
- * Also clear the session cookie.
+ * Also clear the session presence cookie.
  */
 function clearAllAuth() {
   localStorage.removeItem('admin_access_token');
   localStorage.removeItem('admin_refresh_token');
   localStorage.removeItem('admin-auth-storage'); // zustand persist key
-  // Clear session cookie
-  document.cookie = 'admin_access_token=; path=/; max-age=0; SameSite=Lax';
+  clearSessionCookie();
 }
 
 /**
@@ -132,8 +123,8 @@ apiClient.interceptors.response.use(
       localStorage.setItem('admin_access_token', accessToken);
       localStorage.setItem('admin_refresh_token', newRefreshToken);
 
-      // Sync the session cookie so Next.js middleware doesn't redirect
-      updateSessionCookie(accessToken);
+      // Sync the session presence cookie so Next.js middleware doesn't redirect
+      setSessionCookie();
 
       processQueue(null, accessToken);
       original.headers.Authorization = `Bearer ${accessToken}`;

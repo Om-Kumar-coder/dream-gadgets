@@ -10,7 +10,6 @@ import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { CreateExchangeDto } from './dto/create-exchange.dto';
 import { QueryExchangeDto } from './dto/query-exchange.dto';
 import { calculateExchangePrice } from '../../common/utils/business-logic';
-
 @Injectable()
 export class ExchangeService {
   constructor(

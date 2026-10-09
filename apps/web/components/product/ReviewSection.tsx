@@ -77,9 +77,19 @@ function RatingBar({ label, count, total }: { label: string; count: number; tota
   );
 }
 
+const defaultSummary: RatingSummary = {
+  total_reviews: 0,
+  avg_rating: 0,
+  '5_star': 0,
+  '4_star': 0,
+  '3_star': 0,
+  '2_star': 0,
+  '1_star': 0,
+};
+
 export function ReviewSection({ itemId, initialSummary, initialReviews }: ReviewSectionProps) {
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
-  const [summary, setSummary] = useState<RatingSummary>(initialSummary);
+  const [reviews, setReviews] = useState<Review[]>(Array.isArray(initialReviews) ? initialReviews : []);
+  const [summary, setSummary] = useState<RatingSummary>({ ...defaultSummary, ...(initialSummary ?? {}) });
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ rating: 5, comment: '', clientName: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -90,10 +100,19 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
     try {
       const res = await fetch(`${API}/public/products/${itemId}/reviews`);
       const json = await res.json();
-      const unwrapped = json.data ?? json;
-      if (unwrapped.data) {
-        setReviews(unwrapped.data ?? []);
-        setSummary(unwrapped.summary ?? summary);
+      const payload = json.data ?? json;
+      const reviewList = Array.isArray(payload.reviews)
+        ? payload.reviews
+        : Array.isArray(payload.data?.data)
+        ? payload.data.data
+        : Array.isArray(payload.data)
+        ? payload.data
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      setReviews(reviewList);
+      if (payload.summary) {
+        setSummary({ ...defaultSummary, ...payload.summary });
       }
     } catch {}
   };
@@ -135,9 +154,9 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
       {/* Summary */}
       <div className="flex flex-col sm:flex-row gap-6 p-5 bg-surface-50 rounded-2xl border border-surface-100">
         <div className="text-center sm:text-left">
-          <div className="text-4xl font-bold text-surface-900">{summary.avg_rating.toFixed(1)}</div>
-          <StarRating rating={Math.round(summary.avg_rating)} size="sm" />
-          <p className="text-xs text-surface-500 mt-1">{summary.total_reviews} reviews</p>
+          <div className="text-4xl font-bold text-surface-900">{(Number(summary?.avg_rating) || 0).toFixed(1)}</div>
+          <StarRating rating={Math.round(Number(summary?.avg_rating) || 0)} size="sm" />
+          <p className="text-xs text-surface-500 mt-1">{summary?.total_reviews ?? 0} reviews</p>
         </div>
         <div className="flex-1 space-y-1">
           {[5, 4, 3, 2, 1].map((star) => {
@@ -146,8 +165,8 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
               <RatingBar
                 key={star}
                 label={`${star}`}
-                count={summary[key] as number}
-                total={summary.total_reviews}
+                count={(summary?.[key] as number) ?? 0}
+                total={summary?.total_reviews ?? 0}
               />
             );
           })}
@@ -168,7 +187,7 @@ export function ReviewSection({ itemId, initialSummary, initialReviews }: Review
           )}
         </div>
 
-        {reviews.length === 0 ? (
+        {(!Array.isArray(reviews) || reviews.length === 0) ? (
           <div className="text-center py-8 text-surface-400">
             <div className="text-3xl mb-2">✍️</div>
             <p className="text-sm">No reviews yet. Be the first to review!</p>

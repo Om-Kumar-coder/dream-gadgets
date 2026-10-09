@@ -10,6 +10,13 @@ import { Brand } from './entities/brand.entity';
 import { Model } from './entities/model.entity';
 import { Accessory } from './entities/accessory.entity';
 import { AccessoryService } from './accessory.service';
+import {
+  validateIMEI,
+  normalizeIMEI,
+  calculateWarrantyExpiry,
+  ItemCondition,
+} from '../../common/utils/business-logic';
+
 import { EventsModule } from '../../common/events/events.module';
 import { RedisModule } from '../../common/redis/redis.module';
 

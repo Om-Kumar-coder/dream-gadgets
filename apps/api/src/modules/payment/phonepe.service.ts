@@ -86,6 +86,24 @@ export class PhonePeService {
     return !!(this.merchantId && this.saltKey);
   }
 
+  /**
+   * BUG-02: every mock path below used to activate whenever PhonePe was merely
+   * unconfigured — including in production, where checkPaymentStatus() returned
+   * a fabricated `state: 'COMPLETED'` and confirmed orders nobody paid for.
+   * In production an unconfigured provider must fail loudly (like the MSG91/
+   * SMTP channels do), never fabricate success. Outside production the mocks
+   * stay for local/CI development.
+   */
+  private assertMockAllowed(operation: string): void {
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.error(`[PhonePe] ${operation} called in production but PhonePe is not configured — refusing to use mock`);
+      throw new BadRequestException({
+        code: 'PHONEPE_NOT_CONFIGURED',
+        message: 'PhonePe payments are not configured on this deployment',
+      });
+    }
+  }
+
   // ─── Checksum Generation ─────────────────────────────────────────────────────
 
   generateChecksum(base64Payload: string, apiEndpoint: string): string {
@@ -110,6 +128,7 @@ export class PhonePeService {
 
   async initiatePayment(params: PhonePeInitiateParams): Promise<{ redirectUrl: string; merchantTransactionId: string }> {
     if (!this.isConfigured) {
+      this.assertMockAllowed('initiatePayment');
       this.logger.warn('[PhonePe] Not configured — returning mock redirect URL for development');
       return {
         redirectUrl: this.configService.get<string>('FRONTEND_URL', 'http://localhost:3001') + '/orders/payment-mock',
@@ -176,6 +195,7 @@ export class PhonePeService {
 
   async checkPaymentStatus(merchantTransactionId: string): Promise<PhonePeStatusResponse['data']> {
     if (!this.isConfigured) {
+      this.assertMockAllowed('checkPaymentStatus');
       this.logger.warn(`[PhonePe] Not configured — returning mock status for ${merchantTransactionId}`);
       return {
         merchantTransactionId,
@@ -256,6 +276,8 @@ export class PhonePeService {
     xVerifyHeader: string,
   ): Promise<{ merchantTransactionId: string; status: string; amount: number }> {
     if (!this.isConfigured) {
+      // Never accept an unverifiable webhook as a completed payment in production.
+      this.assertMockAllowed('processCallback');
       this.logger.warn('[PhonePe] Not configured — skipping callback verification');
       return { merchantTransactionId: 'mock', status: 'completed', amount: 0 };
     }
@@ -300,6 +322,7 @@ export class PhonePeService {
     amount?: number;                // in paise; omit for full refund
   }): Promise<{ refundId: string; status: string }> {
     if (!this.isConfigured) {
+      this.assertMockAllowed('refundPayment');
       this.logger.warn(`[PhonePe] Not configured — returning mock refund for ${params.originalTransactionId}`);
       return { refundId: `mock_refund_${Date.now()}`, status: 'COMPLETED' };
     }

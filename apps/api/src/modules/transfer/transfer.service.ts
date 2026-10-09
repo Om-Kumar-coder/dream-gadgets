@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -348,8 +349,13 @@ export class TransferService {
       const pdfBuffer = await page.pdf({ format: 'A4' });
       await browser.close();
       return Buffer.from(pdfBuffer);
-    } catch {
-      return Buffer.from(`%PDF-1.4 placeholder\n${html}`);
+    } catch (err: any) {
+      // BUG-12: fail loudly instead of returning corrupted placeholder bytes.
+      this.logger.error(`Transfer manifest PDF generation failed: ${err?.message}`);
+      throw new InternalServerErrorException({
+        code: 'PDF_GENERATION_FAILED',
+        message: 'PDF rendering is unavailable — please retry or contact support',
+      });
     }
   }
 }

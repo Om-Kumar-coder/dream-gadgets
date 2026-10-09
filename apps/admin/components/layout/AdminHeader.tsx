@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Bell, LogOut, User, ChevronDown } from 'lucide-react';
 import { useAdminAuthStore } from '@/store/auth.store';
+import { clearSessionCookie } from '@/lib/session';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 
@@ -26,6 +27,7 @@ export function AdminHeader() {
     logout();
     localStorage.removeItem('admin_access_token');
     localStorage.removeItem('admin_refresh_token');
+    clearSessionCookie();
     router.push('/login');
   };
 

@@ -20,10 +20,12 @@ export class ReviewsService {
   async getReviews(itemId: string, page = 1, limit = 20) {
     // Validate UUID format to prevent SQL errors
     if (!this.isValidUUID(itemId)) {
-      return { data: [], total: 0, page, limit, totalPages: 0 };
+      return { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
     }
 
-    const offset = (page - 1) * limit;
+    const safePage = Math.max(1, parseInt(page as any, 10) || 1);
+    const safeLimit = Math.min(100, Math.max(1, parseInt(limit as any, 10) || 20));
+    const offset = (safePage - 1) * safeLimit;
 
     try {
       const [reviews, countResult] = await Promise.all([
@@ -33,7 +35,7 @@ export class ReviewsService {
            WHERE item_id = $1
            ORDER BY created_at DESC
            LIMIT $2 OFFSET $3`,
-          [itemId, limit, offset],
+          [itemId, safeLimit, offset],
         ),
         this.dataSource.query(
           `SELECT COUNT(*)::int AS total FROM product_reviews WHERE item_id = $1`,
@@ -46,13 +48,13 @@ export class ReviewsService {
       return {
         data: reviews,
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       };
     } catch (err: any) {
       this.logger.warn(`getReviews failed for ${itemId}: ${err?.message}`);
-      return { data: [], total: 0, page, limit, totalPages: 0 };
+      return { data: [], total: 0, page: safePage, limit: safeLimit, totalPages: 0 };
     }
   }
 
@@ -67,11 +69,11 @@ export class ReviewsService {
         `SELECT
           COUNT(*)::int AS total_reviews,
           COALESCE(AVG(rating)::numeric(3,2), 0)::float AS avg_rating,
-          COUNT(*) FILTER (WHERE rating = 5)::int AS 5_star,
-          COUNT(*) FILTER (WHERE rating = 4)::int AS 4_star,
-          COUNT(*) FILTER (WHERE rating = 3)::int AS 3_star,
-          COUNT(*) FILTER (WHERE rating = 2)::int AS 2_star,
-          COUNT(*) FILTER (WHERE rating = 1)::int AS 1_star
+          COUNT(*) FILTER (WHERE rating = 5)::int AS "5_star",
+          COUNT(*) FILTER (WHERE rating = 4)::int AS "4_star",
+          COUNT(*) FILTER (WHERE rating = 3)::int AS "3_star",
+          COUNT(*) FILTER (WHERE rating = 2)::int AS "2_star",
+          COUNT(*) FILTER (WHERE rating = 1)::int AS "1_star"
         FROM product_reviews
         WHERE item_id = $1`,
         [itemId],

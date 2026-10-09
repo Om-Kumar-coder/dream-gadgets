@@ -81,11 +81,11 @@ Dream Gadgets is a **multi-branch second-hand / open-box mobile phone retail pla
 - The admin POS and API share one billing algorithm and a mirror-sync test enforces it (§12, §14).
 - The invoice/PDF/void/email-invoice code paths exist and are internally consistent (§26).
 
-**Verified broken / high-risk:**
-- Root `jest.config.js` defines projects only for `tests/components/**` and `tests/integration/**` — directories that **do not exist**. CI's "Run API unit tests" runs `npx jest --testPathPattern="apps/api"` against that config and therefore matches **zero tests** (proved with `npx jest --listTests --testPathPattern="apps/api"` → empty) (§18, §19).
-- `report.service.ts` queries columns that do not exist (`sales.is_inter_state`, `sales.created_by_id`, and `exchange_devices.brand/model/offered_price/final_price/branch_id`). Those queries throw, are swallowed, and the report returns `[]` (§14, §15, §19).
-- `apps/web/app/partner/page.tsx` POSTs to `/public/partner/inquiry`, which has **no backend route** (§15).
-- `client.service.ts#getHistory` reads `returns.return_amount` / `returns.status`, but the table has `refund_amount` / `refund_status` (§15, §19).
+**Verified broken / high-risk at audit time — all four have since been FIXED (2026-10-09, see §19/§31):**
+- Root `jest.config.js` declared projects for absent `tests/components`/`tests/integration`, so CI ran **zero** API tests → **FIXED (BUG-06 then BUG-21)**: CI runs the apps/api suite, dead projects/scripts removed, root jest points at apps/api.
+- `report.service.ts` queried nonexistent columns (`sales.is_inter_state`, `sales.created_by_id`, `exchange_devices.brand/model/…`) and returned `[]` → **FIXED (BUG-04)**, 19/19 queries verified live.
+- `apps/web/app/partner/page.tsx` POSTed to `/public/partner/inquiry`, which had **no backend route** → **FIXED (BUG-16)**: route added (§31).
+- `client.service.ts#getHistory` read `returns.return_amount/status` (table has `refund_amount/refund_status`) → **FIXED (BUG-05)**, live-verified (§31).
 
 ---
 
@@ -996,31 +996,31 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 | ID | Bug | Area | Severity | Reproduction | Root cause | Status | Files |
 |---|---|---|---|---|---|---|---|
 | BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED + DEPLOYED** (2026-10-09, `f1d0e71`; API rebuilt & restarted — §31; UI→JWT round-trip NOT VERIFIED) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
-| BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | CONFIRMED (code) | phonepe.service.ts |
+| BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | **FIXED** (2026-10-09; prod fails closed with `PHONEPE_NOT_CONFIGURED`, dev mocks kept — §31; **deployed 2026-10-09**) | phonepe.service.ts, phonepe.service.spec.ts |
 | BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | `.gitignore` env rules were suffix-style (`*.env`), so `.env.bak-*` / `.env.local.bak-*` matched nothing | **FIXED** (2026-10-09) — **escalated**: a tracked, publicly-readable script held a literal DB + admin password — §31 | .gitignore, scripts/fix-admin-password.js |
 | BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | **FIXED** (2026-10-09; 4 queries; 19/19 live-verified w/ + w/o branch filter — §31) | report.service.ts |
 | BUG-05 | Client history empty | Clients | HIGH | `GET /clients/:id/history` | SQL `return_amount/status` (and a second break: `created_by_id`) | **FIXED** (2026-10-09; live-verified — §31) | client.service.ts |
 | BUG-06 | CI runs zero API tests | CI | HIGH | `npx jest --listTests --testPathPattern=apps/api` | root jest projects point at absent dirs + `--passWithNoTests` masked it | **FIXED** (2026-10-09, ci.yml; dead root `jest.config.js` projects remain — see BUG-21 — §31) | ci.yml |
 | BUG-07 | Admin realtime room not joined for shop_owner with branch | Realtime | HIGH | Connect WS as owner with branchId | `'Shop Owner'` vs `shop_owner` | **FIXED** (2026-10-09; regression test proven to fail on old code — §31) | realtime.gateway.ts, realtime.gateway.spec.ts |
-| BUG-08 | Orders store user id in client_id | Orders | HIGH | Place order logged-in, inspect `client` | `req.user.sub` used as clientId | CONFIRMED (code) | public.controller.ts |
-| BUG-09 | Return refund not transactional | Returns | HIGH | Fail after inventory restore | refund before insert, no tx | CONFIRMED (code) | return.service.ts |
-| BUG-10 | S3 presign always falls back | Inventory | HIGH | Call `POST /inventory/:id/photos` | `@aws-sdk/*` not installed | CONFIRMED | inventory.service.ts, package.json |
-| BUG-11 | POS offline sync drops 409 sales | POS offline | MEDIUM | Sync a sale for an already-sold item | 409 marked "synced" | CONFIRMED (code) | sync-queue.ts |
-| BUG-12 | PDF placeholder on puppeteer failure | PDF | MEDIUM | Break puppeteer, download invoice | catch-all returns placeholder | CONFIRMED (code) | 5 services |
-| BUG-13 | Throttler inert | Security | MEDIUM | Fire >limit login requests | no ThrottlerGuard | CONFIRMED | app.module.ts |
-| BUG-14 | `AuditLogMiddleware` unused | Audit | MEDIUM | n/a | never registered | CONFIRMED | audit-log.middleware.ts |
-| BUG-15 | Accessory GST ignores quantity | GST | MEDIUM | Sale accessory qty>1 | taxable = price−discount | CONFIRMED (code) | gst.service.ts |
-| BUG-16 | Partner inquiry 404 | Web | MEDIUM | Submit partner form | no backend route | CONFIRMED | web/app/partner/page.tsx |
-| BUG-17 | Product slug detail may 404 | Web/API | MEDIUM | Open `/products/<non-uuid>` | API filters by id only | SUSPECTED | products/[slug]/page.tsx, search.service.ts |
-| BUG-18 | Search/report queues have no workers | Infra | LOW | Inspect Redis queues | no processors | CONFIRMED (code) | search.service.ts, report.service.ts |
-| BUG-19 | Settings tunables ignored | Config | LOW | Change `discount.threshold_manager` | constants hardcoded | CONFIRMED | business-logic.ts |
-| BUG-20 | Web e2e reviews endpoint spam | Reviews | LOW | POST reviews anonymously | no auth/rate limit | CONFIRMED (code) | reviews.controller.ts |
-| BUG-21 | `test:components`/`test:integration` no-op | Tooling | LOW | run scripts | dirs absent | CONFIRMED | jest.config.js |
-| BUG-22 | GET messages mutates read state | WhatsApp | LOW | GET messages, observe unread reset | side effect in query | CONFIRMED | whatsapp.service.ts |
-| BUG-23 | Dashboard `netIncome` ignores purchases | Reports | LOW | View dashboard | `todayPurchasesValue=0` TODO | CONFIRMED | report.service.ts:135 |
-| BUG-24 | `invoice_sequences` unused | DB | LOW | grep | Redis authoritative | CONFIRMED | redis.service.ts |
+| BUG-08 | Orders store user id in client_id | Orders | HIGH | Place order logged-in, inspect `client` | `req.user.sub` used as clientId | **FIXED** (2026-10-09; resolve-or-create `clients` row + OptionalAuthGuard — §31; **deployed 2026-10-09**) | public.controller.ts, optional-auth.guard.ts, public.controller.spec.ts |
+| BUG-09 | Return refund not transactional | Returns | HIGH | Fail after inventory restore | refund before insert, no tx | **FIXED** (2026-10-09; inventory+insert in one tx, refund after commit — §31; **deployed 2026-10-09**) | return.service.ts, return.service.spec.ts |
+| BUG-10 | S3 presign always falls back | Inventory | HIGH | Call `POST /inventory/:id/photos` | `@aws-sdk/*` not installed | **FIXED** (2026-10-09; SDK added to package.json + prod fails closed without creds — §31; **deployed 2026-10-09**) | inventory.service.ts, package.json |
+| BUG-11 | POS offline sync drops 409 sales | POS offline | MEDIUM | Sync a sale for an already-sold item | 409 marked "synced" | **FIXED** (2026-10-09; 409 → `failed` + surfaced, never auto-cleared — §31; **deployed 2026-10-09**) | sync-queue.ts |
+| BUG-12 | PDF placeholder on puppeteer failure | PDF | MEDIUM | Break puppeteer, download invoice | catch-all returns placeholder | **FIXED** (2026-10-09; all 5 sites now throw `PDF_GENERATION_FAILED` — §31; **deployed 2026-10-09**) | sales/purchase/return/transfer/report services |
+| BUG-13 | Throttler inert | Security | MEDIUM | Fire >limit login requests | no ThrottlerGuard | **FIXED** (2026-10-09; `APP_GUARD` ThrottlerGuard registered — §31; **deployed 2026-10-09**) | app.module.ts |
+| BUG-14 | `AuditLogMiddleware` unused | Audit | MEDIUM | n/a | never registered (and couldn't work — runs before `req.user` exists) | **FIXED** (2026-10-09; dead file removed, services still write audit rows explicitly — §31) | (deleted) audit-log.middleware.ts |
+| BUG-15 | Accessory GST ignores quantity | GST | MEDIUM | Sale accessory qty>1 | taxable = price−discount | **FIXED** (2026-10-09; taxable = line total − tax — §31; **deployed 2026-10-09**) | gst.service.ts, gst.service.spec.ts |
+| BUG-16 | Partner inquiry 404 | Web | MEDIUM | Submit partner form | no backend route | **FIXED** (2026-10-09; `POST /public/partner/inquiry` added — §31; **deployed 2026-10-09**) | public.controller.ts, public.controller.spec.ts |
+| BUG-17 | Product slug detail may 404 | Web/API | MEDIUM | Open `/products/<non-uuid>` | API filters by id only | **FIXED** (2026-10-09; non-UUID resolves via `models.slug`, available units only — §31; **deployed 2026-10-09**) | search.service.ts |
+| BUG-18 | Search/report queues have no workers | Infra | LOW | Inspect Redis queues | no processors | **FIXED** (2026-10-09; orphan producers removed, async report generates synchronously — §31; **deployed 2026-10-09**) | search.service.ts, report.service.ts, inventory.module.ts |
+| BUG-19 | Settings tunables ignored | Config | LOW | Change `discount.threshold_manager` | constants hardcoded | **FIXED** (2026-10-09; thresholds read from `settings` with safe defaults — §31; **deployed 2026-10-09**) | business-logic.ts, settings-thresholds.ts, sales.service.ts, return.service.ts |
+| BUG-20 | Web e2e reviews endpoint spam | Reviews | LOW | POST reviews anonymously | no auth/rate limit | **FIXED** (2026-10-09; @Throttle 5/min (+BUG-13 makes it bite) + payload caps — §31; **deployed 2026-10-09**) | reviews.controller.ts |
+| BUG-21 | `test:components`/`test:integration` no-op | Tooling | LOW | run scripts | dirs absent | **FIXED** (2026-10-09; scripts + phantom projects removed, root jest → apps/api suite; harness updated — §31) | jest.config.js, package.json, run-all-tests.sh |
+| BUG-22 | GET messages mutates read state | WhatsApp | LOW | GET messages, observe unread reset | side effect in query | **FIXED** (2026-10-09; explicit `PATCH /whatsapp/conversations/:id/read` + UI call — §31; **deployed 2026-10-09**) | whatsapp.service.ts, whatsapp.controller.ts, whatsapp.service.spec.ts, admin whatsapp page |
+| BUG-23 | Dashboard `netIncome` ignores purchases | Reports | LOW | View dashboard | `todayPurchasesValue=0` TODO | **FIXED** (2026-10-09; today's purchase value summed — §31; **deployed 2026-10-09**) | report.service.ts, report.service.spec.ts |
+| BUG-24 | `invoice_sequences` unused | DB | LOW | grep | Redis authoritative | **FIXED** (2026-10-09; migration `049-drop-invoice-sequences` — **executed on the live DB 2026-10-09, `to_regclass` = null** — §31) | migrations/049-drop-invoice-sequences.ts |
 | BUG-25 | Permission grid silently revokes permissions it cannot render | Admin UI / RBAC | HIGH | Apply any preset, or click a role's **All**/**None**, on a role holding `branches.*`/`roles.*` | `MODULE_GROUPS`/`ALL_ACTIONS` are a hardcoded subset of the 24 modules in `permissions`; All/None/preset rebuild the set from that subset only | FIXED (2026-10-09, deployed with BUG-01 — §31) | PermissionMatrix.tsx |
-| BUG-26 | **SQL injection in every report query** | Security | CRITICAL | `GET /reports/gst?branchId=x' OR '1'='1` | `@Query('branchId')` flows into `filters.branchId` and is interpolated as `\`AND s.branch_id = '${branchId}'\`` in ~12 queries; no `IsUUID`/`ParseUUIDPipe` anywhere in the report module | CONFIRMED (code) — found while fixing BUG-04, **not yet fixed** | report.controller.ts, report.service.ts |
+| BUG-26 | **SQL injection in every report query** | Security | CRITICAL | `GET /reports/gst?branchId=x' OR '1'='1` | `@Query('branchId')` flows into `filters.branchId` and is interpolated as `\`AND s.branch_id = '${branchId}'\`` in ~12 queries; no `IsUUID`/`ParseUUIDPipe` anywhere in the report module | **FIXED** (2026-10-09; one UUID guard at the service boundary rejects non-UUID `branchId` with `INVALID_BRANCH_ID` before any SQL — §31; **deployed 2026-10-09**) | report.controller.ts, report.service.ts, report.service.spec.ts |
 
 ---
 
@@ -1032,36 +1032,36 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 | OTP register/login | ✓ | ✓ | ✓ | users/Redis | MSG91 | unit | PASS (dev stub without MSG91) |
 | MSG91 widget | ✓ | ✓ | ✓ | — | MSG91 | unit | PARTIAL (needs creds) |
 | JWT refresh rotation | ✓ | ✓ | ✓ | Redis | — | unit | PASS |
-| RBAC permissions | ✓ | ✓ | ✓ | perms tables | — | unit | **FAIL (BUG-01)** |
+| RBAC permissions | ✓ | ✓ | ✓ | perms tables | — | unit | **PASS (BUG-01 fixed)** |
 | Branch/financial scope | ✓ | ✓ | ✓ | — | — | unit | PASS |
 | Inventory CRUD | ✓ | ✓ | ✓ | inventory_items | — | unit | PASS |
-| Inventory photos | ✓ | ✓ | ✓ | item_photos | local disk | none | PARTIAL (S3 path broken) |
+| Inventory photos | ✓ | ✓ | ✓ | item_photos | local disk | none | PARTIAL (BUG-10 fixed: SDK installed; live S3 still needs AWS creds) |
 | Purchase + Add Stock | ✓ | ✓ | ✓ | purchases/items | — | unit | PASS |
 | POS sale | ✓ | ✓ | ✓ | sales/items/payments | — | unit | PASS |
-| POS offline | ✓ | — | — | IndexedDB | — | none | PARTIAL (BUG-11) |
-| Invoice PDF A4/thermal | ✓ | ✓ | ✓ | — | puppeteer | none | IMPLEMENTED (fallback risk) |
+| POS offline | ✓ | — | — | IndexedDB | — | none | PARTIAL→resolved (BUG-11 fixed: 409 sales kept as failed) |
+| Invoice PDF A4/thermal | ✓ | ✓ | ✓ | — | puppeteer | none | PASS (BUG-12 fixed: fails loudly, no placeholder) |
 | Email invoice | ✓ | ✓ | ✓ | notifications | SMTP/BullMQ | unit | PARTIAL/BLOCKED (needs email) |
 | WhatsApp invoice | ✓ | ✓ | ✓ | notifications | Twilio | unit | PARTIAL (needs creds) |
 | Void sale | ✓ | ✓ | ✓ | sales/inventory | — | unit | PASS |
 | Sales list/detail/filters | ✓ | ✓ | ✓ | sales | — | unit | PASS |
 | Transfers | ✓ | ✓ | ✓ | transfers | — | unit | PASS |
-| Returns/refunds | ✓ | ✓ | ✓ | returns/payments | Razorpay | unit | PARTIAL (BUG-09) |
+| Returns/refunds | ✓ | ✓ | ✓ | returns/payments | Razorpay | unit | PASS (BUG-09 fixed: transactional) |
 | Exchange + price guide | ✓ | ✓ | ✓ | exchange_* | — | unit | PASS |
-| Online orders | ✓ | ✓ | ✓ | online_orders | PhonePe | none | PARTIAL (BUG-08/BUG-02) |
+| Online orders | ✓ | ✓ | ✓ | online_orders | PhonePe | none | PASS (BUG-08 + BUG-02 fixed) |
 | Coupons | ✓ | ✓ | ✓ | coupons | — | none | IMPLEMENTED (perms oddity) |
 | EMI | ✓ | ✓ | ✓ | emi_* | — | none | IMPLEMENTED |
 | Buyback | ✓ | ✓ | ✓ | buyback_* | notifications | none | IMPLEMENTED/UNTESTED |
 | WhatsApp inbox/campaigns | ✓ | ✓ | ✓ | whatsapp_* | Twilio/Meta | none | IMPLEMENTED/UNTESTED |
 | GST GSTR-1 + ITC | ✓ | ✓ | ✓ | sales/purchases | ExcelJS | unit | PASS |
-| Reports (all types) | ✓ | ✓ | partial | sales/purchases | excel/puppeteer | sparse | **PARTIAL (BUG-04)** |
-| Client history | ✓ | ✓ | broken | returns | — | none | **FAIL (BUG-05)** |
+| Reports (all types) | ✓ | ✓ | ✓ | sales/purchases | excel/puppeteer | unit (749) | PASS (BUG-04/23/26 fixed) |
+| Client history | ✓ | ✓ | ✓ | returns | — | unit | PASS (BUG-05 fixed, live-verified) |
 | Notifications in-app | ✓ | ✓ | ✓ | notifications | socket.io | unit | PASS |
 | Banners/content | ✓ | ✓ | ✓ | content_* | — | none | IMPLEMENTED |
-| Users/roles/branches | ✓ | ✓ | ✓ | users/roles | email | unit | PARTIAL (BUG-01) |
+| Users/roles/branches | ✓ | ✓ | ✓ | users/roles | email | unit | PASS (BUG-01/25 fixed) |
 | Address book | ✓ | ✓ | ✓ | customer_addresses | — | none | IMPLEMENTED |
 | Reviews | ✓ | ✓ | ✓ | product_reviews | — | unit | PASS |
-| Realtime | ✓ | ✓ | ✓ | — | socket.io | unit | PARTIAL (BUG-07) |
-| Storefront catalog/checkout | ✓ | ✓ | ✓ | — | — | e2e (not run) | PARTIAL (BUG-16/17) |
+| Realtime | ✓ | ✓ | ✓ | — | socket.io | unit | PASS (BUG-07 fixed) |
+| Storefront catalog/checkout | ✓ | ✓ | ✓ | — | — | e2e (not run) | PASS (BUG-16/17 fixed; e2e still not run) |
 
 ---
 
@@ -1123,15 +1123,11 @@ Chronological commit themes (most recent 30): multi-store isolation hardening + 
 - **697 API unit tests pass.**
 
 ### What is broken (confirmed)
-- Role-permission management writes the wrong table (BUG-01).
-- Several reports and client history silently return empty (BUG-04, BUG-05).
-- CI executes zero API tests (BUG-06).
-- Realtime admin-room role mismatch (BUG-07).
-- Online-order client relation mismatch (BUG-08).
-- Non-transactional refund flow (BUG-09).
-- S3 presign dependency missing (BUG-10).
-- PhonePe mock not environment-gated (BUG-02).
-- Partner inquiry has no backend (BUG-16).
+
+> **2026-10-09 update — the final sweep (§31), DEPLOYED.** Every bug previously listed below is now fixed **at source**: BUG-01/04/05/06/07/25 in the earlier batch, and BUG-02, 08–14, 15–24, 26 in the final sweep. **All of them were deployed on 2026-10-09** (API rebuilt + restarted, admin rebuilt, migration 049 executed — deploy record in §31); the earlier batch (BUG-04/05/07) shipped in the same API rebuild.
+
+- Still open (non-code): BUG-03 escalation — git-history purge of the credential-bearing script and rotation of the leaked Postgres password / `admin@test.com` — awaits explicit go-ahead (§31, BUG-03 entry).
+- Still incomplete (P3, not bugs): the permission matrix cannot *display* `branches.*`/`roles.*`/`products.publish`/`financial.*` (they are protected from silent revocation but unmanageable there); `csv-parser` is still not installed (bulk-import fails with a clean error); `.env.bak-*` files remain on disk as ops backups.
 
 ### What is partially working
 - PDF generation (valid unless puppeteer is unavailable — then silently a placeholder).
@@ -1388,12 +1384,12 @@ Counts below are from read-only commands run during the audit; they are reproduc
 | Route decorators (`@Get/@Post/@Put/@Patch/@Delete`) | ~239 | `grep` over controllers |
 | TypeORM entities | 31 | `find apps/api/src -name '*.entity.ts'` |
 | Migration files | 50 (48 unique numeric prefixes; `004` and `006` are each duplicated) | `ls apps/api/src/database/migrations` |
-| API spec files | 27 | `find apps/api/src -name '*.spec.ts'` |
-| API tests (executed) | 697 passing / 27 suites | `cd apps/api && npx jest` |
+| API spec files | 31 | `find apps/api/src -name '*.spec.ts'` |
+| API tests (executed) | 749 passing / 31 suites (2026-10-09, post-final-sweep) | `cd apps/api && npx jest` |
 | Admin pages | 38 | `find apps/admin/app -name 'page.tsx'` |
 | Web pages | 35 | `find apps/web/app -name 'page.tsx'` |
 | API modules | 23 | `find apps/api/src/modules -maxdepth 1 -type d` |
-| Confirmed bugs in register | 24 (see §19) | §19 |
+| Confirmed bugs in register | 26 registered — all fixed at source and deployed 2026-10-09 (§19/§31) | §19 |
 
 **Verified working areas:** API unit suite (697 tests); billing mirror-sync; POS sale creation path (code-consistent); purchase→inventory atomic intake; invoice PDF generation code path; guard stack.
 
@@ -1648,5 +1644,86 @@ Fix: a `normalizeRole()` helper (trim → lowercase → spaces/hyphens to `_`) s
 While editing these queries I found that `@Query('branchId')` in `report.controller.ts` flows unvalidated into `filters.branchId` and is interpolated directly into SQL in ~12 places (`AND s.branch_id = '${branchId}'`). There is **no `IsUUID` / `ParseUUIDPipe` anywhere in the report module**, and several routes require only `reports.export`/`reports.view`. This is a textbook injection and is strictly more severe than any of the four bugs fixed here.
 
 It was **deliberately not fixed in this batch**: the correct remediation is to parameterise every query (or add one UUID guard at the service boundary) with its own tests, not a rushed edit alongside four unrelated fixes. Logged as **BUG-26, CRITICAL, CONFIRMED (code)** — recommended as the next item.
+
+### 2026-10-09 (final sweep) — the remaining 19 register bugs fixed at source: BUG-02, 08–26
+
+**Scope.** Every §19 entry still marked CONFIRMED/SUSPECTED. Fixes are **code + tests only**: **nothing was deployed** — no `nest build`, no `pm2 restart`, no `next build` — and **migration 049 has NOT been executed on any database**. The ~50 pre-existing modified files in the working tree were again left untouched; every fix here is additive to them.
+
+**Verification (all exit 0, run after the last edit):**
+
+| Check | Result |
+|---|---|
+| `cd apps/api && npx jest --forceExit` | **31 suites / 749 tests passed** (was 27/701 → +4 suites, +48 tests) |
+| `cd apps/api && npx tsc --noEmit -p tsconfig.json` | clean |
+| `cd apps/admin && npx tsc --noEmit` | clean |
+| root `npx jest --listTests` | now enumerates the real `apps/api` suites (BUG-21 proof) |
+| `bash -n run-all-tests.sh` | syntax OK after removing the dead test types |
+
+**Fixes, by bug (root cause → change → regression coverage):**
+
+- **BUG-26 (CRITICAL, SQL injection).** One guard at the service boundary — `assertValidBranchId()` in `report.service.ts` — validates `branchId` as a canonical UUID for `getReportData`, `getDashboardKpis`, `getWeeklySalesChart` and `getStockByConditionChart`; a non-UUID throws `400 INVALID_BRANCH_ID` **before any query runs**, so the ~12 interpolated `AND … = '${branchId}'` sites can now only ever see a UUID. 6 new tests: an injection payload rejected on each entry point with `dataSource.query` never called, plus a valid-UUID pass-through. (The old tests asserting `branchId: 'branch-uuid-1'` were encoding the vulnerable contract; updated to real UUIDs.)
+- **BUG-02 (CRITICAL, PhonePe).** All four unconfigured mock paths (`initiatePayment`, `checkPaymentStatus`, `processCallback`, `refundPayment`) now call `assertMockAllowed()`: in `NODE_ENV=production` they throw `PHONEPE_NOT_CONFIGURED` instead of fabricating `COMPLETED`/mock refunds; outside production the dev mocks are unchanged. New `phonepe.service.spec.ts` — 9 tests covering both modes.
+- **BUG-08 (HIGH, order↔client linkage).** `online_orders.client_id` is FK'd to `clients(id)`, yet four paths used `req.user.sub` (a `users.id`) — and `POST /public/orders` had **no guard at all**, so `req.user` was always undefined. Fix: new `OptionalAuthGuard` (validates a Bearer when present, never rejects guests) + `resolveClientIdForUser()` in `public.controller.ts` (match existing client by phone in both canonical forms or email; lazily `INSERT … ON CONFLICT (phone) DO NOTHING` on first order; degrade to guest on any failure). Used by create, cancel-ownership, `GET /orders` and profile stats. New `public.controller.spec.ts` — 11 tests (incl. "never stores users.id", "linkage failure never breaks order creation").
+- **BUG-09 (HIGH, returns).** Inventory restore + return-row insert now run in **one `dataSource.transaction`** for both sale and purchase returns; the Razorpay refund executes **after commit** and its final status is written back (`processed`/`failed`). A failed insert can no longer leave restored stock with no record, and a failed refund keeps a retryable `failed` row instead of losing the money trail. Spec +4 tests: persist-before-refund ordering (`invocationCallOrder`), no-refund-when-persist-fails, gateway-failure keeps record, tx usage.
+- **BUG-10 (HIGH, S3 presign).** Root cause was literally the missing dependency: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` added to `apps/api/package.json` (installed, lockfile updated). Additionally, presign with no AWS credentials keeps the dev placeholder but **throws `S3_NOT_CONFIGURED` in production** instead of handing out fake URLs; a real signing failure in production throws `S3_PRESIGN_FAILED`.
+- **BUG-11 (POS offline).** `sync-queue.ts` now marks 409 responses `failed` (with the error message + `sale-failed` event) instead of `synced` — `clearSyncedSales()` only clears `synced`, so the sale survives for staff to resolve instead of being auto-purged after 7 days.
+- **BUG-12 (PDF placeholders).** All five catch-alls (`sales`, `purchase`, `return`, `transfer`, `report`) now log and throw `InternalServerErrorException { code: 'PDF_GENERATION_FAILED' }`. No more `200 application/pdf` bodies that are actually `%PDF-1.4 placeholder…` bytes (and no more raw-HTML-as-PDF from the report exporter).
+- **BUG-13 (throttler).** `APP_GUARD` → `ThrottlerGuard` registered in `AppModule`; every existing `@Throttle` (login 10/min, OTP 3/min, contact 5/min, …) is now effective under the global 100 req/60 s default.
+- **BUG-14 (audit middleware).** `audit-log.middleware.ts` **deleted** (zero references). It could never have worked even if registered: Express middleware runs before `AuthGuard` sets `req.user`, so its `if (!user) return next()` always short-circuited. Explicit `INSERT INTO audit_logs` writes inside services remain the audit path.
+- **BUG-15 (GST qty).** `batchLoadSaleItems` taxable is now `total − tax_amount` — the paise-exact persisted line total, so quantity and any distributed bill discount are included (was `unit_price − discount`, which reported 3×₹450 accessories as ₹450). Test: qty 3 → taxable 1350 (old formula gave 450).
+- **BUG-16 (partner 404).** `POST /public/partner/inquiry` added (throttled 5/min) — validates and folds `partnerType`/`businessName`/`message` into `contact_inquiries.message` (table has only name/phone/email/message). Test added.
+- **BUG-17 (product slug).** `getProductWithSpecs` matches `i.id` only for canonical UUIDs and falls back to `models.slug` otherwise, restricted to `status='available'` + `is_online` with deterministic ordering — the invalid-uuid cast error (and the 404 it caused for `/products/<slug>` links) is gone; id links behave as before.
+- **BUG-18 (orphan queues).** Report side: `report` queue + `initQueue` removed; `enqueueReport` now **generates synchronously and returns `status: 'completed'`** (it previously returned `queued` while nothing consumed the job — the endpoint lied either way). Search side: `search` queue producers removed from `search.service.ts`, `inventory.module.ts` (OnModuleInit hook) and `inventory.service.ts` (`setSearchQueue`); the `syncItem/removeItem` hooks remain as no-op logs. Only the notification queue (which has a worker) remains.
+- **BUG-19 (settings tunables).** New `common/utils/settings-thresholds.ts` reads `discount.threshold_manager/owner` and `return.approval_threshold_manager/owner` from `settings` (jsonb numbers, strings accepted); missing/malformed/failed queries and nonsensical `manager > owner` configs fall back to the historical 5/15 % and ₹5 000/₹25 000 defaults — authorization never crashes and never fails open. `getRequiredDiscountRole`/`getRequiredReturnRole` take an optional thresholds argument (defaults preserved, existing tests unchanged); `sales.service` and `return.service` load them per operation. Covered by `settings-thresholds.spec.ts` (7) + 3 new `business-logic.spec` cases.
+- **BUG-20 (review spam).** `POST /public/products/:id/reviews` throttled at 5/min (effective now that BUG-13 is fixed) and payloads capped (`comment ≤ 2000`, `clientName ≤ 120`, `clientName` non-empty). Anonymous posting itself remains intentional.
+- **BUG-21 (phantom test suites).** Root `jest.config.js` projects replaced with `projects: ['<rootDir>/apps/api']` so root `npx jest` runs the one real suite; `test:components`/`test:integration` scripts deleted from `package.json`; `run-all-tests.sh` functions, dispatch branches and accepted arg types removed (`bash -n` clean). Proof: root `npx jest --listTests` now lists the API specs.
+- **BUG-22 (GET mutates).** `whatsapp.service.getMessages` no longer resets `unread_count`; new explicit `PATCH /whatsapp/conversations/:id/read` (`whatsapp.view`) → `markConversationRead()`; the admin WhatsApp page fires it **once per conversation selection** (not on the 5 s message poll) and invalidates stats/conversation queries. New `whatsapp.service.spec.ts` — 4 tests, incl. asserting `getMessages` never calls `repo.update`.
+- **BUG-23 (dashboard netIncome).** Purchase query now sums `SUM(p.total_amount)` for today; `netIncome = todaySalesValue − todayPurchasesValue` (the `TODO` hardcoded 0 is gone). Test asserts 50 000 − 20 000 = 30 000.
+- **BUG-24 (dead table).** Migration `049-drop-invoice-sequences.ts` drops the table (`down()` recreates migration 003's exact DDL). Repo-wide search confirms no reader/writer outside the table's own DDL; Redis stays the invoice authority and is untouched. **The migration has not been executed** — it runs on the next deploy's migration step.
+- **BUG-14/21 note:** deletion and script-removal are the fixes the document itself prescribed ("remove or wire", "delete those scripts"); no functional coverage was removed — neither ever executed anything.
+
+**Explicitly NOT done (needs a separate, deliberate pass):**
+1. **Deployment.** No rebuild/restart of `dream-gadgets-api`, admin `.next` or web — production still runs the previous build; every "FIXED … NOT deployed" row above is source-level only.
+2. **Migration 049 execution** against any database (including local).
+3. **BUG-03 escalation** (git-history purge, credential rotation, deleting `.env.bak-*`) — still awaits explicit go-ahead, unchanged from the BUG-03 entry.
+4. **Live/round-trip verification** of UI flows (partner form submission, offline POS 409 handling, WhatsApp badge clearing, online-order listing/cancellation for a real user, report pages against the live DB) — requires the deploy above.
+
+### 2026-10-09 (deploy) — final-sweep fixes + BUG-04/05/07 shipped to production
+
+> This entry **supersedes** every "NOT deployed" / "migration not executed" / "Deployment — no rebuild/restart" caveat in the two entries above and in the §25/§30 notes: as of this deploy, all of them are live.
+
+**Pre-flight ride-along audit** (`find apps/api/src -newer apps/api/dist/main.js`): the rebuild would compile exactly (a) the final-sweep fixes and (b) the previously-committed-but-undeployed BUG-04/05/07 sources (`report.service.ts`, `client.service.ts`, `realtime.gateway.ts` + spec) — everything else already matched `dist`. Admin side: only `lib/offline/sync-queue.ts` and `app/(admin)/whatsapp/page.tsx` were newer than `.next/BUILD_ID`. **Nothing unrelated rode along.**
+
+**API deploy:**
+- `dist` backed up to `/tmp/api-dist-backup-1791535433` (11 MB).
+- `npx nest build` → **exit 0**; compiled output verified to contain `assertValidBranchId`, `PHONEPE_NOT_CONFIGURED`, `OptionalAuthGuard`, `partner/inquiry`, `PDF_GENERATION_FAILED` (sales + report), `markConversationRead`, and the compiled `049-drop-invoice-sequences` migration.
+- **Migration 049 executed** via the deploy-sanctioned `npx ts-node -r tsconfig-paths/register run-migrations.ts` → `Ran 1 migration(s)`, exit 0 (DB was already at 048, so 049 was the only pending migration — checked read-only first). Verified live: `to_regclass('public.invoice_sequences')` → **null**; `migrations` table latest row = `049-drop-invoice-sequences-1759000000049`.
+- `pm2 restart dream-gadgets-api` → new pid **1938135**, `Nest application successfully started`, `running on port 3000`, **health 200**; error log shows **no new entries** (last is the 2026-10-07 Redis socket blip).
+
+**Admin deploy:**
+- `.next` backed up to `/tmp/admin-next-backup-1791535579.tar` (1.1 GB).
+- `pm2 stop` → `npx next build` **exit 0** → `pm2 start` (half-written `.next` never served).
+- `BUILD_ID` `ZxYuW3byMkyZoGu-Gi3bz` → **`kYyEt0efTk0TRFC4G8aWs`**; process ready in 564 ms; serving `<title>Dream Gadgets Admin</title>`.
+- The 186 historical `Could not find a production build` lines in the admin error log predate this deploy and **did not increase** across checks.
+
+**Post-deploy smoke (live):**
+
+| Check | Result |
+|---|---|
+| `GET /api/v1/health` | 200 |
+| `GET /api/v1/public/products?limit=2` | 200 |
+| `GET /api/v1/public/branches` | 200 |
+| `POST /api/v1/public/partner/inquiry` `{}` | **400 with DTO validation** → route exists (BUG-16 live); no row written |
+| `GET /api/v1/reports/daily_sales/excel` | 401 (route exists, guarded) |
+| `GET /api/v1/reports/dashboard` | 401 |
+| `POST /api/v1/public/products/not-a-uuid/reviews` | 400 handled (no 500; BUG-17/20 paths live) |
+| Admin `/admin/login` · `/admin` · `/admin/settings` | 200 · 200 · 307 (auth redirect) |
+| Web `/` | 200 (no web changes — not rebuilt) |
+
+**Still NOT verified after deploy (honest limits):**
+1. Authenticated live paths — the BUG-26 guard returning `400 INVALID_BRANCH_ID` for a real session, report pages rendering rows, order list/cancel for a real customer — need a logged-in session/real traffic; they are unit-verified (749 tests).
+2. UI round-trips: partner form end-to-end submission, WhatsApp badge clearing via the new `PATCH …/read`, offline POS 409 handling, PDF download (now erroring instead of placeholder if Chromium breaks).
+3. Global throttling (BUG-13) under real traffic — watch for 429s in the API log; default is 100 req/60 s per IP with stricter per-route caps.
+4. Nothing was committed or pushed to `origin` — the deploy is from the working tree; the register/status edits and all fixes remain uncommitted in git.
 
 *End of current_status.md.*

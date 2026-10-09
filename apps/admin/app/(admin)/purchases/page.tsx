@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, FileText } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@dream-gadgets/ui';
+import { toast } from 'react-hot-toast';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 
 type Purchase = {
@@ -24,11 +25,54 @@ type Purchase = {
 };
 
 export default function PurchasesPage() {
+  // The purchase invoice endpoint is JWT-protected (Bearer token from
+  // localStorage), so it must be fetched through apiClient and handled as
+  // binary data — a plain <a href> navigation carries no Authorization header
+  // and returns 401. Mirrors the sales list Download PDF action.
+  const downloadInvoice = useMutation({
+    mutationFn: async (purchase: Purchase) => {
+      const res = await apiClient.get(`/purchases/${purchase.id}/invoice`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], { type: 'application/pdf' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${purchase.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+    onError: async (error: any) => {
+      // With responseType 'blob' an error body arrives as a Blob — read it back.
+      let message = 'Failed to download invoice';
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          message = parsed?.error?.message || parsed?.message || message;
+        } catch {
+          // keep default message
+        }
+      } else {
+        message = data?.error?.message || data?.message || message;
+      }
+      toast.error(message);
+    },
+  });
+
   const columns: ColumnDef<Purchase, any>[] = [
     {
       accessorKey: 'invoiceNumber',
       header: 'Invoice #',
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.invoiceNumber}</span>,
+      cell: ({ row }) => (
+        <Link
+          href={`/purchases/${row.original.id}`}
+          className="font-mono text-xs text-blue-600 hover:underline"
+        >
+          {row.original.invoiceNumber}
+        </Link>
+      ),
     },
     {
       accessorKey: 'vendorName',
@@ -69,14 +113,14 @@ export default function PurchasesPage() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <a
-          href={`/api/v1/purchases/${row.original.id}/invoice`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs"
+        <button
+          type="button"
+          onClick={() => downloadInvoice.mutate(row.original)}
+          disabled={downloadInvoice.isPending}
+          className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText className="w-3 h-3" /> PDF
-        </a>
+        </button>
       ),
     },
   ];

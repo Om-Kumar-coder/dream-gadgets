@@ -10,7 +10,12 @@ import { ItemPhoto } from './entities/item-photo.entity';
 import { Brand } from './entities/brand.entity';
 import { Model } from './entities/model.entity';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
-import { calculateWarrantyExpiry, ItemCondition } from '../../common/utils/business-logic';
+import {
+  validateIMEI,
+  calculateWarrantyExpiry,
+  isValidStatusTransition,
+  ItemCondition,
+} from '../../common/utils/business-logic';
 import { EventService } from '../../common/events/event.service';
 import { RedisService } from '../../common/redis/redis.service';
 

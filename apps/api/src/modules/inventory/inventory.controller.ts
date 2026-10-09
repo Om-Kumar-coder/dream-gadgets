@@ -13,8 +13,12 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { mkdirSync } from 'fs';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { InventoryService } from './inventory.service';
@@ -160,13 +164,68 @@ export class InventoryController {
   async addPhoto(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { filename: string; s3Key?: string; sortOrder?: number },
+    @CurrentUser() user: any,
   ) {
     if (body.s3Key) {
       // Client already uploaded — just register the photo
-      return this.inventoryService.addPhoto(id, body.s3Key, body.sortOrder ?? 0);
+      return this.inventoryService.addPhoto(id, body.s3Key, body.sortOrder ?? 0, user);
     }
     // Return presigned URL for client to upload
-    return this.inventoryService.getPresignedUploadUrl(id, body.filename);
+    return this.inventoryService.getPresignedUploadUrl(id, body.filename, user);
+  }
+
+  @Post(':id/photos/upload')
+  @RequirePermission('inventory.edit')
+  @ApiOperation({ summary: 'Upload a product photo (multipart) and register it' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const dir = join(__dirname, '..', '..', '..', '..', 'uploads', 'inventory');
+          mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
+        filename: (_req, file, cb) => {
+          const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+      fileFilter: (_req, file, cb) => {
+        // Accept a photo when EITHER its extension or its MIME type identifies
+        // it as an image. Requiring both rejected valid uploads: browsers/OSes
+        // sometimes send a generic/empty MIME type (e.g. application/octet-stream)
+        // for a perfectly good .jpg, which previously surfaced as a 500 on save.
+        const ext = extname(file.originalname).toLowerCase();
+        const extOk = /\.(jpe?g|png|webp|gif|avif|heic|heif|bmp|tiff?)$/.test(ext);
+        const mimeOk = /^image\//i.test(file.mimetype || '');
+        if (extOk || mimeOk) return cb(null, true);
+        cb(new BadRequestException(`Unsupported image type: ${file.mimetype || ext || 'unknown'}`), false);
+      },
+    }),
+  )
+  async uploadPhoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: { filename: string },
+    @Body() body: { sortOrder?: string },
+    @CurrentUser() user: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException({ code: 'PHOTO_REQUIRED', message: 'Photo file is required' });
+    }
+    // Static assets are served at /api/v1/uploads — store a root-relative URL
+    // that the web/admin clients prefix with the API base URL.
+    const publicUrl = `/uploads/inventory/${file.filename}`;
+    const s3Key = `inventory/${id}/${file.filename}`;
+    const photo = await this.inventoryService.addPhoto(
+      id,
+      s3Key,
+      body?.sortOrder ? parseInt(body.sortOrder, 10) : 0,
+      user,
+      publicUrl,
+    );
+    return { status: 'success', data: photo };
   }
 
   @Delete(':id/photos/:photoId')
@@ -176,8 +235,9 @@ export class InventoryController {
   async deletePhoto(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('photoId', ParseUUIDPipe) photoId: string,
+    @CurrentUser() user: any,
   ) {
-    await this.inventoryService.deletePhoto(id, photoId);
+    await this.inventoryService.deletePhoto(id, photoId, user);
   }
 
   // ─── Toggle online ──────────────────────────────────────────────────────────
@@ -186,6 +246,6 @@ export class InventoryController {
   @RequirePermission('inventory.edit')
   @ApiOperation({ summary: 'Toggle isOnline flag and enqueue search index sync' })
   async toggleOnline(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.inventoryService.toggleOnline(id, user.sub);
+    return this.inventoryService.toggleOnline(id, user.sub, user);
   }
 }

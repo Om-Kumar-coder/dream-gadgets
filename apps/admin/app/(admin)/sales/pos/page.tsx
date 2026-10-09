@@ -85,7 +85,8 @@ export default function POSPage() {
   // Store selection (P1-4/P2-8): staff are locked to their assigned branch;
   // cross-branch users (owner without a branch, multi-store managers) must pick
   // the store explicitly. Matches CROSS_BRANCH_ROLES in branch-scope.guard.ts.
-  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager', 'store_manager'];
+  // Store manager is excluded here — store manager is assigned-store only.
+  const CROSS_BRANCH_ROLES = ['shop_owner', 'multi_store_manager'];
   const isCrossBranch = !user?.branchId || CROSS_BRANCH_ROLES.includes(user?.role ?? '');
   const lockedBranchId = user?.branchId ?? '';
   const [selectedBranchId, setSelectedBranchId] = useState<string>(lockedBranchId);
@@ -107,6 +108,9 @@ export default function POSPage() {
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [payments, setPayments] = useState<PaymentSplit[]>([{ method: 'cash', amount: 0 }]);
   const [clientPhone, setClientPhone] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -172,6 +176,37 @@ export default function POSPage() {
     return () => clearTimeout(timer);
   }, [searchQuery, offlinePOS.isOnline]);
 
+  // Resolve the customer from the typed phone number: if an existing client
+  // matches, reuse their id (and backfill name/email); otherwise the sale will
+  // create a new client on submit. This is what lets the invoice carry a
+  // recipient for email/WhatsApp delivery instead of every bill being Walk-in.
+  useEffect(() => {
+    const phone = clientPhone.trim();
+    if (!offlinePOS.isOnline || phone.length < 10) {
+      setResolvedClientId(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await apiClient.get('/clients', {
+          params: { search: phone, limit: 5 },
+        });
+        const list: any[] = data?.data ?? [];
+        const exact = list.find((c) => c.phone === phone || c.phone?.endsWith(phone));
+        if (exact) {
+          setResolvedClientId(exact.id);
+          setClientName((n) => n || [exact.firstName, exact.lastName].filter(Boolean).join(' '));
+          setClientEmail((e) => e || exact.email || '');
+        } else {
+          setResolvedClientId(null);
+        }
+      } catch {
+        setResolvedClientId(null);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [clientPhone, offlinePOS.isOnline]);
+
   // Canonical totals from the shared contract.
   const bill = buildBill(billItems, discount);
   const subtotal = bill.subtotal;
@@ -234,8 +269,40 @@ export default function POSPage() {
       const phoneItems = billItems.filter((i) => !i.id.startsWith('acc-'));
       const accItems = billItems.filter((i) => i.id.startsWith('acc-'));
 
+      // Resolve the customer to a clientId so the invoice has a recipient for
+      // email/WhatsApp. Reuse an already-resolved client; otherwise create one
+      // from the captured phone (name/email optional). Never block the sale on
+      // client lookup failure — a Walk-in sale is still valid.
+      let clientId: string | undefined = resolvedClientId ?? undefined;
+      const phone = clientPhone.trim();
+      if (!clientId && phone && branchId) {
+        try {
+          const nameParts = clientName.trim().split(/\s+/).filter(Boolean);
+          const { data: created } = await apiClient.post('/clients', {
+            firstName: nameParts[0] || 'Walk-in',
+            lastName: nameParts.slice(1).join(' ') || 'Customer',
+            phone,
+            email: clientEmail.trim() || undefined,
+            branchId,
+            customerType: 'walk-in',
+          });
+          clientId = created?.data?.id ?? created?.id ?? undefined;
+        } catch (err: any) {
+          // Phone already exists → look it up; otherwise continue as Walk-in.
+          try {
+            const { data } = await apiClient.get('/clients', { params: { search: phone, limit: 5 } });
+            const list: any[] = data?.data ?? [];
+            const exact = list.find((c) => c.phone === phone || c.phone?.endsWith(phone));
+            clientId = exact?.id ?? undefined;
+          } catch {
+            clientId = undefined;
+          }
+        }
+      }
+
       const salePayload = {
         branchId: branchId || undefined,
+        clientId,
         items: phoneItems.map((i) => ({
           itemId: i.id,
           unitPrice: i.price,
@@ -274,6 +341,9 @@ export default function POSPage() {
         setDiscount(0);
         setNotes('');
         setClientPhone('');
+        setClientName('');
+        setClientEmail('');
+        setResolvedClientId(null);
       } else {
         toast.success(`Sale created! Invoice: ${result.invoiceNumber}`);
         router.push('/sales');
@@ -302,6 +372,9 @@ export default function POSPage() {
     setDiscount(0);
     setNotes('');
     setClientPhone('');
+    setClientName('');
+    setClientEmail('');
+    setResolvedClientId(null);
     setOfflineSaleQueued(false);
   }, []);
 
@@ -547,16 +620,40 @@ export default function POSPage() {
               </p>
             )}
 
-            <div>
-              <label className="block text-xs text-surface-500 mb-1">
-                Client Phone (optional)
-              </label>
-              <input
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                placeholder="9876543210"
-                className="input"
-              />
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-surface-500 mb-1">
+                  Client Phone (optional)
+                </label>
+                <input
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  placeholder="9876543210"
+                  className="input"
+                />
+                {resolvedClientId && (
+                  <p className="text-[11px] text-emerald-600 mt-1">
+                    Existing customer matched — sale will be linked to their profile.
+                  </p>
+                )}
+              </div>
+              {clientPhone.trim().length >= 10 && !resolvedClientId && (
+                <>
+                  <input
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Customer name (optional)"
+                    className="input"
+                  />
+                  <input
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                    placeholder="Email for invoice (optional)"
+                    className="input"
+                    type="email"
+                  />
+                </>
+              )}
             </div>
 
             <div>

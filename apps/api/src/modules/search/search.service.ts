@@ -31,35 +31,14 @@ export interface SearchResult {
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
-  private queue: any = null;
 
   constructor(
     @InjectDataSource()
     private dataSource: DataSource,
     private configService: ConfigService,
-  ) {
-    this.initQueue();
-  }
+  ) {}
 
   private readonly fallbackImage = '/images/placeholders/no-image.svg';
-
-  // ─── Queue init ───────────────────────────────────────────────────────────────
-
-  private initQueue(): void {
-    try {
-      const { Queue } = require('bullmq');
-      const redisUrl = this.configService.get<string>('redis.url') ?? this.configService.get<string>('REDIS_URL');
-      if (redisUrl) {
-        this.queue = new Queue('search', {
-          connection: { url: redisUrl },
-          defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 1000 } },
-        });
-        this.logger.log('Search BullMQ queue initialized');
-      }
-    } catch {
-      this.logger.warn('BullMQ not available for search queue');
-    }
-  }
 
   // ─── 18.2 Admin inventory search ─────────────────────────────────────────────
 
@@ -253,10 +232,14 @@ export class SearchService {
           b.name AS branch_name,
           b.id AS branch_id,
           COALESCE(
-            (SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'
+            NULLIF((SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'::jsonb),
+            NULLIF(i.images, '[]'::jsonb),
+            '[]'::jsonb
           ) AS images,
           COALESCE(
-            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1), $${paramIdx}
+            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1),
+            NULLIF(i.images ->> 0, ''),
+            $${paramIdx}
           ) AS thumbnail
           ${rankClause}
         FROM inventory_items i
@@ -269,12 +252,19 @@ export class SearchService {
         [...params, this.fallbackImage, limit, offset],
       );
 
-      const normalizedItems = items.map((item: any) => ({
-        ...item,
-        images: Array.isArray(item.images) ? item.images : [],
-        thumbnail: item.thumbnail || this.fallbackImage,
-        price: Number(item.price ?? item.online_price ?? item.selling_price ?? 0),
-      }));
+      const normalizedItems = items.map((item: any) => {
+        // Never expose a non-'available' row to the public catalogue, even if a
+        // stale is_online= true record escaped the admin lifecycle cleanup.
+        if (item.status !== 'available') {
+          return null;
+        }
+        return {
+          ...item,
+          images: Array.isArray(item.images) ? item.images : [],
+          thumbnail: item.thumbnail || this.fallbackImage,
+          price: Number(item.price ?? item.online_price ?? item.selling_price ?? 0),
+        };
+      }).filter((item: any): item is any => item !== null);
 
       // Faceted aggregations
       const facets = await this.getPublicFacets(conditions, params);
@@ -346,7 +336,9 @@ export class SearchService {
           brd.name AS brand,
           mdl.name AS model,
           COALESCE(
-            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1), $1
+            (SELECT url FROM item_photos p WHERE p.item_id = i.id ORDER BY sort_order LIMIT 1),
+            NULLIF(i.images ->> 0, ''),
+            $1
           ) AS thumbnail
         FROM inventory_items i
         LEFT JOIN brands brd ON brd.id = i.brand_id
@@ -375,6 +367,14 @@ export class SearchService {
 
   async getProductWithSpecs(itemId: string): Promise<any | null> {
     try {
+      const identifier = String(itemId ?? '').trim();
+      // BUG-17: the storefront route is /products/[slug] and legacy/SEO links
+      // carry model slugs, but the query filtered `i.id = $1` — a non-UUID
+      // made Postgres throw on the uuid cast and the page 404'd. Match ids
+      // against the primary key and everything else against the model slug.
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+      const matchClause = isUuid ? 'i.id = $1' : 'mdl.slug = $1';
+
       const [item] = await this.dataSource.query(
         `SELECT
           i.id, i.imei, i.condition, i.status,
@@ -388,16 +388,27 @@ export class SearchService {
           mdl.id AS model_id, mdl.name AS model, mdl.slug AS model_slug,
           mdl.description AS description, mdl.specs AS specs,
           COALESCE(
-            (SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'
+            NULLIF((SELECT jsonb_agg(url ORDER BY sort_order) FROM item_photos p WHERE p.item_id = i.id), '[]'::jsonb),
+            NULLIF(i.images, '[]'::jsonb),
+            '[]'::jsonb
           ) AS images
         FROM inventory_items i
         LEFT JOIN brands brd ON brd.id = i.brand_id
         LEFT JOIN models mdl ON mdl.id = i.model_id
-        WHERE i.id = $1 AND i.is_online = true`,
-        [itemId],
+        WHERE ${matchClause} AND i.is_online = true
+          AND i.status = 'available'
+        ORDER BY i.created_at DESC
+        LIMIT 1`,
+        [identifier],
       );
 
       if (!item) return null;
+
+      // Never expose a non-'available' row through the public detail endpoint,
+      // even if a stale is_online= true record escaped the admin lifecycle cleanup.
+      if (item.status !== 'available') {
+        return null;
+      }
 
       return {
         ...item,
@@ -415,21 +426,15 @@ export class SearchService {
 
   // ─── 18.6 BullMQ index sync (no-op for MVP) ───────────────────────────────────
 
+  // BUG-18: these hooks used to enqueue jobs onto a 'search' BullMQ queue that
+  // had no worker anywhere in the repo, so jobs accumulated in Redis forever
+  // and never did anything. The catalogue reads straight from Postgres, so the
+  // hooks stay as logs — no producer without a consumer.
   async syncItem(itemId: string): Promise<void> {
-    this.logger.log(`[Search] syncItem: ${itemId} (no-op for MVP)`);
-    if (this.queue) {
-      await this.queue.add('index-item', { itemId }).catch((err: any) => {
-        this.logger.warn(`Failed to enqueue search sync: ${err?.message}`);
-      });
-    }
+    this.logger.log(`[Search] syncItem: ${itemId} (no-op — catalogue reads are live)`);
   }
 
   async removeItem(itemId: string): Promise<void> {
-    this.logger.log(`[Search] removeItem: ${itemId} (no-op for MVP)`);
-    if (this.queue) {
-      await this.queue.add('remove-item', { itemId }).catch((err: any) => {
-        this.logger.warn(`Failed to enqueue search remove: ${err?.message}`);
-      });
-    }
+    this.logger.log(`[Search] removeItem: ${itemId} (no-op — catalogue reads are live)`);
   }
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toggleWishlist, isWished, onWishlistChange, type WishlistItem } from '../../lib/wishlist';
+import { resolveImageUrl } from '../../lib/images';
 
 interface ProductCardProps {
   /** Raw product data from the API */
@@ -34,8 +35,8 @@ function getQualityClass(q: string): string {
 }
 
 function getProductImage(p: any): string | null {
-  if (p.images?.[0]) return p.images[0];
-  if (p.thumbnail) return p.thumbnail;
+  if (p.images?.[0]) return resolveImageUrl(p.images[0]);
+  if (p.thumbnail) return resolveImageUrl(p.thumbnail);
   return null;
 }
 
@@ -178,14 +179,14 @@ export default function ProductCardDefault({ product: p, variant = 'grid', index
           }}
         />
         {discount && (
-          <span className={`absolute z-10 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg ${
+          <span className={`absolute z-20 inline-flex items-center gap-0.5 bg-gradient-to-r from-primary to-accent text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg ${
             isInStock ? 'top-3 left-3' : 'top-12 left-3'
           }`}>
             -{discount}%
           </span>
         )}
         {!isInStock && (
-          <span className="absolute top-3 left-3 z-10 bg-surface-800/80 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+          <span className="absolute top-3 left-3 z-20 bg-surface-800/80 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
             Out of Stock
           </span>
         )}
@@ -194,7 +195,10 @@ export default function ProductCardDefault({ product: p, variant = 'grid', index
             <img
               src={img}
               alt={name}
-              className={`w-full h-full object-contain ${padding} transition-transform duration-500 ease-out group-hover:scale-110`}
+              // relative z-10 keeps the real product image above the placeholder
+              // overlay rendered below it (which is positioned and would otherwise
+              // paint on top and hide the image).
+              className={`relative z-10 w-full h-full object-contain ${padding} transition-transform duration-500 ease-out group-hover:scale-110`}
               loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />

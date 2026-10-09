@@ -9,6 +9,7 @@ export interface NotificationJobData {
   to: string;
   subject?: string;
   body: string;
+  attachments?: Array<{ filename: string; contentBase64: string; contentType?: string }>;
 }
 
 @Processor('notification')
@@ -33,14 +34,14 @@ export class NotificationProcessor {
   }
 
   private async processJob(job: Job<NotificationJobData>): Promise<void> {
-    const { notificationId, channel, to, subject, body } = job.data;
+    const { notificationId, channel, to, subject, body, attachments } = job.data;
 
     this.logger.log(
       `[Processor] Processing notification ${notificationId} via ${channel} (attempt ${job.attemptsMade + 1})`,
     );
 
     try {
-      const result = await this.notificationService.processDelivery(notificationId, channel, to, subject, body);
+      const result = await this.notificationService.processDelivery(notificationId, channel, to, subject, body, attachments);
 
       if (result.success) {
         this.logger.log(`[Processor] Delivered ${notificationId} via ${channel}: id=${result.providerMessageId}`);

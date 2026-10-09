@@ -47,6 +47,13 @@ export class RedisService implements OnModuleDestroy {
     return client.get(key);
   }
 
+  async setWithTTL(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const client = await this.getClient();
+    const result = await client.set(key, value, { EX: ttlSeconds });
+    // ioredis createClient returns 'OK' on success
+    return result === 'OK';
+  }
+
   async set(key: string, value: string, options?: { EX?: number }): Promise<void> {
     const client = await this.getClient();
     await client.set(key, value, options ?? {});

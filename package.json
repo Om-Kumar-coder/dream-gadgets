@@ -17,8 +17,6 @@
     "test:e2e": "playwright test tests/e2e/",
     "test:e2e:web": "playwright test tests/e2e/web/",
     "test:e2e:admin": "playwright test tests/e2e/admin/",
-    "test:components": "jest tests/components/",
-    "test:integration": "jest tests/integration/",
     "test:all": "./run-all-tests.sh",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",

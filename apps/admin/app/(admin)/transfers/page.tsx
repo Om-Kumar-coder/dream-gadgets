@@ -151,6 +151,41 @@ export default function TransfersPage() {
     },
   });
 
+  // The manifest endpoint is JWT-protected (Bearer token from localStorage), so
+  // it must be fetched through apiClient and handled as binary data — a plain
+  // <a href> navigation carries no Authorization header and returns 401.
+  const downloadManifest = useMutation({
+    mutationFn: async (transfer: Transfer) => {
+      const res = await apiClient.get(`/transfers/${transfer.id}/manifest`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], { type: 'application/pdf' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${transfer.transferNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+    onError: async (error: any) => {
+      // With responseType 'blob' an error body arrives as a Blob — read it back.
+      let message = 'Failed to download manifest';
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          message = parsed?.error?.message || parsed?.message || message;
+        } catch {
+          // keep default message
+        }
+      } else {
+        message = data?.error?.message || data?.message || message;
+      }
+      toast.error(message);
+    },
+  });
+
   const TransferActions = ({ transfer }: { transfer: Transfer }) => {
     const [showMenu, setShowMenu] = useState(false);
 
@@ -207,14 +242,16 @@ export default function TransfersPage() {
                   <XCircle className="w-3.5 h-3.5" /> Reject
                 </button>
               )}
-              <a
-                href={`/api/v1/transfers/${transfer.id}/manifest`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+              <button
+                onClick={() => {
+                  downloadManifest.mutate(transfer);
+                  setShowMenu(false);
+                }}
+                disabled={downloadManifest.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FileText className="w-3.5 h-3.5" /> Manifest PDF
-              </a>
+              </button>
             </div>
           </>
         )}

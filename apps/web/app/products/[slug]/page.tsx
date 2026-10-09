@@ -9,6 +9,7 @@ import { PriceComparison } from '../../../components/product/PriceComparison';
 import { JsonLd } from '../../../components/seo/JsonLd';
 import { BreadcrumbJsonLd } from '../../../components/seo/BreadcrumbJsonLd';
 import { WHATSAPP_NUMBER } from '../../../lib/contact';
+import { resolveImageUrl } from '../../../lib/images';
 
 /** Force dynamic rendering so notFound() returns proper HTTP 404 status. */
 export const dynamic = 'force-dynamic';
@@ -56,20 +57,30 @@ async function getProduct(slug: string) {
 }
 
 async function getReviews(itemId: string) {
-  if (!itemId) return { data: [], summary: { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 } };
+  const defaultSummary = { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 };
+  if (!itemId) return { data: [], summary: defaultSummary };
   try {
     const res = await fetch(`${API}/public/products/${itemId}/reviews`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) return { data: [], summary: { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 } };
+    if (!res.ok) return { data: [], summary: defaultSummary };
     const json = await res.json();
-    const unwrapped = json.data ?? json;
+    const payload = json.data ?? json;
+    const reviewList = Array.isArray(payload.reviews)
+      ? payload.reviews
+      : Array.isArray(payload.data?.data)
+      ? payload.data.data
+      : Array.isArray(payload.data)
+      ? payload.data
+      : Array.isArray(payload)
+      ? payload
+      : [];
     return {
-      data: unwrapped.data ?? [],
-      summary: unwrapped.summary ?? { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 },
+      data: reviewList,
+      summary: payload.summary ?? defaultSummary,
     };
   } catch {
-    return { data: [], summary: { total_reviews: 0, avg_rating: 0, '5_star': 0, '4_star': 0, '3_star': 0, '2_star': 0, '1_star': 0 } };
+    return { data: [], summary: defaultSummary };
   }
 }
 
@@ -96,7 +107,9 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   const originalPrice = Number(product.selling_price ?? 0) > price ? Number(product.selling_price) : null;
   const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
   const name = product.item_name ?? `${product.brand ?? ''} ${product.model ?? ''} ${product.storage ?? ''}`.trim();
-  const photos: string[] = (product.images ?? []).filter(Boolean);
+  const photos: string[] = (product.images ?? [])
+    .map((u: string) => resolveImageUrl(u))
+    .filter(Boolean) as string[];
   const imageUrls = photos.length > 0 ? photos : ['/images/placeholders/no-image.svg'];
 
   const reviewsData = await getReviews(product.id);

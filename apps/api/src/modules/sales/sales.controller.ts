@@ -58,8 +58,8 @@ export class SalesController {
   @Get(':id')
   @RequirePermission('sales.view')
   @ApiOperation({ summary: 'Get sale by ID' })
-  async findById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.salesService.findById(id);
+  async findById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.salesService.findById(id, user);
   }
 
   // ─── 7.7 A4 invoice PDF ──────────────────────────────────────────────────────
@@ -67,8 +67,8 @@ export class SalesController {
   @Get(':id/invoice')
   @RequirePermission('sales.view')
   @ApiOperation({ summary: 'Generate A4 GST invoice PDF' })
-  async getInvoice(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    const pdfBuffer = await this.salesService.generateInvoicePdf(id);
+  async getInvoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const pdfBuffer = await this.salesService.generateInvoicePdf(id, user);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
@@ -82,8 +82,8 @@ export class SalesController {
   @Get(':id/invoice/thermal')
   @RequirePermission('sales.view')
   @ApiOperation({ summary: 'Generate thermal 80mm receipt PDF' })
-  async getThermalInvoice(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    const pdfBuffer = await this.salesService.generateThermalPdf(id);
+  async getThermalInvoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const pdfBuffer = await this.salesService.generateThermalPdf(id, user);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="receipt-${id}.pdf"`,
@@ -101,8 +101,9 @@ export class SalesController {
   async emailInvoice(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { email?: string },
+    @CurrentUser() user: any,
   ) {
-    return this.salesService.emailInvoice(id, body.email);
+    return this.salesService.emailInvoice(id, body.email, user);
   }
 
   // ─── 7.8 WhatsApp invoice ────────────────────────────────────────────────────
@@ -114,8 +115,9 @@ export class SalesController {
   async whatsappInvoice(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { phone?: string },
+    @CurrentUser() user: any,
   ) {
-    return this.salesService.whatsappInvoice(id, body.phone);
+    return this.salesService.whatsappInvoice(id, body.phone, user);
   }
 
   // ─── 7.9 Void sale ───────────────────────────────────────────────────────────
@@ -125,7 +127,7 @@ export class SalesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Void a sale (requires sales.approve permission)' })
   async voidSale(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.salesService.voidSale(id, user.sub);
+    return this.salesService.voidSale(id, user.sub, user);
   }
 
   // ─── 7.10 POS item lock ──────────────────────────────────────────────────────

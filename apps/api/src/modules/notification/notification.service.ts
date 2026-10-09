@@ -6,6 +6,7 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bull';
 import { Notification } from './entities/notification.entity';
 import { EmailService } from './channels/email.service';
+import type { EmailAttachment } from './channels/email.service';
 import { SmsService } from './channels/sms.service';
 import { WhatsAppService } from './channels/whatsapp.service';
 import { EventService } from '../../common/events/event.service';
@@ -22,6 +23,8 @@ export interface NotificationPayload {
   templateKey?: string;
   templateVars?: Record<string, string>;
   metadata?: Record<string, any>;
+  /** Optional email attachments (JSON-safe base64) — email channel only. */
+  attachments?: EmailAttachment[];
 }
 
 export interface DeliveryResult {
@@ -132,9 +135,13 @@ export class NotificationService {
 
     const { subject, body } = await this.buildContent(payload);
     const { body: formatted } = this.formatForChannel('email', subject, body, payload.templateKey, payload.templateVars);
-    const notification = await this.createRecord({ ...payload, channel: 'email', subject, body: formatted, target: payload.to });
+    // Persist attachments in metadata so a queue retry re-sends the same document.
+    const metadata = payload.attachments?.length
+      ? { ...(payload.metadata ?? {}), emailAttachments: payload.attachments }
+      : payload.metadata;
+    const notification = await this.createRecord({ ...payload, channel: 'email', subject, body: formatted, target: payload.to, metadata });
 
-    await this.enqueueDelivery('email', notification.id, payload.to, subject, formatted);
+    await this.enqueueDelivery('email', notification.id, payload.to, subject, formatted, payload.attachments);
 
     // Emit realtime event
     this.emitNotificationCreated(notification);
@@ -220,11 +227,12 @@ export class NotificationService {
     to: string,
     subject?: string,
     body?: string,
+    attachments?: EmailAttachment[],
   ): Promise<void> {
     try {
       await this.notificationQueue.add(
         channel,
-        { notificationId, channel, to, subject, body },
+        { notificationId, channel, to, subject, body, ...(attachments?.length ? { attachments } : {}) },
         {
           attempts: MAX_RETRY_ATTEMPTS,
           backoff: { type: 'exponential', delay: 2000 },
@@ -235,7 +243,7 @@ export class NotificationService {
     } catch (err: any) {
       this.logger.warn(`[Queue] Failed to enqueue ${channel} for ${notificationId}: ${err?.message}`);
       // Fallback: deliver synchronously
-      const result = await this.deliverDirect(channel, to, subject, body);
+      const result = await this.deliverDirect(channel, to, subject, body, attachments);
       await this.updateDeliveryResult(notificationId, result);
     }
   }
@@ -248,6 +256,7 @@ export class NotificationService {
     to: string,
     subject?: string,
     body?: string,
+    attachments?: EmailAttachment[],
   ): Promise<DeliveryResult> {
     // Track attempt
     await this.notificationRepo.update(notificationId, {
@@ -255,7 +264,7 @@ export class NotificationService {
       lastAttemptAt: new Date(),
     });
 
-    const result = await this.deliverDirect(channel, to, subject, body);
+    const result = await this.deliverDirect(channel, to, subject, body, attachments);
     await this.updateDeliveryResult(notificationId, result);
     return result;
   }
@@ -265,10 +274,11 @@ export class NotificationService {
     to: string,
     subject?: string,
     body?: string,
+    attachments?: EmailAttachment[],
   ): Promise<DeliveryResult> {
     switch (channel) {
       case 'email':
-        return this.emailService.send(to, subject ?? '', body ?? '');
+        return this.emailService.send(to, subject ?? '', body ?? '', attachments);
       case 'sms':
         return this.smsService.send(to, body ?? '');
       case 'whatsapp':
@@ -440,12 +450,14 @@ export class NotificationService {
       throw new Error(`Notification ${notificationId} has no target address`);
     }
 
+    const retryAttachments = (notification.metadata as any)?.emailAttachments as EmailAttachment[] | undefined;
     await this.enqueueDelivery(
       notification.channel as 'email' | 'sms' | 'whatsapp',
       notificationId,
       target,
       notification.subject ?? undefined,
       notification.body ?? undefined,
+      retryAttachments,
     );
 
     return (await this.findById(notificationId))!;

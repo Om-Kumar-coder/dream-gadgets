@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
 import { CacheModule } from '@nestjs/cache-manager';
 import appConfig from './config/app.config';
@@ -56,7 +57,11 @@ import { EventsModule } from './common/events/events.module';
       }),
     }),
 
-    // Rate limiting
+    // Rate limiting — BUG-13: ThrottlerModule was configured but no
+    // ThrottlerGuard was ever registered, so per-route @Throttle decorators
+    // (login 10/min, OTP 3/min, contact 5/min, …) were all inert. Registering
+    // the guard globally activates them; the default above still allows
+    // 100 requests/60s per IP for normal browsing.
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: () => ({
@@ -116,6 +121,11 @@ import { EventsModule } from './common/events/events.module';
     CouponModule,
     WhatsappModule,
     EmiModule,
+  ],
+
+  providers: [
+    // BUG-13: makes every @Throttle(...) decorator effective.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}
