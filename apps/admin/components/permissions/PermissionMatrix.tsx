@@ -50,6 +50,15 @@ const MODULE_GROUPS: Record<string, { label: string; modules: string[] }> = {
 const ALL_MODULES = Object.values(MODULE_GROUPS).flatMap((g) => g.modules);
 const ALL_ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'approve', 'send', 'retry'];
 
+// Every permission this grid is able to render and toggle. Anything outside it
+// (branches.*, roles.*, products.publish, financial.pnl, financial.reports …)
+// is invisible to the operator, so All / None / preset must never drop it —
+// the API now writes role_permissions for real (BUG-01), so silently omitting
+// one would actually revoke it in production.
+const GRID_DOMAIN = new Set(
+  ALL_MODULES.flatMap((m) => ALL_ACTIONS.map((a) => `${m}.${a}`)),
+);
+
 // Role display config
 const ROLE_DISPLAY: Record<string, { label: string; color: string }> = {
   shop_owner: { label: 'Owner', color: 'bg-purple-100 text-purple-700 border-purple-200' },
@@ -184,6 +193,15 @@ export function PermissionMatrix() {
     });
   };
 
+  // Rebuild a role's set from scratch (All / None) while keeping every
+  // permission the grid cannot represent, so they are never silently revoked.
+  const rebuildPreservingOutOfGrid = (roleId: string, base: Set<string>): Set<string> => {
+    for (const perm of allPermissions?.[roleId] ?? []) {
+      if (!GRID_DOMAIN.has(perm)) base.add(perm);
+    }
+    return base;
+  };
+
   // Toggle all permissions for a role
   const toggleAllRolePermissions = (roleId: string, enabled: boolean) => {
     if (!canEdit) return;
@@ -197,6 +215,7 @@ export function PermissionMatrix() {
           }
         }
       }
+      rebuildPreservingOutOfGrid(roleId, current);
       setHasUnsavedChanges(true);
       return { ...prev, [roleId]: current };
     });
@@ -210,7 +229,7 @@ export function PermissionMatrix() {
 
     setPendingChanges((prev) => ({
       ...prev,
-      [roleId]: new Set(preset.permissions),
+      [roleId]: rebuildPreservingOutOfGrid(roleId, new Set(preset.permissions)),
     }));
     setHasUnsavedChanges(true);
     setShowPresets(false);

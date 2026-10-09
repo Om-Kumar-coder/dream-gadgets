@@ -995,7 +995,7 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 
 | ID | Bug | Area | Severity | Reproduction | Root cause | Status | Files |
 |---|---|---|---|---|---|---|---|
-| BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED** (2026-10-09; unit + live read-path verified; not yet deployed — §31) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
+| BUG-01 | Role-matrix permissions don't affect login tokens | Auth/RBAC | CRITICAL | Edit role permissions in UI, log in as that role, JWT permissions unchanged | UI writes `settings`, login reads `role_permissions` | **FIXED + DEPLOYED** (2026-10-09, `f1d0e71`; API rebuilt & restarted — §31; UI→JWT round-trip NOT VERIFIED) | admin.service.ts, auth.service.ts, admin.service.spec.ts |
 | BUG-02 | PhonePe mock confirms unpaid orders when unconfigured | Payments | CRITICAL | Unset PhonePe env in prod, initiate payment | mock `COMPLETED` not NODE_ENV-gated | CONFIRMED (code) | phonepe.service.ts |
 | BUG-03 | `.env.bak-*` secrets backups untracked AND un-ignored | Secrets | CRITICAL | `ls apps/api/.env*`; `git ls-files` | ops backups, no `.gitignore` rule | CONFIRMED | apps/api/.env.bak-* |
 | BUG-04 | Reports silently return empty | Reports | HIGH | `GET /reports/gst`, `daily_sales`, `exchange` | SQL references absent columns | CONFIRMED | report.service.ts |
@@ -1019,6 +1019,7 @@ Distinguish **CONFIRMED** (proved by code/execution) from **SUSPECTED**.
 | BUG-22 | GET messages mutates read state | WhatsApp | LOW | GET messages, observe unread reset | side effect in query | CONFIRMED | whatsapp.service.ts |
 | BUG-23 | Dashboard `netIncome` ignores purchases | Reports | LOW | View dashboard | `todayPurchasesValue=0` TODO | CONFIRMED | report.service.ts:135 |
 | BUG-24 | `invoice_sequences` unused | DB | LOW | grep | Redis authoritative | CONFIRMED | redis.service.ts |
+| BUG-25 | Permission grid silently revokes permissions it cannot render | Admin UI / RBAC | HIGH | Apply any preset, or click a role's **All**/**None**, on a role holding `branches.*`/`roles.*` | `MODULE_GROUPS`/`ALL_ACTIONS` are a hardcoded subset of the 24 modules in `permissions`; All/None/preset rebuild the set from that subset only | FIXED (2026-10-09, deployed with BUG-01 — §31) | PermissionMatrix.tsx |
 
 ---
 
@@ -1453,5 +1454,67 @@ So the matrix UI displayed a near-empty permission set while the JWT carried the
 **Status:** ✅ FIXED at source + unit level; read-path validated against live data.
 
 **Remaining limitation:** the live PM2 `dream-gadgets-api` process still runs the **old compiled build** — the fix is not deployed (no rebuild/restart performed). UI end-to-end verification (edit matrix → re-login → observe JWT change) is **NOT VERIFIED** and requires a deploy, which is intentionally deferred. Also note pre-existing roles created via the UI before this fix may have little/no data in `role_permissions`; their settings mirror is not migrated.
+
+### 2026-10-09 (later) — BUG-01 deployed; BUG-25 found during deploy verification and fixed
+
+> This entry supersedes the "Remaining limitation" in the entry above.
+
+**Commit.** `f1d0e71` — 3 files only (`admin.service.ts`, `admin.service.spec.ts`, `current_status.md`). ~50 pre-existing modified files in the working tree were deliberately **not** staged.
+
+**Deploy — API.**
+- Pre-flight: confirmed `find apps/api/src -newer apps/api/dist/main.js` returned **only** `admin.service.ts` (+ its spec), i.e. the deployed `dist` already matched HEAD apart from this fix — nothing else rode along.
+- `dist` backed up to `/tmp/api-dist-backup-1791526467`.
+- `npx nest build` → exit 0. Compiled output verified to contain `writeRolePermissions` (×3) and `DELETE FROM role_permissions`, and to contain **no** settings-mirror read for `getRolePermissions`.
+- `pm2 restart dream-gadgets-api` → new pid 1924518, `Nest application successfully started`, `Dream Gadgets API running on port 3000`, health 200 on first poll.
+
+**Deploy — admin UI.**
+- `.next` (1.2G) backed up to `/tmp/admin-next-backup-1791526703.tar`.
+- `pm2 stop` → `npx next build` (exit 0) → `pm2 start`, so a half-written `.next` was never served.
+- Login page 200 within ~6s of start.
+
+**Post-deploy smoke test (all three services):**
+
+| Service | Endpoint | Result |
+|---|---|---|
+| API | `/api/v1/health` | 200 |
+| API | `/api/v1/public/products?limit=2` | 200 |
+| API | `/api/v1/public/branches` | 200 |
+| Admin | `/admin` | 200 |
+| Admin | `/admin/login` | 200 |
+| Admin | `/admin/settings` | 307 (expected auth redirect) |
+| Web | `/` | 200 |
+| Web | `/products` | 200 |
+
+Live storefront traffic continued in the API log across the restart; **no new entries** appeared in the API or admin error logs.
+
+**PM2 `dream-gadgets-api` ↺1255 restart count — investigated, NOT a crash loop.** The process had been up 47.4h before this deploy. The counter is historical: the error log's bulk is a 2026-09-21 incident repeating `Cannot find module '/var/www/dream-gadgets/apps/api/dist/main.js'` (dist absent → PM2 crash-looped until a rebuild), plus isolated one-offs (Redis socket drop 09-30 and 10-07, image-type validation 10-05, duplicate `sales.invoice_number` 09-23). The out log holds 184 `successfully started` markers total. **Status: explained, no action taken.**
+
+**BUG-25 — new bug found while verifying BUG-01's blast radius (and fixed in the same deploy).**
+
+Deploying BUG-01 made the matrix's writes *effective* for the first time, which exposed a latent defect in the admin grid: it cannot render every permission that exists.
+
+- `PermissionMatrix.tsx` hardcodes `MODULE_GROUPS` (21 modules) × `ALL_ACTIONS` (8 actions) = a 168-entry grid, but the live `permissions` table has **24 modules**.
+- Permissions that exist and are actually **held by roles** but are invisible in the grid (live read-only query):
+
+| Invisible permission | Roles holding it |
+|---|---:|
+| `branches.view` / `roles.view` | 3 |
+| `branches.create`, `branches.edit`, `branches.delete` | 1 each |
+| `roles.create`, `roles.edit`, `roles.delete` | 1 each |
+| `products.publish` | 3 |
+| `financial.pnl`, `financial.reports` | 1 each |
+
+- The grid's **All**, **None** and **preset** actions rebuild the role's set *from the grid lists only*. Before BUG-01 those writes landed in the inert settings mirror, so the defect was harmless. After the deploy they would have deleted those rows from `role_permissions` — i.e. clicking **All** or applying a preset would have silently revoked branch and role management from a role that has them (potentially locking someone out of role administration). Plain single toggles were already safe, because they start from the saved set.
+- No preset includes `branches` or `roles` at all — even "Full Access" would have dropped them.
+
+**Fix (minimal, UI-side):** added `GRID_DOMAIN` (the exact set the grid can render) and `rebuildPreservingOutOfGrid()`. `toggleAllRolePermissions` and `applyPreset` now union in any *assigned* permission outside `GRID_DOMAIN`. Invariant: **the grid only ever controls permissions it can actually display** — so All/None/preset can no longer revoke anything invisible. Single toggles and module-level toggles were already scoped to the grid domain and are unchanged.
+
+**Files:** `apps/admin/components/permissions/PermissionMatrix.tsx` (single choke point — it is the only writer of `permissions: [...]` in the admin app).
+
+**Verification:** admin `npx tsc --noEmit` exit 0; `npx next build` exit 0; deployed and smoke-tested above.
+
+**NOT VERIFIED:** the human UI round-trip (open matrix → toggle → Save → re-login → JWT reflects the change). This needs a real admin session and was not performed; it is the outstanding item for BUG-01.
+
+**Deferred follow-up (not a bug, an incompleteness):** the grid still cannot *display* `branches.*`, `roles.*`, `products.publish` or `financial.pnl/reports`, so an operator can't toggle them here — they are now protected from silent revocation, but remain unmanageable through this UI. Logged as a P3 enhancement.
 
 *End of current_status.md.*
